@@ -215,6 +215,56 @@ const server = http.createServer(async (req, res) => {
     }
 
     const table = /^\/rest\/v1\/([a-z_]+)$/.exec(url.pathname);
+    if (table && ["POST", "PATCH", "DELETE"].includes(req.method ?? "")) {
+      // Writes: INSERT (incl. upsert via on_conflict), UPDATE and DELETE with filters.
+      const prefer = String(req.headers.prefer ?? "");
+      const { where, values } = parseFilters(url.searchParams);
+      const target = `public.${ident(table[1])}`;
+      const param = (v) => {
+        values.push(v !== null && typeof v === "object" ? JSON.stringify(v) : (v ?? null));
+        return `$${values.length}`;
+      };
+      let sql;
+      if (req.method === "POST") {
+        const body = await readBody(req);
+        const rowsIn = Array.isArray(body) ? body : [body];
+        const cols = [...new Set(rowsIn.flatMap((r) => Object.keys(r)))];
+        values.length = 0;
+        const tuples = rowsIn.map((r) => `(${cols.map((c) => param(r[c])).join(", ")})`);
+        const onConflict = url.searchParams.get("on_conflict");
+        const conflict = onConflict
+          ? ` on conflict (${onConflict.split(",").map(ident).join(", ")}) do ${
+              prefer.includes("ignore-duplicates")
+                ? "nothing"
+                : `update set ${cols.map((c) => `${ident(c)} = excluded.${ident(c)}`).join(", ")}`
+            }`
+          : "";
+        sql = `insert into ${target} (${cols.map(ident).join(", ")}) values ${tuples.join(", ")}${conflict} returning *`;
+      } else if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const sets = Object.keys(body).map((c) => `${ident(c)} = ${param(body[c])}`);
+        sql = `update ${target} set ${sets.join(", ")}${where.length ? ` where ${where.join(" and ")}` : ""} returning *`;
+      } else {
+        sql = `delete from ${target}${where.length ? ` where ${where.join(" and ")}` : ""} returning *`;
+      }
+      try {
+        const result = await asUser(user.id, (c) => c.query(sql, values));
+        if (!prefer.includes("return=representation"))
+          return send(res, req.method === "POST" ? 201 : 204);
+        if ((req.headers.accept ?? "").includes("vnd.pgrst.object")) {
+          if (result.rows.length !== 1) {
+            return send(res, 406, {
+              code: "PGRST116",
+              message: "JSON object requested, multiple (or no) rows returned",
+            });
+          }
+          return send(res, 200, result.rows[0]);
+        }
+        return send(res, req.method === "POST" ? 201 : 200, result.rows);
+      } catch (error) {
+        return send(res, 400, { code: error.code, message: error.message });
+      }
+    }
     if (table) {
       const select = (url.searchParams.get("select") ?? "*")
         .split(",")

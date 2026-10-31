@@ -11,7 +11,7 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const STAGES = { 1: "20261031", 2: "20261101" };
+export const STAGES = { 1: "20261031", 2: "20261101", 3: "20261102", 4: "20261103" };
 
 function migrations(root) {
   const dir = join(root, "supabase", "migrations");

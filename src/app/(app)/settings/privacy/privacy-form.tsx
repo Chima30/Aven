@@ -23,15 +23,14 @@ export function PrivacyForm({
           <Switch
             id="aiEnabled"
             label="AI features"
-            badge={<Badge>Assistant arrives in Stage 6</Badge>}
+            badge={<Badge>No AI provider in use</Badge>}
             description="When off, AVEN will never send your data to an AI provider — even if you have granted the AI permission below. Off by default."
             defaultChecked={aiEnabled}
           />
           <Switch
             id="memoryPaused"
             label="Pause memory"
-            badge={<Badge>Memory arrives in Stage 6</Badge>}
-            description="When on, AVEN will not create any new long-term memories, whatever your memory permissions say."
+            description="When on, AVEN will not create any new long-term memories or recall existing ones, whatever your memory permissions say."
             defaultChecked={memoryPaused}
           />
         </div>

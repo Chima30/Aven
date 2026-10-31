@@ -12,6 +12,8 @@ const LABELS: Record<string, string> = {
   "privacy.ai_preference_changed": "AI features setting changed",
   "privacy.memory_pause_changed": "Memory pause setting changed",
   "data.exported": "Data exported",
+  "finance.chain_import": "Sui transaction imported",
+  "intelligence.recommendation_answered": "Recommendation answered",
 };
 
 export function auditLabel(action: string, metadata: Record<string, unknown> = {}): string {

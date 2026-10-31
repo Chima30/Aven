@@ -1,7 +1,20 @@
 # Architecture
 
-This document describes the architecture through Stage 2. Finance details are in
-[FINANCE.md](FINANCE.md); offline sync in [OFFLINE.md](OFFLINE.md).
+This document describes the architecture through Stage 4 (Walrus Memory, Tatum Sui and the
+intelligence engine). Finance details are in [FINANCE.md](FINANCE.md); offline sync in
+[OFFLINE.md](OFFLINE.md); memory in [MEMORY.md](MEMORY.md); the engine in
+[INTELLIGENCE.md](INTELLIGENCE.md).
+
+```
+                          ┌──────────────── AVEN server (Vercel, Node runtime) ────────────────┐
+ Browser ── session ──►   │ Server Components / Actions                                         │
+                          │   ├─ Supabase (user session, RLS) ── records, recommendations       │
+                          │   ├─ intelligence/  analyse → recall → recommend → explain          │
+                          │   ├─ memory/        MemWal SDK ── HTTPS ──► MemWal relayer ──► Walrus│
+                          │   │                  (delegate key + HMAC namespaces: server only)  │
+                          │   └─ sui/           @mysten/sui gRPC ── x-api-key ──► Tatum ──► Sui  │
+                          └─────────────────────────────────────────────────────────────────────┘
+```
 
 ## 1. Project structure
 
@@ -10,8 +23,11 @@ src/
   app/
     (marketing)/        Landing page, privacy and terms drafts (public)
     (auth)/             Sign in, sign up, check email, forgot/reset password, auth-error
-    (app)/              Signed-in area: /overview, /money/*, /settings/* (server-verified session)
+    (app)/              Signed-in area: /overview, /money/*, /intelligence/*, /settings/*
       money/              Dashboard, transactions, accounts, budgets, goals, categories, sync
+      money/wallets/        Read-only Sui wallets + confirmed on-chain imports (actions.ts)
+      intelligence/         Insights & recommendations; Walrus Memory management (actions.ts)
+      settings/integrations/  Live health of Walrus relayer and Tatum Sui gateway
       money/actions.ts    Server Actions for accounts, categories, budgets, goals
       settings/actions.ts   All settings Server Actions (profile, regional, consent, delete…)
       settings/data/export/route.ts   JSON export (POST)
@@ -36,11 +52,17 @@ src/
     nudges/                   deterministic notification rules + time-zone maths
     offline/                  IndexedDB layout, outbox, batch sync engine, controller, transport
     finance/                  amount input, schemas, queue rules, projections, periods, queries
-    memory/                   Walrus Memory boundary: types, policy gate, disabled store
+    integrations/             optional MemWal / Tatum config (server-only) and health checks
+    memory/                   Walrus Memory: text format, policy gate, HMAC namespaces, MemWal
+                              client, service (remember/refresh/recall/forget), repository
+    intelligence/             deterministic analysis, learning signals from recalled memories,
+                              recommendations with explanations, memory candidates
+    sui/                      address utils, @mysten/sui readers (gRPC / gRPC-web / JSON-RPC),
+                              caching + error classification
     data/export.ts            user data export
   proxy.ts               Session refresh + optimistic route protection (Next 16 "proxy")
 supabase/
-  migrations/            7 ordered SQL migrations (source of truth)
+  migrations/            10 ordered SQL migrations (source of truth)
   setup_all_in_one.sql   Generated: every migration, for a brand-new project
   upgrades/stageN.sql    Generated: one stage's migrations, for an existing project
 tests/
@@ -48,6 +70,8 @@ tests/
   db/                    RLS and database function tests against real PostgreSQL
   e2e/                   Playwright: public flows + signed-in finance and offline sync
   e2e/support/fake-supabase.mjs   Test-only Supabase HTTP stand-in over real Postgres
+  live/                  OPTIONAL Walrus/Tatum Mainnet checks with your own credentials
+verification/            Evidence files written by the live checks
 ```
 
 ## 2. Request flow and data access
@@ -60,8 +84,10 @@ Browser ──► proxy.ts ──► Server Component / Server Action / Route Ha
 
 - **Normal reads and writes always use the signed-in user's session**, so Postgres Row Level
   Security decides what is visible. The user id is never taken from form input.
-- **The admin (secret-key) client is used in exactly one place**: account deletion
-  (`deleteAccountAction`), after server-verified re-authentication.
+- **The admin (secret-key) client is used in three narrow places**: account deletion (after
+  server-verified re-authentication), writing `memory_records` (job ids, blob ids and statuses
+  come from the MemWal relayer and must not be forgeable by users), and linking a
+  recommendation to its outcome memory. Every admin query is filtered by the session's user id.
 - **Finance writes have one path**: `apply_finance_mutation()` (ownership checks,
   versions, idempotency receipts). Users have read-only table access. Transactions reach it
   through the IndexedDB outbox and `/api/sync`; other finance entities through Server Actions.
@@ -106,7 +132,7 @@ Design tokens live in `src/app/globals.css` (deep navy, warm off-white, restrain
 dark and system themes). Theme preference is saved in the database and mirrored in a cookie so
 pages render in the right theme without a flash. Components are accessible by default: real
 form controls, labels wired to hints/errors, native `<dialog>`, focus rings, skip link, reduced
-motion support. Unbuilt sections appear in navigation as non-clickable "Stage N" labels.
+motion support. Unbuilt sections appear in navigation as non-clickable "Later" labels.
 
 ## 6. Offline-first
 
@@ -120,13 +146,37 @@ See [NUDGE_CENTER.md](NUDGE_CENTER.md). Preferences and the deterministic delive
 exist since Stage 1; Stage 2 adds de-duplicated `finance_events` (budget threshold/exceeded,
 savings milestones, sync failed/completed). No notifications are sent yet.
 
-## 8. Walrus Memory boundary
+## 8. Walrus Memory
 
-See [MEMORY.md](MEMORY.md). Stage 1 ships the consent categories (locked until Stage 6), the
-`MemoryStore` interface, the `evaluateMemoryCandidate` policy gate, and a `disabledMemoryStore`
-that throws on every call. No Walrus code or credentials exist yet.
+See [MEMORY.md](MEMORY.md). Memory text lives on Walrus Mainnet (encrypted by the MemWal
+relayer); Supabase keeps only bookkeeping (label, content hash, job id, blob id, status) and a
+short-lived outbox copy while a write is in flight. Every write passes the policy gate
+(consent, pause, durability, sensitive-content guard); every recall is limited to the signed-in
+user's HMAC namespace and drops forgotten memories.
 
-## 9. Key decisions and trade-offs
+## 9. Intelligence and the learning loop
+
+See [INTELLIGENCE.md](INTELLIGENCE.md). On each visit to /intelligence:
+
+1. Load the user's records (RLS) and analyse them deterministically (completed months only for
+   history; fixed charges are not projected).
+2. Recall the user's memories from Walrus (3 queries, merged) and parse them into learning
+   signals: past outcomes per suggestion, savings target, repeatedly overspent categories.
+3. Build recommendations; each records which recalled memory changed it (`memory_influence`).
+4. The user accepts, declines or changes the amount → `respond_to_recommendation()` → the
+   outcome is written to Walrus → next time it is recalled and changes the suggestion.
+5. Pattern memories from completed months are written to Walrus in the background (`after()`),
+   deduplicated by content hash.
+
+## 10. Sui via Tatum
+
+See [TATUM_SETUP.md](TATUM_SETUP.md). The official `@mysten/sui` gRPC client runs on the
+server with Tatum's API key as `x-api-key` metadata. Results are cached briefly; errors are
+classified (unauthorized / rate limited / unsupported / unavailable) and shown in plain words.
+On-chain data is displayed separately; it becomes an AVEN transaction only through
+`import_chain_transaction()` after the user confirms it, with digest and near-duplicate checks.
+
+## 11. Key decisions and trade-offs
 
 | Decision                                         | Why                                                                                                                             | Trade-off                                                         |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -140,3 +190,8 @@ that throws on every call. No Walrus code or credentials exist yet.
 | Every transaction via the outbox                 | One code path online and offline; nothing lost mid-request                                                                      | A sync round-trip before the confirmed balance updates            |
 | Finance writes via one SECURITY DEFINER function | Single audited write path with idempotency and versions                                                                         | Ownership checks must be explicit (covered by DB tests)           |
 | CSP with `'unsafe-inline'` scripts               | Required by Next.js bootstrap without nonces                                                                                    | Nonce-based CSP planned for Stage 8 hardening                     |
+| Walrus text, Supabase bookkeeping only           | Walrus is the real long-term memory; Supabase can show status without duplicating content                                       | Showing memory text needs a recall round-trip to the relayer      |
+| One MemWal account, HMAC namespaces per user     | Users need no wallet; namespaces can't be chosen by requests or linked to user ids                                              | AVEN's delegate key can read every user's memories (disclosed)    |
+| "Forget" = suppression                           | The MemWal SDK has no delete; suppression by blob id **and** content hash is enforceable                                        | Encrypted copies remain on Walrus (disclosed before consent)      |
+| Deterministic engine, no AI model                | Numbers can't be invented; explanations are reproducible and testable                                                           | Less flexible language than an LLM                                |
+| Sui gRPC instead of JSON-RPC                     | JSON-RPC is deprecated and disabled on Foundation Mainnet nodes                                                                 | Needs the Node runtime (HTTP/2); gRPC-web/JSON-RPC as fallbacks   |

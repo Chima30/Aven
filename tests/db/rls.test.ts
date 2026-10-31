@@ -44,6 +44,10 @@ const USER_OWNED_TABLES: Array<[table: string, ownerColumn: string]> = [
   ["savings_goals", "user_id"],
   ["savings_goal_entries", "user_id"],
   ["finance_events", "user_id"],
+  ["memory_records", "user_id"],
+  ["recommendations", "user_id"],
+  ["sui_wallets", "user_id"],
+  ["chain_imports", "user_id"],
 ];
 
 beforeAll(async () => {
@@ -99,6 +103,47 @@ async function seedFinance(uid: string) {
         throw new Error(`seed failed: ${entity} ${JSON.stringify(rows[0])}`);
     }
   });
+  // Stage 3–4 rows: a wallet + confirmed import, a recommendation (user writes)
+  // and a memory record (server writes).
+  const digest = uid === alice ? "8".repeat(43) : "9".repeat(43);
+  await asUser(db, uid, async (c) => {
+    const wallet = (
+      await c.query<{ id: string }>(
+        "insert into sui_wallets (user_id, address) values ($1, $2) returning id",
+        [uid, `0x${(uid === alice ? "a" : "b").repeat(64)}`],
+      )
+    ).rows[0]!.id;
+    const { rows } = await c.query<{ r: { status: string } }>(
+      "select import_chain_transaction($1, $2, $3, $4, $5) as r",
+      [
+        randomUUID(),
+        wallet,
+        digest,
+        randomUUID(),
+        JSON.stringify({
+          kind: "expense",
+          account_id: account,
+          amount_minor: "777",
+          currency_code: "USD",
+          occurred_on: "2026-11-03",
+        }),
+      ],
+    );
+    if (rows[0]?.r.status !== "imported")
+      throw new Error(`import seed failed: ${JSON.stringify(rows[0])}`);
+    await c.query(
+      `insert into recommendations (user_id, kind, dedupe_key, period, title, explanation, currency_code)
+       values ($1, 'increase_savings', 'increase_savings:savings:2026-11', '2026-11', 'Save more', 'Because.', 'USD')`,
+      [uid],
+    );
+  });
+  await asService(db, (c) =>
+    c.query(
+      `insert into memory_records (user_id, category, kind, label, content_hash, status, job_id, job_status, blob_id)
+       values ($1, 'memory_financial', 'preference', 'Seed', $2, 'stored', 'job-1', 'done', 'blob-1')`,
+      [uid, (uid === alice ? "a" : "b").repeat(64)],
+    ),
+  );
 }
 
 afterAll(async () => {

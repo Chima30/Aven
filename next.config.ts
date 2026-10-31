@@ -52,6 +52,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Native gRPC (Tatum Sui gateway) runs only on the server; keep it out of the bundle.
+  serverExternalPackages: ["@grpc/grpc-js", "@protobuf-ts/grpc-transport"],
   reactStrictMode: true,
   async headers() {
     return [

@@ -11,6 +11,7 @@ const TABS = [
   { href: "/money/budgets", label: "Budgets" },
   { href: "/money/goals", label: "Savings goals" },
   { href: "/money/categories", label: "Categories" },
+  { href: "/money/wallets", label: "Sui wallets" },
   { href: "/money/sync", label: "Sync" },
 ];
 

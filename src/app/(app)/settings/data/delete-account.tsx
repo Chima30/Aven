@@ -35,9 +35,14 @@ export function DeleteAccount() {
             We keep only an anonymous note that a deletion happened — no name, email or account id.
           </li>
           <li>
-            Nothing has been stored in Walrus or sent to an AI provider, so there is nothing to
-            remove there.
+            Walrus Memory: the MemWal SDK can&apos;t delete from Walrus. Any encrypted memories stay
+            there, but AVEN loses the link to them and will never read or use them again. The
+            deletion note records how many there were — nothing else.
           </li>
+          <li>
+            Your saved Sui wallet addresses and import links are deleted. Nothing on Sui changes.
+          </li>
+          <li>Nothing has been sent to an AI provider.</li>
         </ul>
         <Button variant="danger" className="mt-6" onClick={() => setOpen(true)}>
           Delete account…

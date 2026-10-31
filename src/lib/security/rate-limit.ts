@@ -9,6 +9,13 @@ export const RATE_LIMITS = {
   sign_out_everywhere: { max: 10, windowSeconds: 60 * 60 },
   sync: { max: 120, windowSeconds: 60 },
   finance_write: { max: 120, windowSeconds: 60 },
+  // External providers: keep each user's share of AVEN's Walrus and Tatum quotas bounded.
+  memory_write: { max: 60, windowSeconds: 60 * 60 },
+  memory_read: { max: 60, windowSeconds: 60 * 10 },
+  chain_read: { max: 60, windowSeconds: 60 * 10 },
+  chain_import: { max: 30, windowSeconds: 60 * 60 },
+  wallet_change: { max: 20, windowSeconds: 60 * 60 },
+  recommendations: { max: 30, windowSeconds: 60 * 60 },
 } as const;
 
 export type RateLimitedAction = keyof typeof RATE_LIMITS;

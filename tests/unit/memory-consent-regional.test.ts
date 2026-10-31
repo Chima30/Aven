@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONSENT_COPY, CONSENT_ORDER } from "@/lib/consent/catalog";
 import { evaluateMemoryCandidate } from "@/lib/memory/policy";
-import {
-  MEMORY_BACKEND_STATUS,
-  MemoryUnavailableError,
-  disabledMemoryStore,
-} from "@/lib/memory/store";
+import { MEMORY_CAPABILITIES } from "@/lib/memory/store";
 import type { MemoryCandidate } from "@/lib/memory/types";
 import { applyNumberFormat, formatDate, formatNumber } from "@/lib/regional/format";
 import {
@@ -17,7 +13,10 @@ import {
 
 const candidate: MemoryCandidate = {
   category: "memory_financial",
-  kind: "pattern",
+  kind: "recurring_expense",
+  label: "Recurring expense · Rent",
+  facts: { name: "Rent", typical_day: 1 },
+  observedOn: "2026-10-01",
   summary: "Usually pays rent on the 1st of the month.",
   sourceRefs: [{ table: "transactions", id: "t1" }],
   durability: "long_term",
@@ -40,20 +39,14 @@ describe("memory policy", () => {
     [ready, { ...candidate, category: "memory_wellbeing" as const }, "no_consent"],
     [ready, { ...candidate, durability: "temporary" as const }, "temporary"],
     [ready, { ...candidate, summary: "   " }, "invalid_summary"],
-    [ready, { ...candidate, summary: "x".repeat(501) }, "invalid_summary"],
+    [ready, { ...candidate, summary: "x".repeat(301) }, "invalid_summary"],
     [ready, { ...candidate, sourceRefs: [] }, "no_source"],
   ])("rejects (%#)", (ctx, cand, reason) => {
     expect(evaluateMemoryCandidate(cand, ctx)).toEqual({ allowed: false, reason });
   });
 
-  it("has no working backend in Stage 1", async () => {
-    expect(MEMORY_BACKEND_STATUS.writesEnabled).toBe(false);
-    await expect(disabledMemoryStore.write("u", candidate)).rejects.toBeInstanceOf(
-      MemoryUnavailableError,
-    );
-    await expect(disabledMemoryStore.delete("u", "m")).rejects.toBeInstanceOf(
-      MemoryUnavailableError,
-    );
+  it("discloses that Walrus memories cannot be deleted through the SDK", () => {
+    expect(MEMORY_CAPABILITIES.deletion).toMatch(/does not offer a delete/);
   });
 });
 

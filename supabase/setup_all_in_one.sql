@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql
 -- =============================================================================
 
 begin;
@@ -2223,5 +2223,465 @@ begin
   end loop;
 end
 $$;
+
+-- >>> 20261102000100_walrus_memory.sql
+-- =============================================================================
+-- AVEN Stage 3 — Migration 8: Walrus Memory references
+--
+-- Walrus Memory (MemWal, Mainnet) is the long-term memory store. The memory
+-- TEXT lives in Walrus, encrypted by the MemWal relayer. Supabase keeps only
+-- the bookkeeping AVEN needs to run the integration safely:
+--   * a short, non-sensitive LABEL for the memory list
+--     (e.g. "Recommendation outcome · Food"), never the memory text itself;
+--   * a SHA-256 content hash so identical memories are not written twice;
+--   * the MemWal job id, job status and Walrus blob id;
+--   * a short-lived OUTBOX copy of the text (pending_text) while the write is
+--     queued or in flight, so a failed or rate-limited write can be retried.
+--     It is erased as soon as Walrus confirms the memory (or it is forgotten),
+--     which a CHECK constraint enforces;
+--   * whether the user has SUPPRESSED the memory ("forget"). The MemWal SDK
+--     has no delete call, so a suppressed blob is excluded from every recall
+--     AVEN performs, and the limitation is disclosed before consent.
+--
+-- Users may only READ their rows. Rows are written by the AVEN server after it
+-- talks to the MemWal relayer, so job ids, blob ids and statuses cannot be
+-- forged from the browser.
+-- =============================================================================
+
+create table public.memory_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  category text not null check (
+    category in (
+      'memory_financial', 'memory_shared_expenses', 'memory_wellbeing',
+      'memory_planning', 'memory_interactions'
+    )
+  ),
+  kind text not null check (
+    kind in (
+      'recurring_expense', 'budgeting_style', 'overspending_category', 'savings_target',
+      'savings_performance', 'goal_progress', 'income_pattern', 'subscription',
+      'recommendation', 'recommendation_outcome', 'preference'
+    )
+  ),
+  label text not null check (char_length(btrim(label)) between 1 and 160),
+  content_hash text not null check (content_hash ~ '^[0-9a-f]{64}$'),
+  source_refs jsonb not null default '[]'::jsonb check (jsonb_typeof(source_refs) = 'array'),
+  supersedes uuid references public.memory_records (id) on delete set null,
+  status text not null default 'queued' check (
+    status in ('queued', 'submitted', 'stored', 'failed', 'suppressed')
+  ),
+  job_id text check (job_id is null or char_length(job_id) <= 200),
+  job_status text check (
+    job_status is null
+    or job_status in ('pending', 'running', 'uploaded', 'done', 'failed', 'not_found')
+  ),
+  blob_id text check (blob_id is null or char_length(blob_id) <= 200),
+  pending_text text check (pending_text is null or char_length(pending_text) <= 4000),
+  attempts integer not null default 0 check (attempts between 0 and 100),
+  last_error text check (last_error is null or char_length(last_error) <= 500),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  submitted_at timestamptz,
+  stored_at timestamptz,
+  suppressed_at timestamptz,
+  constraint memory_records_stored_has_blob check (status <> 'stored' or blob_id is not null),
+  constraint memory_records_outbox_cleared check (
+    status not in ('stored', 'suppressed') or pending_text is null
+  ),
+  constraint memory_records_suppressed_at check (
+    (status = 'suppressed') = (suppressed_at is not null)
+  )
+);
+
+-- One row per distinct memory text per user: re-deriving the same fact never
+-- creates a second Walrus write.
+create unique index memory_records_user_hash_uniq on public.memory_records (user_id, content_hash);
+create index memory_records_user_status_idx on public.memory_records (user_id, status);
+create index memory_records_user_kind_idx on public.memory_records (user_id, kind, created_at desc);
+create index memory_records_blob_idx on public.memory_records (user_id, blob_id) where blob_id is not null;
+
+create trigger memory_records_set_updated_at
+  before update on public.memory_records
+  for each row execute function private.set_updated_at();
+
+-- A suppressed memory can never be revived, and ownership never changes.
+create or replace function private.guard_memory_record_update()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.user_id <> old.user_id or new.content_hash <> old.content_hash then
+    raise exception 'Memory ownership and content cannot change' using errcode = '42501';
+  end if;
+  if old.status = 'suppressed' and new.status <> 'suppressed' then
+    raise exception 'A forgotten memory cannot be restored' using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger memory_records_guard_update
+  before update on public.memory_records
+  for each row execute function private.guard_memory_record_update();
+
+alter table public.memory_records enable row level security;
+revoke all on table public.memory_records from anon, authenticated;
+grant select on table public.memory_records to authenticated;
+create policy "Users can read their own memory records"
+  on public.memory_records for select to authenticated
+  using (user_id = (select auth.uid()));
+
+-- -----------------------------------------------------------------------------
+-- Make the financial memory category available, with a new policy version.
+-- The consent screen shows the Walrus disclosures for this version, including
+-- that memories cannot be deleted from Walrus through the MemWal SDK.
+-- Other memory categories stay locked: their features do not exist yet.
+-- -----------------------------------------------------------------------------
+update public.consent_categories
+  set is_available = true, policy_version = '2026-11-02'
+  where category = 'memory_financial';
+
+-- Revoking memory consent is recorded in the audit log by set_consent(). The
+-- app stops writing and recalling immediately; existing Walrus memories are
+-- only used again if consent is granted again.
+
+-- >>> 20261102000200_sui_wallets.sql
+-- =============================================================================
+-- AVEN Stage 3 — Migration 9: Sui wallets (read-only) and confirmed imports
+--
+-- AVEN never holds keys, signs or sends anything. A user may add PUBLIC Sui
+-- Mainnet addresses so AVEN can show on-chain balances and activity through
+-- Tatum. On-chain data is displayed separately from AVEN's own records.
+--
+-- An on-chain transaction only becomes an AVEN transaction when the user
+-- confirms it, and import_chain_transaction() refuses duplicates:
+--   * the same digest can be imported once per user (unique constraint);
+--   * a likely duplicate (same account, amount and date) needs explicit
+--     confirmation from the user before it is created.
+-- =============================================================================
+
+create table public.sui_wallets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  network text not null default 'mainnet' check (network = 'mainnet'),
+  address text not null check (address ~ '^0x[0-9a-f]{64}$'),
+  label text check (label is null or char_length(btrim(label)) between 1 and 60),
+  created_at timestamptz not null default now(),
+  constraint sui_wallets_user_address_uniq unique (user_id, network, address)
+);
+
+create index sui_wallets_user_idx on public.sui_wallets (user_id);
+
+-- At most 5 wallets per user (keeps provider usage predictable).
+create or replace function private.guard_sui_wallet()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if (select count(*) from public.sui_wallets w where w.user_id = new.user_id) >= 5 then
+      raise exception 'You can add up to 5 wallets' using errcode = '23514';
+    end if;
+  elsif new.user_id <> old.user_id or new.address <> old.address or new.network <> old.network then
+    raise exception 'Only the wallet label can be changed' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger sui_wallets_guard
+  before insert or update on public.sui_wallets
+  for each row execute function private.guard_sui_wallet();
+
+alter table public.sui_wallets enable row level security;
+revoke all on table public.sui_wallets from anon, authenticated;
+grant select, insert, delete on table public.sui_wallets to authenticated;
+grant update (label) on table public.sui_wallets to authenticated;
+create policy "Users can read their own wallets"
+  on public.sui_wallets for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "Users can add their own wallets"
+  on public.sui_wallets for insert to authenticated
+  with check (user_id = (select auth.uid()));
+create policy "Users can rename their own wallets"
+  on public.sui_wallets for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+create policy "Users can remove their own wallets"
+  on public.sui_wallets for delete to authenticated
+  using (user_id = (select auth.uid()));
+
+-- -----------------------------------------------------------------------------
+-- Confirmed imports of on-chain transactions into AVEN's own records.
+-- -----------------------------------------------------------------------------
+create table public.chain_imports (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  wallet_id uuid references public.sui_wallets (id) on delete set null,
+  network text not null default 'mainnet' check (network = 'mainnet'),
+  tx_digest text not null check (tx_digest ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'),
+  -- Deleting the AVEN transaction removes the link, so it can be imported again.
+  transaction_id uuid not null references public.transactions (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  constraint chain_imports_digest_uniq unique (user_id, network, tx_digest)
+);
+
+create index chain_imports_tx_idx on public.chain_imports (transaction_id);
+
+alter table public.chain_imports enable row level security;
+revoke all on table public.chain_imports from anon, authenticated;
+grant select on table public.chain_imports to authenticated;
+create policy "Users can read their own chain imports"
+  on public.chain_imports for select to authenticated
+  using (user_id = (select auth.uid()));
+
+/**
+ * Import one on-chain transaction as an AVEN transaction, atomically.
+ * The finance write still goes through apply_finance_mutation(), so every
+ * Stage 2 rule (ownership, currency, versioning, idempotency) applies.
+ *
+ * Returns jsonb:
+ *   { status: 'imported', transaction_id }            on success
+ *   { status: 'duplicate_digest', transaction_id }    already imported
+ *   { status: 'possible_duplicate', matches: [...] }  needs p_confirm_duplicate
+ *   { status: 'rejected', message }                   finance rules refused it
+ */
+create or replace function public.import_chain_transaction(
+  p_mutation_id uuid,
+  p_wallet_id uuid,
+  p_tx_digest text,
+  p_transaction_id uuid,
+  p_payload jsonb,
+  p_confirm_duplicate boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_existing uuid;
+  v_matches jsonb;
+  v_result jsonb;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  if p_tx_digest is null or p_tx_digest !~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$' then
+    raise exception 'Invalid transaction digest' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.sui_wallets w where w.id = p_wallet_id and w.user_id = v_user) then
+    raise exception 'Wallet not found' using errcode = '42501';
+  end if;
+  if p_payload is null or jsonb_typeof(p_payload) <> 'object' then
+    raise exception 'Invalid payload' using errcode = '22023';
+  end if;
+
+  -- Serialise imports of the same digest for this user.
+  perform pg_advisory_xact_lock(hashtextextended(v_user::text || ':sui:' || p_tx_digest, 0));
+
+  select c.transaction_id into v_existing from public.chain_imports c
+    where c.user_id = v_user and c.network = 'mainnet' and c.tx_digest = p_tx_digest;
+  if v_existing is not null then
+    return jsonb_build_object('status', 'duplicate_digest', 'transaction_id', v_existing);
+  end if;
+
+  if not coalesce(p_confirm_duplicate, false) then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'id', t.id, 'occurred_on', t.occurred_on, 'amount_minor', t.amount_minor,
+             'description', t.description) order by t.occurred_on), '[]'::jsonb)
+      into v_matches
+      from public.transactions t
+      where t.user_id = v_user
+        and t.account_id = (p_payload ->> 'account_id')::uuid
+        and t.amount_minor = (p_payload ->> 'amount_minor')::bigint
+        and t.occurred_on between (p_payload ->> 'occurred_on')::date - 1
+                              and (p_payload ->> 'occurred_on')::date + 1;
+    if jsonb_array_length(v_matches) > 0 then
+      return jsonb_build_object('status', 'possible_duplicate', 'matches', v_matches);
+    end if;
+  end if;
+
+  v_result := public.apply_finance_mutation(
+    p_mutation_id, 'transaction', 'create', p_transaction_id, p_payload, null, null);
+  if v_result ->> 'status' <> 'applied' then
+    return jsonb_build_object('status', 'rejected',
+      'message', coalesce(v_result ->> 'message', 'The transaction could not be saved.'));
+  end if;
+
+  insert into public.chain_imports (user_id, wallet_id, tx_digest, transaction_id)
+  values (v_user, p_wallet_id, p_tx_digest, p_transaction_id);
+
+  perform private.write_audit(v_user, 'finance.chain_import',
+    jsonb_build_object('network', 'mainnet', 'transaction_id', p_transaction_id));
+
+  return jsonb_build_object('status', 'imported', 'transaction_id', p_transaction_id);
+end;
+$$;
+
+revoke all on function public.import_chain_transaction(uuid, uuid, text, uuid, jsonb, boolean) from public, anon;
+grant execute on function public.import_chain_transaction(uuid, uuid, text, uuid, jsonb, boolean) to authenticated;
+
+-- >>> 20261103000100_recommendations.sql
+-- =============================================================================
+-- AVEN Stage 4 — Migration 10: Recommendations and the user's decisions
+--
+-- Recommendations are produced by AVEN's deterministic intelligence engine
+-- (src/lib/intelligence) from the user's own records plus memories recalled
+-- from Walrus. This table is the INBOX: what was suggested this period and
+-- how the user responded. It is not long-term memory — the decision is also
+-- written to Walrus Memory (when the user has allowed memory), and the next
+-- recommendations are shaped by what is RECALLED from Walrus.
+--
+-- Users may read their recommendations and create new open ones for
+-- themselves (the engine runs with the user's session). Responses go through
+-- respond_to_recommendation(), so a decision is recorded exactly once.
+-- =============================================================================
+
+create table public.recommendations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  kind text not null check (
+    kind in (
+      'reduce_category_spend', 'set_category_budget', 'increase_savings',
+      'review_subscription', 'goal_contribution'
+    )
+  ),
+  -- kind + subject + period, e.g. "reduce_category_spend:<category id>:2026-11"
+  dedupe_key text not null check (char_length(dedupe_key) between 3 and 200),
+  period text not null check (period ~ '^\d{4}-\d{2}$'),
+  title text not null check (char_length(btrim(title)) between 1 and 160),
+  explanation text not null check (char_length(explanation) between 1 and 2000),
+  currency_code text not null references public.currencies (code),
+  suggested_minor bigint check (
+    suggested_minor is null or (suggested_minor >= 0 and suggested_minor <= private.max_amount_minor())
+  ),
+  category_id uuid references public.transaction_categories (id) on delete set null,
+  goal_id uuid references public.savings_goals (id) on delete set null,
+  -- The numbers the engine used (deterministic, re-checkable).
+  evidence jsonb not null default '{}'::jsonb check (
+    jsonb_typeof(evidence) = 'object' and pg_column_size(evidence) <= 8192
+  ),
+  -- Which recalled Walrus memories changed this recommendation, and how.
+  memory_influence jsonb not null default '[]'::jsonb check (
+    jsonb_typeof(memory_influence) = 'array' and pg_column_size(memory_influence) <= 8192
+  ),
+  status text not null default 'open' check (status in ('open', 'accepted', 'rejected', 'modified')),
+  response_minor bigint check (
+    response_minor is null or (response_minor >= 0 and response_minor <= private.max_amount_minor())
+  ),
+  response_note text check (response_note is null or char_length(response_note) <= 300),
+  responded_at timestamptz,
+  outcome_memory_id uuid references public.memory_records (id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint recommendations_dedupe_uniq unique (user_id, dedupe_key),
+  constraint recommendations_response_shape check (
+    (status = 'open' and responded_at is null)
+    or (status <> 'open' and responded_at is not null)
+  ),
+  constraint recommendations_modified_value check (status <> 'modified' or response_minor is not null)
+);
+
+create index recommendations_user_status_idx on public.recommendations (user_id, status, created_at desc);
+
+alter table public.recommendations enable row level security;
+revoke all on table public.recommendations from anon, authenticated;
+grant select on table public.recommendations to authenticated;
+grant insert (
+  user_id, kind, dedupe_key, period, title, explanation, currency_code, suggested_minor,
+  category_id, goal_id, evidence, memory_influence
+) on table public.recommendations to authenticated;
+create policy "Users can read their own recommendations"
+  on public.recommendations for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "Users can create their own open recommendations"
+  on public.recommendations for insert to authenticated
+  with check (user_id = (select auth.uid()) and status = 'open');
+
+-- Linked category/goal must belong to the same user.
+create or replace function private.guard_recommendation()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.category_id is not null and not exists (
+    select 1 from public.transaction_categories c where c.id = new.category_id and c.user_id = new.user_id
+  ) then
+    raise exception 'Category not found' using errcode = '42501';
+  end if;
+  if new.goal_id is not null and not exists (
+    select 1 from public.savings_goals g where g.id = new.goal_id and g.user_id = new.user_id
+  ) then
+    raise exception 'Goal not found' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger recommendations_guard
+  before insert on public.recommendations
+  for each row execute function private.guard_recommendation();
+
+/**
+ * Records the user's decision on an open recommendation, once.
+ * p_action: 'accepted' | 'rejected' | 'modified' (modified needs p_value_minor).
+ * Returns the updated row as jsonb, or raises if it was already answered.
+ */
+create or replace function public.respond_to_recommendation(
+  p_id uuid,
+  p_action text,
+  p_value_minor bigint default null,
+  p_note text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_row public.recommendations%rowtype;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  if p_action not in ('accepted', 'rejected', 'modified') then
+    raise exception 'Invalid response' using errcode = '22023';
+  end if;
+  if p_action = 'modified' and (p_value_minor is null or p_value_minor < 0) then
+    raise exception 'A modified response needs an amount' using errcode = '22023';
+  end if;
+  if p_note is not null and char_length(p_note) > 300 then
+    raise exception 'Note is too long' using errcode = '22023';
+  end if;
+
+  update public.recommendations r
+    set status = p_action,
+        response_minor = case when p_action = 'modified' then p_value_minor else null end,
+        response_note = nullif(btrim(coalesce(p_note, '')), ''),
+        responded_at = now()
+    where r.id = p_id and r.user_id = v_user and r.status = 'open'
+    returning * into v_row;
+
+  if not found then
+    if exists (select 1 from public.recommendations r where r.id = p_id and r.user_id = v_user) then
+      raise exception 'This recommendation has already been answered' using errcode = '55000';
+    end if;
+    raise exception 'Recommendation not found' using errcode = '42501';
+  end if;
+
+  perform private.write_audit(v_user, 'intelligence.recommendation_answered',
+    jsonb_build_object('kind', v_row.kind, 'response', p_action));
+  return to_jsonb(v_row);
+end;
+$$;
+
+revoke all on function public.respond_to_recommendation(uuid, text, bigint, text) from public, anon;
+grant execute on function public.respond_to_recommendation(uuid, text, bigint, text) to authenticated;
 
 commit;

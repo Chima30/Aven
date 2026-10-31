@@ -1,11 +1,16 @@
-import type { ConsentCategory } from "@/lib/supabase/database.types";
+import type {
+  ConsentCategory,
+  MemoryRecordKind,
+  MemoryRecordRow,
+} from "@/lib/supabase/database.types";
 
 /**
- * Walrus Memory integration boundary (design only in Stage 1 — NO writes).
+ * Walrus Memory domain types.
  *
- * Supabase remains the authoritative store for complete records. The memory
- * layer holds short, meaningful SUMMARIES derived from them, each tied to a
- * consent category. See docs/MEMORY.md for the full design.
+ * Walrus Memory (MemWal, Mainnet) is AVEN's long-term memory. Each memory is a
+ * short, structured text written by AVEN's own deterministic code (never by an
+ * AI model) and stored encrypted in Walrus. Supabase keeps only bookkeeping:
+ * label, content hash, job id, blob id and status. See docs/MEMORY.md.
  */
 export type MemoryCategory = Extract<
   ConsentCategory,
@@ -24,47 +29,54 @@ export const MEMORY_CATEGORIES: readonly MemoryCategory[] = [
   "memory_interactions",
 ];
 
-export type MemoryKind = "pattern" | "preference" | "goal" | "decision" | "correction";
+export type MemoryKind = MemoryRecordKind;
 
-/** A proposed memory produced by the (future) memory processor. */
+export const MEMORY_KIND_LABELS: Record<MemoryKind, string> = {
+  recurring_expense: "Recurring expense",
+  budgeting_style: "Budgeting style",
+  overspending_category: "Regularly overspent category",
+  savings_target: "Monthly savings target",
+  savings_performance: "Savings performance",
+  goal_progress: "Goal progress",
+  income_pattern: "Income pattern",
+  subscription: "Subscription",
+  recommendation: "Recommendation made",
+  recommendation_outcome: "Recommendation outcome",
+  preference: "Preference",
+};
+
+/** A fact value inside a memory. Kept small and single-line. */
+export type MemoryFactValue = string | number | boolean;
+
+/** A proposed memory produced by AVEN's deterministic memory processor. */
 export interface MemoryCandidate {
   category: MemoryCategory;
   kind: MemoryKind;
-  /** Plain-language summary, e.g. "Usually pays rent on the 1st". Never a raw record. */
+  /** Short, non-sensitive label stored in Supabase for the memory list. */
+  label: string;
+  /** Machine-readable facts. Parsed back after recall; this is what AVEN learns from. */
+  facts: Readonly<Record<string, MemoryFactValue>>;
+  /** One plain-language sentence, e.g. "Rejected a suggestion to cut Food by 10%". */
   summary: string;
+  /** The date the fact describes (YYYY-MM-DD). */
+  observedOn: string;
   /** References back to the Supabase rows this was derived from (ids only, no content). */
   sourceRefs: ReadonlyArray<{ table: string; id: string }>;
   /** Temporary facts ("spent a lot today") must not become long-term memory. */
   durability: "temporary" | "long_term";
-  /** If this replaces an earlier memory (a correction), its id. */
-  supersedes?: string;
 }
 
-/** A stored memory, as the app will see it. */
-export interface MemoryRecord {
-  id: string;
-  userId: string;
-  category: MemoryCategory;
+/** A memory recalled from Walrus and parsed back into structured form. */
+export interface RecalledMemory {
+  blobId: string;
   kind: MemoryKind;
+  category: MemoryCategory;
+  observedOn: string;
+  facts: Record<string, string>;
   summary: string;
-  createdAt: string;
-  updatedAt: string;
-  status: "active" | "superseded" | "revoked" | "deletion_requested" | "deleted";
+  /** Semantic distance reported by the relayer (lower is closer). */
+  distance: number;
+  createdAt: string | null;
 }
 
-/**
- * Storage backend contract. The Walrus implementation will be written in
- * Stage 6 ONLY after its SDK, encryption, access-revocation and deletion
- * behaviour have been verified against official documentation.
- */
-export interface MemoryStore {
-  readonly backend: "disabled" | "walrus";
-  write(userId: string, candidate: MemoryCandidate): Promise<MemoryRecord>;
-  search(
-    userId: string,
-    query: { categories: MemoryCategory[]; text?: string; limit: number },
-  ): Promise<MemoryRecord[]>;
-  correct(userId: string, memoryId: string, summary: string): Promise<MemoryRecord>;
-  /** Must report honestly whether the backend CONFIRMED deletion. */
-  delete(userId: string, memoryId: string): Promise<{ confirmed: boolean; detail: string }>;
-}
+export type MemoryRecord = MemoryRecordRow;

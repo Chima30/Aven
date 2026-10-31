@@ -43,8 +43,8 @@ export default async function NotificationsPage() {
   return (
     <>
       <Alert tone="info" title="No notifications are sent yet">
-        The Nudge Center arrives in Stage 3. Your choices here are saved now and will control it
-        from day one. Times use your time zone ({preferences.time_zone}).
+        The Nudge Center is planned for a later release. Your choices here are saved now and will
+        control it from day one. Times use your time zone ({preferences.time_zone}).
         {quiet ? " Your quiet hours are active right now." : ""}
       </Alert>
       <NotificationsForm prefs={prefs} categories={ordered} />

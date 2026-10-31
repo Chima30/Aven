@@ -1,31 +1,22 @@
 # Roadmap
 
-Each stage is completed, tested and reviewed before the next begins. **Stage 3 starts only
-after Stage 2 is explicitly approved.**
+The hackathon plan ("Continue Development from Stage 3 to Hackathon Submission") replaced the
+original Stage 3–8 order: Walrus Memory, Tatum/Sui and the intelligence engine came first.
 
-| Stage                                     | Scope                                                                                                                                                                       | Status                          |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| 1 · Foundation                            | Auth, app shell, design system, settings, consent, audit log, export, deletion, RLS tests, offline/nudge/memory architecture                                                | Approved                        |
-| 2 · Core finance                          | Accounts, transactions, categories, income/expenses/transfers, budgets, savings goals, finance dashboard, search/filters, summaries; **offline transaction logging + sync** | **Delivered — awaiting review** |
-| 3 · Subscriptions, planning, Nudge Center | Subscriptions + renewals, reminders, calendar, tasks, daily/weekly planning, routines, Nudge Center, Pulse Check, server-side scheduling, quiet hours                       | Not started                     |
-| 4 · Shared expenses                       | Groups, invitations, members, splits, settlements with confirmation, group history and budgets, retention when members leave                                                | Not started                     |
-| 5 · Wellbeing                             | Sleep, water, meals, exercise, habits, routines, goals, reviews; offline logging; consent-gated                                                                             | Not started                     |
-| 6 · Agent + Walrus Memory                 | Ask Your Agent, floating assistant, Anthropic API (server-only), usage limits, confirmation for consequential actions, Walrus Memory after verification                     | Not started                     |
-| 7 · Optional integrations                 | Sui watch-only wallets / digest verification via Tatum gRPC, bank connections, calendars, push — only with clear benefit                                                    | Not started                     |
-| 8 · Hardening & launch                    | Security, performance, accessibility, mobile, browsers, monitoring, nonce CSP, SMTP, backups, export/deletion verification, legal review                                    | Not started                     |
+| Stage                                   | Scope                                                                                                                           | Status                                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 1 · Foundation                          | Auth, app shell, design system, settings, consent, audit log, export, deletion, RLS tests                                       | Done                                                                                          |
+| 2 · Core finance                        | Accounts, transactions, categories, transfers, budgets, goals, dashboard; offline logging + sync                                | Done                                                                                          |
+| 3 · External integrations               | Walrus Memory (MemWal SDK, Mainnet relayer); Tatum Sui Mainnet (read-only wallets, confirmed imports)                           | **Built and tested with the official mock / mocked Sui. Live check pending your credentials** |
+| 4 · Financial intelligence and learning | Deterministic spending/budget/savings analysis; recommendations with explanations; accept/decline/change; learning from Walrus  | **Done** (learning verified end-to-end with the official MemWal mock)                         |
+| 5 · Production readiness and security   | RLS + isolation for new tables, memory namespace isolation, consent disclosures, deletion record, rate limits, route protection | **Done** (see SECURITY.md)                                                                    |
+| 6 · Testing                             | Unit, database, e2e; optional live checks; Walrus Mainnet ≥ 10-memory verification workflow                                     | **Done** — Mainnet run is yours to authorise                                                  |
+| 7 · Deliverables                        | Docs, blog post, demo script, submission checklist                                                                              | **Done** — fill in the placeholders in HACKATHON_SUBMISSION.md                                |
 
-## Deferred from Stage 1 (by design)
+## After the hackathon
 
-- Magic link and Google sign-in.
-- Changing email address.
-- MFA (Supabase supports it; to review for Stage 8).
-- Localised UI languages (architecture ready; English only).
-
-## Deferred from Stage 2
-
-- **CSV import** (listed in the master brief's Stage 2 summary but not in the Stage 2 task
-  brief). It needs a careful preview → map columns → de-duplicate → confirm flow, so it is
-  deferred rather than done hastily. It's a candidate for early Stage 3.
-- Receipt attachments: the `attachment_ref` column is reserved; uploads come later.
-- Offline management of accounts, budgets and goals (transactions are fully offline).
-- Currency conversion and multi-currency transfers.
+- Subscriptions with renewals, planning, Nudge Center (finance events already recorded).
+- Shared expenses; wellbeing tracking (memory categories for these stay locked until built).
+- Incoming-transfer history for Sui wallets (needs an address-affecting transaction filter).
+- CSV import; receipt attachments; currency conversion with explicit dated rates.
+- Nonce-based CSP, error monitoring, custom SMTP, MFA review.

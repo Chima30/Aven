@@ -1,43 +1,20 @@
-import type { MemoryStore } from "./types";
-
-export class MemoryUnavailableError extends Error {
-  constructor() {
-    super(
-      "Walrus Memory is not enabled. It will be integrated in Stage 6 after its deletion and access behaviour is verified.",
-    );
-    this.name = "MemoryUnavailableError";
-  }
-}
-
 /**
- * The only MemoryStore in Stage 1. Every call fails loudly, so no code path
- * can accidentally believe a memory was saved.
+ * Honest, user-facing status of the Walrus Memory integration.
+ *
+ * "verified" here means verified IN CODE against the official SDK and its
+ * mock. Live Mainnet behaviour is verified separately by
+ * `npm run verify:walrus` (see docs/WALRUS_SETUP.md), whose evidence file is
+ * the only proof AVEN accepts that real Mainnet memories were stored.
  */
-export const disabledMemoryStore: MemoryStore = {
-  backend: "disabled",
-  async write() {
-    throw new MemoryUnavailableError();
-  },
-  async search() {
-    throw new MemoryUnavailableError();
-  },
-  async correct() {
-    throw new MemoryUnavailableError();
-  },
-  async delete() {
-    throw new MemoryUnavailableError();
-  },
-};
-
-/** Honest status shown in Settings → Privacy. */
-export const MEMORY_BACKEND_STATUS = {
-  backend: "disabled",
-  writesEnabled: false,
-  verified: {
-    sdkAndAuth: false,
-    encryption: false,
-    retrieval: false,
-    accessRevocation: false,
-    deletion: false,
-  },
+export const MEMORY_CAPABILITIES = {
+  sdk: "@mysten-incubation/memwal 0.1.12 (official MemWal SDK)",
+  relayer: "Hosted MemWal relayer (Mainnet)",
+  encryption:
+    "The relayer encrypts each memory (SEAL) before storing it on Walrus. AVEN's delegate key, held only on AVEN's server, can read memories back.",
+  isolation:
+    "Each AVEN user has a private namespace derived on the server with a secret HMAC. Recall only ever searches the signed-in user's namespace.",
+  deletion:
+    "The MemWal SDK does not offer a delete operation. When you forget a memory, AVEN permanently stops using it and excludes it from every recall, but the encrypted copy remains on Walrus.",
+  revocation:
+    "Withdrawing consent or pausing memory stops all new writes and all recall immediately.",
 } as const;

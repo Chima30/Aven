@@ -56,13 +56,30 @@ export default function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2>The personal assistant and memory</h2>
+        <h2>Long-term memory (Walrus)</h2>
         <p>
-          The AI assistant (planned) will use Anthropic&apos;s API, only when you have switched AI
-          on and given consent. AVEN&apos;s long-term memory (planned) will use Walrus. Memory
-          categories are locked until we have verified — and told you — exactly how stored memories
-          can be reviewed, corrected and deleted, including any limitations. Nothing has been
-          written to Walrus.
+          If you allow it, AVEN keeps short financial summaries — such as your budgeting style,
+          categories you regularly overspend in, savings targets and how you responded to its
+          recommendations — as long-term memory on Walrus (Mainnet), through the MemWal relayer,
+          which encrypts each memory before storing it. Memories are written by AVEN&apos;s own
+          code, never contain raw transactions, balances, account numbers or credentials, and sit in
+          a private namespace that only your signed-in session can reach.
+        </p>
+        <p>
+          You can see every stored memory, pause memory, or withdraw the permission at any time. The
+          MemWal SDK does not support deleting from Walrus: when you forget a memory or delete your
+          account, AVEN permanently stops using it, but the encrypted copy remains on Walrus.
+        </p>
+        <h2>AI providers</h2>
+        <p>
+          AVEN does not currently send your data to any AI provider. Its insights and
+          recommendations are calculated by deterministic code from your own records.
+        </p>
+        <h2>Sui wallets</h2>
+        <p>
+          You may add public Sui Mainnet addresses. AVEN reads their balances and activity through
+          Tatum on its server, never asks for keys and never signs or sends transactions. On-chain
+          activity only becomes an AVEN transaction when you confirm it.
         </p>
       </section>
       <section>

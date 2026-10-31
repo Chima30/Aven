@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, EmptyState } from "@/components/ui/feedback";
 import { getAppContext } from "@/lib/auth/session";
-import { CONSENT_COPY, CONSENT_ORDER } from "@/lib/consent/catalog";
-import { MEMORY_BACKEND_STATUS } from "@/lib/memory/store";
+import Link from "next/link";
+import { CONSENT_COPY, CONSENT_ORDER, WALRUS_MEMORY_DISCLOSURES } from "@/lib/consent/catalog";
+import { memwalConfig } from "@/lib/integrations/config";
+import { MEMORY_CAPABILITIES } from "@/lib/memory/store";
 import { formatDateTime } from "@/lib/regional/format";
 import { createClient } from "@/lib/supabase/server";
 import { ConsentToggle } from "./consent-toggle";
@@ -11,16 +13,18 @@ import { PrivacyForm } from "./privacy-form";
 
 export const metadata: Metadata = { title: "Privacy & consent" };
 
-const VERIFICATION_LABELS: Record<keyof typeof MEMORY_BACKEND_STATUS.verified, string> = {
-  sdkAndAuth: "Official SDK, account setup and authentication",
-  encryption: "Encryption and who can read stored memories",
-  retrieval: "Writing and retrieving memories",
-  accessRevocation: "Revoking access when you withdraw consent",
-  deletion: "Deleting memories, and deleting them with your account",
+const CAPABILITY_LABELS: Record<keyof typeof MEMORY_CAPABILITIES, string> = {
+  sdk: "SDK",
+  relayer: "Where memories go",
+  encryption: "Encryption and access",
+  isolation: "Isolation between users",
+  revocation: "Withdrawing and pausing",
+  deletion: "Deletion",
 };
 
 export default async function PrivacyPage() {
   const { preferences } = await getAppContext();
+  const memoryConfigured = memwalConfig().status === "configured";
   const supabase = await createClient();
   const [{ data: categories }, { data: states }, { data: history }] = await Promise.all([
     supabase.from("consent_categories").select("*"),
@@ -96,6 +100,9 @@ export default async function PrivacyPage() {
                           granted={granted}
                           available={available}
                           title={copy.title}
+                          disclosures={
+                            copy.group === "memory" ? WALRUS_MEMORY_DISCLOSURES : undefined
+                          }
                         />
                       </li>
                     );
@@ -109,33 +116,37 @@ export default async function PrivacyPage() {
 
       <Card>
         <CardHeader
-          title="Memory status"
-          description="What has — and hasn't — been verified before AVEN is allowed to store memories in Walrus."
-          action={<Badge tone="neutral">Not active</Badge>}
+          title="Walrus Memory"
+          description="How AVEN's long-term memory works, including its limits."
+          action={
+            memoryConfigured ? (
+              <Badge tone="success">Configured</Badge>
+            ) : (
+              <Badge tone="warning">Not configured on this server</Badge>
+            )
+          }
         />
         <CardBody>
-          <p className="text-ink-muted text-sm">
-            No memories have been written. Your complete records stay in AVEN&apos;s main database;
-            when memory launches it will only keep short summaries you have allowed, and you&apos;ll
-            be able to review, correct and delete them.
-          </p>
-          <ul className="mt-4 flex flex-col gap-2">
-            {(Object.keys(VERIFICATION_LABELS) as Array<keyof typeof VERIFICATION_LABELS>).map(
+          <dl className="flex flex-col gap-3">
+            {(Object.keys(CAPABILITY_LABELS) as Array<keyof typeof CAPABILITY_LABELS>).map(
               (key) => (
-                <li
-                  key={key}
-                  className="bg-surface-muted/60 flex items-center justify-between gap-4 rounded-lg px-3 py-2 text-sm"
-                >
-                  <span className="text-ink">{VERIFICATION_LABELS[key]}</span>
-                  {MEMORY_BACKEND_STATUS.verified[key] ? (
-                    <Badge tone="success">Verified</Badge>
-                  ) : (
-                    <Badge tone="warning">Not yet verified</Badge>
-                  )}
-                </li>
+                <div key={key} className="bg-surface-muted/60 rounded-lg px-3 py-2 text-sm">
+                  <dt className="text-ink font-medium">{CAPABILITY_LABELS[key]}</dt>
+                  <dd className="text-ink-muted mt-0.5">{MEMORY_CAPABILITIES[key]}</dd>
+                </div>
               ),
             )}
-          </ul>
+          </dl>
+          <p className="text-ink-muted mt-4 text-sm">
+            See and manage every stored memory in{" "}
+            <Link
+              href="/intelligence/memory"
+              className="text-accent underline-offset-2 hover:underline"
+            >
+              Intelligence → Memory
+            </Link>
+            .
+          </p>
         </CardBody>
       </Card>
 

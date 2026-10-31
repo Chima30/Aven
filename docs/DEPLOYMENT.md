@@ -34,6 +34,14 @@ straight from Supabase, not from a chat.
 
 Leave all three environments ticked: Production, Preview and Development.
 
+**Optional (server only):** add the Walrus Memory variables (`MEMWAL_PRIVATE_KEY`,
+`MEMWAL_ACCOUNT_ID`, `MEMWAL_NAMESPACE_SECRET`, optionally `MEMWAL_SERVER_URL`,
+`MEMWAL_NAMESPACE`) from [WALRUS_SETUP.md](WALRUS_SETUP.md) and `TATUM_API_KEY` (plus optional
+`TATUM_SUI_*`) from [TATUM_SETUP.md](TATUM_SETUP.md). None of them may start with
+`NEXT_PUBLIC_`. AVEN runs fine without them and says "not configured" where they'd be used.
+AVEN's functions use Vercel's default **Node.js** runtime, which native gRPC needs — don't
+switch these routes to the Edge runtime.
+
 Click **Deploy** and wait for "Congratulations".
 
 ## 3. Find your real address
@@ -85,6 +93,21 @@ send keys or passwords.
    the other goes up, and the dashboard's income/expense figures don't change.
 6. **Budgets → Create budget** for this month and check the spent amount and percentage.
 7. **Savings goals → Create goal**, record a contribution, and check that no account balance changes.
+
+**Stage 3–4 checks (about 10 minutes, after running the Stage 3 and 4 SQL upgrades)**
+
+1. Settings → **Integrations**: Walrus Memory and Sui show **Connected** (or "Not configured"
+   if you haven't added those variables yet — that's expected, not an error).
+2. Settings → Privacy → _Remember financial context_: read the notes, tick the box, **Allow**.
+3. With at least one complete month of transactions, open **Intelligence**. Each
+   recommendation explains its numbers. Decline one: the message says it was saved to Walrus
+   Memory (or that memory is off).
+4. **Intelligence → Walrus Memory**: the memory appears as _Writing…_ then _Stored on Walrus_
+   with a blob ID (press **Check pending writes** if needed). **Read memories back from
+   Walrus** shows its text.
+5. Next month (or after more answers), the same kind of suggestion shows **Shaped by your
+   memory** with the reason.
+6. Money → **Sui wallets**: add a public address; balances and recent transactions appear.
 
 ## Troubleshooting
 

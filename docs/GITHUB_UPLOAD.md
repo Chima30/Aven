@@ -49,6 +49,23 @@ that Stage 2 replaced: on GitHub, open `supabase/stage1_all_in_one.sql` → **�
 **Delete file** → **Commit changes**. Its replacements are `supabase/setup_all_in_one.sql`
 and `supabase/upgrades/`.
 
+## Updating to the hackathon build (Stages 3–7)
+
+You already have the repository cloned in GitHub Desktop.
+
+1. In GitHub Desktop, make sure **Current repository** is `aven` and **Current branch** is
+   `main`, then **Fetch origin** / **Pull origin**.
+2. Unzip the new ZIP. Copy **everything inside it** into your local `aven` folder and choose
+   **Replace** for existing files (hidden files visible, as in Option A step 3).
+3. GitHub Desktop lists the changes. Check that **no `.env.local` or `.env` file is listed** —
+   if one is, untick it and don't commit it.
+4. Summary: `Stages 3-7: Walrus Memory, Tatum Sui, intelligence, docs` → **Commit to main** →
+   **Push origin**.
+5. Run the Stage 3 and Stage 4 SQL upgrades in Supabase (docs/SUPABASE_SETUP.md) — Vercel
+   deploys automatically after the push, and the new pages need those tables.
+6. If you ran `npm run verify:walrus` / `verify:tatum`, the `verification/*.json` evidence files
+   show up as new files; commit them if you want them in your submission. They contain no secrets.
+
 ## After pushing
 
 - Open the **Actions** tab. The **CI** workflow runs four jobs: checks, database & RLS tests,

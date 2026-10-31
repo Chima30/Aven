@@ -29,6 +29,22 @@ export default defineConfig({
           hookTimeout: 60_000,
         },
       },
+      {
+        // OPTIONAL live checks against Walrus Mainnet and Tatum, using YOUR
+        // credentials from .env.local (never committed). Run with:
+        //   npm run verify:tatum   /   npm run verify:walrus
+        // They skip themselves when credentials are missing.
+        resolve: { alias },
+        test: {
+          name: "live",
+          include: ["tests/live/**/*.live.ts"],
+          environment: "node",
+          setupFiles: ["tests/unit/setup.ts", "tests/live/load-env.ts"],
+          fileParallelism: false,
+          testTimeout: 15 * 60_000,
+          hookTimeout: 60_000,
+        },
+      },
     ],
   },
 });

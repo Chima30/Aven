@@ -51,7 +51,7 @@ describe("copy-paste SQL bundles", () => {
   it("full setup applies cleanly to an empty project", async () => {
     const c = await freshDatabase();
     await c.query(read("supabase/setup_all_in_one.sql"));
-    expect(await tableCount(c)).toBe(23);
+    expect(await tableCount(c)).toBe(27);
     await c.end();
   });
 
@@ -64,6 +64,26 @@ describe("copy-paste SQL bundles", () => {
     // Existing Stage 1 users get default categories during the upgrade.
     const { rows } = await c.query("select count(*)::int as n from transaction_categories");
     expect(rows[0].n).toBe(18);
+    await c.end();
+  });
+
+  it("stage 2 then the stage 3 and 4 upgrades reach the full schema", async () => {
+    const c = await freshDatabase();
+    await c.query(read("supabase/upgrades/stage1.sql"));
+    await c.query(read("supabase/upgrades/stage2.sql"));
+    await c.query("insert into auth.users (email) values ('existing@example.com')");
+    await c.query(read("supabase/upgrades/stage3.sql"));
+    expect(await tableCount(c)).toBe(26);
+    await c.query(read("supabase/upgrades/stage4.sql"));
+    expect(await tableCount(c)).toBe(27);
+    const { rows } = await c.query(
+      "select category, is_available, policy_version from consent_categories where category like 'memory_%' order by category",
+    );
+    expect(rows.find((r) => r.category === "memory_financial")).toMatchObject({
+      is_available: true,
+      policy_version: "2026-11-02",
+    });
+    expect(rows.filter((r) => r.is_available)).toHaveLength(1);
     await c.end();
   });
 });

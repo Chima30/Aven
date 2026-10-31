@@ -52,6 +52,10 @@ test.describe("route protection", () => {
     "/settings/data",
     "/money",
     "/money/transactions",
+    "/money/wallets",
+    "/intelligence",
+    "/intelligence/memory",
+    "/settings/integrations",
   ]) {
     test(`${path} redirects signed-out visitors to sign-in`, async ({ page }) => {
       await page.goto(path);
