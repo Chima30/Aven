@@ -14,6 +14,9 @@ its own for existing projects (regenerate both with `npm run db:bundle`).
 | `20261101000100_finance_tables.sql`              | Accounts, categories (+ defaults), transactions, budgets, goals, goal entries, finance events; ownership/currency triggers; sync receipts made function-only |
 | `20261101000200_finance_mutations.sql`           | `apply_finance_mutation()` (the only finance write path), event producers, `record_sync_completed()`                                                         |
 | `20261101000300_finance_reads.sql`               | `account_balances`, `savings_goal_progress`, summaries, cash flow, budget progress/history, `list_transactions`                                              |
+| `20261102000100_walrus_memory.sql`               | `memory_records` (Walrus bookkeeping, server-written, outbox CHECK, irreversible forget); `memory_financial` consent available (policy `2026-11-02`)         |
+| `20261102000200_sui_wallets.sql`                 | `sui_wallets` (read-only addresses, ≤ 5), `chain_imports`, `import_chain_transaction()` with digest and near-duplicate checks                                |
+| `20261103000100_recommendations.sql`             | `recommendations` (inbox + answers, memory influence), `respond_to_recommendation()`                                                                         |
 
 ## Access model
 
@@ -52,20 +55,26 @@ its own for existing projects (regenerate both with `npm run db:bundle`).
 | `budgets`                               | monthly limits                                                                                | read own                    | `apply_finance_mutation()`                                                |
 | `savings_goals`, `savings_goal_entries` | goals and tracking entries                                                                    | read own                    | `apply_finance_mutation()`                                                |
 | `finance_events`                        | de-duplicated facts for Stage 3 nudges                                                        | read own                    | database functions only                                                   |
-| `account_deletion_log`                  | **anonymous** proof of deletion (SHA-256 of user id, outcome)                                 | nothing                     | server (secret key)                                                       |
+| `memory_records`                        | Walrus memory bookkeeping: label, kind, content hash, job id/status, blob id, status          | read own                    | server (secret key) after MemWal calls, filtered by session user          |
+| `sui_wallets`                           | public Sui Mainnet addresses + label (≤ 5)                                                    | read/add/rename/remove own  | the user                                                                  |
+| `chain_imports`                         | link from an imported Sui digest to an AVEN transaction                                       | read own                    | `import_chain_transaction()` only                                         |
+| `recommendations`                       | this period's suggestions, explanations, evidence, memory influence and the user's answer     | read own; create open own   | the engine (user session); answers via `respond_to_recommendation()`      |
+| `account_deletion_log`                  | **anonymous** proof of deletion (SHA-256 of user id, outcome, external cleanup counts)        | nothing                     | server (secret key)                                                       |
 
 ## Functions callable by signed-in users
 
-| Function                                                                                                                | What it does                                                                            |
-| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `set_consent(category, granted, source)`                                                                                | Records history, updates state, audits. Refuses to grant unavailable categories.        |
-| `log_security_event(action)`                                                                                            | Allow-listed events only (sign-in, sign-out, password changes…).                        |
-| `consume_rate_limit(action, max, window)`                                                                               | Returns `false` when over the limit.                                                    |
-| `record_data_export(format, bytes)`                                                                                     | Logs an export and audits it.                                                           |
-| `ai_quota_status()`                                                                                                     | Whether AI may run now: AI switch on **and** consent **and** under limits.              |
-| `apply_finance_mutation(...)`                                                                                           | The only finance write path: idempotent, versioned, ownership-checked (see FINANCE.md). |
-| `record_sync_completed(batch, count)`                                                                                   | One de-duplicated event per offline sync batch.                                         |
-| `finance_summary`, `spending_by_category`, `monthly_cashflow`, `budget_progress`, `budget_history`, `list_transactions` | Read models (SECURITY INVOKER, RLS applies; money as text).                             |
+| Function                                                                                                                | What it does                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `set_consent(category, granted, source)`                                                                                | Records history, updates state, audits. Refuses to grant unavailable categories.                        |
+| `log_security_event(action)`                                                                                            | Allow-listed events only (sign-in, sign-out, password changes…).                                        |
+| `consume_rate_limit(action, max, window)`                                                                               | Returns `false` when over the limit.                                                                    |
+| `record_data_export(format, bytes)`                                                                                     | Logs an export and audits it.                                                                           |
+| `ai_quota_status()`                                                                                                     | Whether AI may run now: AI switch on **and** consent **and** under limits.                              |
+| `apply_finance_mutation(...)`                                                                                           | The only finance write path: idempotent, versioned, ownership-checked (see FINANCE.md).                 |
+| `record_sync_completed(batch, count)`                                                                                   | One de-duplicated event per offline sync batch.                                                         |
+| `import_chain_transaction(mutation, wallet, digest, tx id, payload, confirm)`                                           | Confirmed on-chain import through `apply_finance_mutation()`; refuses repeats, asks on near-duplicates. |
+| `respond_to_recommendation(id, action, value, note)`                                                                    | Records accept / decline / change exactly once.                                                         |
+| `finance_summary`, `spending_by_category`, `monthly_cashflow`, `budget_progress`, `budget_history`, `list_transactions` | Read models (SECURITY INVOKER, RLS applies; money as text).                                             |
 
 ## New users
 

@@ -30,6 +30,10 @@ export const EXPORT_TABLES = [
   "savings_goals",
   "savings_goal_entries",
   "finance_events",
+  "memory_records",
+  "recommendations",
+  "sui_wallets",
+  "chain_imports",
 ] as const;
 
 export type ExportTable = (typeof EXPORT_TABLES)[number];
@@ -70,12 +74,16 @@ export async function buildUserExport(supabase: ServerSupabase, user: User): Pro
     },
     data: Object.fromEntries(results) as Record<ExportTable, unknown[]>,
     external_stores: {
-      walrus_memory: "not_in_use — AVEN has not written any data to Walrus.",
+      walrus_memory:
+        'Memory TEXT is stored encrypted on Walrus (Mainnet) via the MemWal relayer, in a namespace private to your account. memory_records above lists every memory with its Walrus blob id; Intelligence → Walrus Memory → "Read memories back from Walrus" shows their content. The MemWal SDK cannot delete from Walrus; forgotten memories are never used again.',
+      sui_mainnet:
+        "AVEN stores only the public wallet addresses you added (sui_wallets) and links to on-chain transactions you imported (chain_imports). On-chain data itself lives on Sui and is read through Tatum.",
       ai_provider: "not_in_use — AVEN has not sent any data to an AI provider.",
     },
     notes: [
       "Amounts and timestamps are exported exactly as stored.",
       "Password and session data are managed by Supabase Auth and are never exported.",
+      "memory_records.pending_text is only present for memories still being written; it is erased once Walrus confirms them.",
     ],
   };
 }

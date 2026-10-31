@@ -353,6 +353,121 @@ export type RateLimitBucketRow = {
   hit_count: number;
 };
 
+export type MemoryRecordCategory =
+  | "memory_financial"
+  | "memory_shared_expenses"
+  | "memory_wellbeing"
+  | "memory_planning"
+  | "memory_interactions";
+export type MemoryRecordKind =
+  | "recurring_expense"
+  | "budgeting_style"
+  | "overspending_category"
+  | "savings_target"
+  | "savings_performance"
+  | "goal_progress"
+  | "income_pattern"
+  | "subscription"
+  | "recommendation"
+  | "recommendation_outcome"
+  | "preference";
+export type MemoryRecordStatus = "queued" | "submitted" | "stored" | "failed" | "suppressed";
+export type MemoryJobStatus = "pending" | "running" | "uploaded" | "done" | "failed" | "not_found";
+
+/** Bookkeeping for a Walrus memory. The memory TEXT lives in Walrus, not here. */
+export type MemoryRecordRow = {
+  id: string;
+  user_id: string;
+  category: MemoryRecordCategory;
+  kind: MemoryRecordKind;
+  label: string;
+  content_hash: string;
+  source_refs: Array<{ table: string; id: string }>;
+  supersedes: string | null;
+  status: MemoryRecordStatus;
+  job_id: string | null;
+  job_status: MemoryJobStatus | null;
+  blob_id: string | null;
+  /** Outbox copy of the text while queued/in flight; null once stored or forgotten. */
+  pending_text: string | null;
+  attempts: number;
+  last_error: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  submitted_at: Timestamp | null;
+  stored_at: Timestamp | null;
+  suppressed_at: Timestamp | null;
+};
+
+export type SuiWalletRow = {
+  id: string;
+  user_id: string;
+  network: "mainnet";
+  address: string;
+  label: string | null;
+  created_at: Timestamp;
+};
+
+export type ChainImportRow = {
+  id: string;
+  user_id: string;
+  wallet_id: string | null;
+  network: "mainnet";
+  tx_digest: string;
+  transaction_id: string;
+  created_at: Timestamp;
+};
+
+export type ChainImportResult =
+  | { status: "imported"; transaction_id: string }
+  | { status: "duplicate_digest"; transaction_id: string }
+  | {
+      status: "possible_duplicate";
+      matches: Array<{
+        id: string;
+        occurred_on: string;
+        amount_minor: number;
+        description: string | null;
+      }>;
+    }
+  | { status: "rejected"; message: string };
+
+export type RecommendationKind =
+  | "reduce_category_spend"
+  | "set_category_budget"
+  | "increase_savings"
+  | "review_subscription"
+  | "goal_contribution";
+export type RecommendationStatus = "open" | "accepted" | "rejected" | "modified";
+
+export type MemoryInfluence = {
+  blob_id: string;
+  memory: string;
+  effect: string;
+};
+
+export type RecommendationRow = {
+  id: string;
+  user_id: string;
+  kind: RecommendationKind;
+  dedupe_key: string;
+  period: string;
+  title: string;
+  explanation: string;
+  currency_code: string;
+  suggested_minor: number | null;
+  category_id: string | null;
+  goal_id: string | null;
+  evidence: Record<string, unknown>;
+  memory_influence: MemoryInfluence[];
+  status: RecommendationStatus;
+  response_minor: number | null;
+  response_note: string | null;
+  responded_at: Timestamp | null;
+  outcome_memory_id: string | null;
+  created_at: Timestamp;
+};
+
 export type CurrencyRow = {
   code: string;
   minor_units: number;
@@ -411,6 +526,35 @@ export type Database = {
       savings_goals: Table<SavingsGoalRow>;
       savings_goal_entries: Table<SavingsGoalEntryRow>;
       finance_events: Table<FinanceEventRow>;
+      // Written only by the AVEN server (admin client) after talking to MemWal.
+      memory_records: Table<
+        MemoryRecordRow,
+        Pick<MemoryRecordRow, "user_id" | "category" | "kind" | "label" | "content_hash"> &
+          Partial<MemoryRecordRow>,
+        Partial<MemoryRecordRow>
+      >;
+      sui_wallets: Table<
+        SuiWalletRow,
+        Pick<SuiWalletRow, "user_id" | "address"> & Partial<Pick<SuiWalletRow, "label">>,
+        Partial<Pick<SuiWalletRow, "label">>
+      >;
+      // Written only by import_chain_transaction().
+      chain_imports: Table<ChainImportRow>;
+      recommendations: Table<
+        RecommendationRow,
+        Pick<
+          RecommendationRow,
+          "user_id" | "kind" | "dedupe_key" | "period" | "title" | "explanation" | "currency_code"
+        > &
+          Partial<
+            Pick<
+              RecommendationRow,
+              "suggested_minor" | "category_id" | "goal_id" | "evidence" | "memory_influence"
+            >
+          >,
+        // Only the server (admin) links the outcome memory; responses use the RPC.
+        Partial<Pick<RecommendationRow, "outcome_memory_id">>
+      >;
       account_deletion_log: Table<
         AccountDeletionLogRow,
         Pick<AccountDeletionLogRow, "subject_hash"> & Partial<AccountDeletionLogRow>,
@@ -513,6 +657,26 @@ export type Database = {
           p_offset?: number;
         };
         Returns: ListedTransaction[];
+      };
+      import_chain_transaction: {
+        Args: {
+          p_mutation_id: string;
+          p_wallet_id: string;
+          p_tx_digest: string;
+          p_transaction_id: string;
+          p_payload: Record<string, unknown>;
+          p_confirm_duplicate?: boolean;
+        };
+        Returns: ChainImportResult;
+      };
+      respond_to_recommendation: {
+        Args: {
+          p_id: string;
+          p_action: "accepted" | "rejected" | "modified";
+          p_value_minor?: number | null;
+          p_note?: string | null;
+        };
+        Returns: RecommendationRow;
       };
       record_ai_usage: {
         Args: { p_user_id: string; p_input_tokens: number; p_output_tokens: number };

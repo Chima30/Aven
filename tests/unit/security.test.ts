@@ -87,6 +87,9 @@ describe("route classification", () => {
   it("protects app routes", () => {
     expect(isProtectedPath("/overview")).toBe(true);
     expect(isProtectedPath("/settings/data")).toBe(true);
+    expect(isProtectedPath("/intelligence")).toBe(true);
+    expect(isProtectedPath("/intelligence/memory")).toBe(true);
+    expect(isProtectedPath("/money/wallets")).toBe(true);
     expect(isProtectedPath("/settingsX")).toBe(false);
     expect(isProtectedPath("/")).toBe(false);
     expect(isProtectedPath("/privacy")).toBe(false);

@@ -2,14 +2,15 @@
 
 ## Boundaries
 
-| Boundary              | Rule                                                                                                                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser ↔ server      | The browser only ever has the Supabase **publishable** key. Secrets are read in `src/lib/env.server.ts`, which imports `server-only` so the build fails if a Client Component imports it.          |
-| Server ↔ database     | Normal operations use the **user's session**, so RLS applies.                                                                                                                                      |
-| Finance writes        | Only through `apply_finance_mutation()`: user from the session, explicit ownership checks on every referenced id, optimistic versions, idempotency receipts. Users can only SELECT finance tables. |
-| Admin access          | The Supabase **secret** key is used only in `src/lib/supabase/admin.ts`, called only by `deleteAccountAction` (delete auth user, write anonymous deletion log).                                    |
-| AI provider (Stage 6) | Anthropic key server-only; requests only when `ai_enabled` + `ai_processing` consent + quota (`ai_quota_status()`).                                                                                |
-| Walrus (Stage 6)      | Credentials server-only; writes only through the memory policy gate. Not integrated in Stage 1.                                                                                                    |
+| Boundary          | Rule                                                                                                                                                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser ↔ server  | The browser only ever has the Supabase **publishable** key. Secrets are read in `src/lib/env.server.ts`, which imports `server-only` so the build fails if a Client Component imports it.                                                                                                    |
+| Server ↔ database | Normal operations use the **user's session**, so RLS applies.                                                                                                                                                                                                                                |
+| Finance writes    | Only through `apply_finance_mutation()`: user from the session, explicit ownership checks on every referenced id, optimistic versions, idempotency receipts. Users can only SELECT finance tables.                                                                                           |
+| Admin access      | The Supabase **secret** key is used only in `src/lib/supabase/admin.ts`: account deletion; writing `memory_records` (relayer-sourced job ids, blob ids, statuses must not be user-forgeable); linking a recommendation's outcome memory. Every admin query filters by the session's user id. |
+| Walrus Memory     | `MEMWAL_PRIVATE_KEY` and `MEMWAL_NAMESPACE_SECRET` are read only in `src/lib/integrations/config.ts` (`server-only`). Every write passes the policy gate; every read is confined to the session user's HMAC namespace.                                                                       |
+| Tatum / Sui       | `TATUM_API_KEY` server-only, sent as `x-api-key` gRPC metadata from the server. Read-only calls; AVEN never signs or sends transactions and stores only public addresses.                                                                                                                    |
+| AI provider       | Not used. Insights are deterministic; no data is sent to an AI provider.                                                                                                                                                                                                                     |
 
 ## Implemented controls (Stages 1–2)
 
@@ -41,12 +42,36 @@
 | Sign-out warns before discarding unsynced data                                                   | `SignOutButton`                                                             | manual                                                     |
 | Environment validation                                                                           | `src/lib/env.ts`, rejects a secret key in a public variable                 | unit                                                       |
 
+## Stage 3–5 controls (Walrus, Sui, intelligence)
+
+| Control                                                                                                                       | Where                                         | Tested                            |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------- |
+| Per-user memory namespace from the verified session, HMAC so ids aren't exposed                                               | `src/lib/memory/namespace.ts`, `runtime.ts`   | unit (mock: B can't recall A)     |
+| No SDK call without consent, while paused, or for unsafe content                                                              | `evaluateMemoryCandidate`, `canRecall`        | unit (spies prove zero SDK calls) |
+| Sensitive-content guard (emails, card/account numbers, IBANs, keys, credentials, phones)                                      | `findUnsafeContent`                           | unit                              |
+| Consent requires acknowledged disclosures (client + server check), new policy version                                         | consent toggle, `setConsentAction`, migration | e2e + DB                          |
+| `memory_records` read-only for users; forgotten can't be restored; outbox erased when stored                                  | migration + triggers + CHECKs                 | DB tests                          |
+| Relayer namespace mismatch is never linked to a user                                                                          | `refreshMemoryJobs`                           | unit                              |
+| Wallets: address format CHECK, ≤ 5 per user, only label editable, RLS                                                         | migration                                     | DB tests                          |
+| On-chain import only via `import_chain_transaction()`: digest unique, near-duplicate confirm, wallet ownership, finance rules | migration                                     | DB tests                          |
+| Imports re-verified on Sui (digest exists and changed this wallet's balance)                                                  | wallet actions                                | code review (needs Tatum)         |
+| Recommendations: users create only open ones for themselves; answers via function, once                                       | migration                                     | DB tests                          |
+| Rate limits: memory read/write, chain read/import, wallet changes, recommendation answers                                     | `RATE_LIMITS`                                 | code review                       |
+| Provider errors shown without secrets (long tokens redacted)                                                                  | `describeMemwalError`, `classifySuiError`     | unit                              |
+| New routes protected (`/intelligence/*`, `/money/wallets`, `/settings/integrations`)                                          | `PROTECTED_PREFIXES` + layout `getUser()`     | unit + e2e                        |
+| Secret scanner knows MemWal/Sui/Tatum key shapes                                                                              | `scripts/check-secrets.mjs`                   | CI                                |
+| Account deletion records external state honestly (Walrus retained-unreachable, counts only)                                   | `describeExternalCleanup`                     | code review                       |
+
 ## Secrets handling
 
 - Never put real values in the repo. `.env*` files are git-ignored; `.env.example` has names only.
 - Enter secrets in **Vercel → Project → Settings → Environment Variables**.
 - Never paste keys into chat, issues or screenshots. If a key leaks, rotate it in Supabase
   (Settings → API Keys) and update Vercel.
+- **MemWal delegate key leaked:** revoke/replace the delegate key at memory.walrus.xyz and
+  update `MEMWAL_PRIVATE_KEY`. **Do not** change `MEMWAL_NAMESPACE_SECRET` unless you accept
+  that existing memories become unreachable.
+- **Tatum key leaked:** delete it in the Tatum dashboard, create a new one, update Vercel.
 
 ## Stage 2 review findings (fixed)
 
@@ -56,7 +81,13 @@
 2. Users could insert `sync_receipts` directly. Now only the database function writes them.
 3. Sign-out wiped unsynced offline data silently. It now warns and offers to sync first.
 
-## Known limitations / planned hardening (Stage 8)
+## Known limitations / planned hardening
+
+- Walrus memories cannot be deleted through the MemWal SDK; AVEN suppresses them and
+  discloses this. AVEN's delegate key can decrypt every user's memories (single operator
+  account). Both are stated before consent.
+- The live Walrus and Tatum paths are verified only when you run `verify:walrus` /
+  `verify:tatum`; automated tests use the official MemWal mock and mocked Sui responses.
 
 - CSP allows inline scripts (needed by Next.js without nonces). Move to nonce-based CSP.
 - No error monitoring service yet.

@@ -17,9 +17,16 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "verify": "npm run check:structure && npm run check:secrets && npm run typecheck && npm run lint && npm run format:check && npm test && npm run build",
     "db:bundle": "node scripts/build-all-in-one-sql.mjs",
-    "check:structure": "node scripts/check-structure.mjs"
+    "check:structure": "node scripts/check-structure.mjs",
+    "verify:walrus": "vitest run --project live tests/live/walrus-mainnet.live.ts",
+    "verify:tatum": "vitest run --project live tests/live/tatum-sui.live.ts",
+    "test:live": "vitest run --project live"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.7",
+    "@mysten-incubation/memwal": "0.1.12",
+    "@mysten/sui": "^2.38.0",
+    "@protobuf-ts/grpc-transport": "^2.11.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "geist": "^1.9.0",

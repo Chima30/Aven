@@ -24,7 +24,27 @@ const PATTERNS = [
     re: /eyJ[A-Za-z0-9_-]{20,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
   },
   { name: "Private key block", re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
+  { name: "Sui private key (suiprivkey)", re: /suiprivkey1[0-9a-z]{50,}/ },
+  {
+    name: "MemWal delegate key assignment",
+    re: /MEMWAL_PRIVATE_KEY\s*[=:]\s*["']?(0x)?[0-9a-fA-F]{64}/,
+  },
+  { name: "Tatum API key assignment", re: /TATUM_API_KEY\s*[=:]\s*["']?t-[A-Za-z0-9-]{20,}/ },
+  {
+    name: "Namespace secret assignment",
+    re: /MEMWAL_NAMESPACE_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/_-]{32,}/,
+  },
 ];
+
+/** Non-secret variables that .env.example may give a default value for. */
+const EXAMPLE_DEFAULTS_ALLOWED = new Set([
+  "TATUM_SUI_RPC_URL",
+  "TATUM_SUI_GRPC_HOST",
+  "TATUM_SUI_GRPC_WEB_URL",
+  "TATUM_SUI_TRANSPORT",
+  "MEMWAL_SERVER_URL",
+  "MEMWAL_NAMESPACE",
+]);
 
 const problems = [];
 function walk(dir) {
@@ -49,8 +69,9 @@ walk(ROOT);
 
 const example = readFileSync(join(ROOT, ".env.example"), "utf8");
 for (const line of example.split("\n")) {
-  if (/^[A-Z_]+=.+/.test(line.trim())) {
-    problems.push(`.env.example must contain names only: ${line.split("=")[0]}`);
+  const name = line.split("=")[0]?.trim() ?? "";
+  if (/^[A-Z_]+=.+/.test(line.trim()) && !EXAMPLE_DEFAULTS_ALLOWED.has(name)) {
+    problems.push(`.env.example must contain names only: ${name}`);
   }
 }
 

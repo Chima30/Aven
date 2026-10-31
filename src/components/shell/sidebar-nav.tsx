@@ -35,13 +35,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <div
             key={item.label}
             aria-disabled="true"
-            title={`${item.label} arrives in Stage ${item.comingInStage}${item.children ? `: ${item.children.join(", ")}` : ""}`}
+            title={`${item.label} is planned for a later release${item.children ? `: ${item.children.join(", ")}` : ""}`}
             className="text-ink-subtle flex h-10 cursor-default items-center gap-3 rounded-xl px-3 text-sm"
           >
             <NavIcon name={item.icon} className="size-[18px] opacity-70" />
             <span className="flex-1">{item.label}</span>
             <span className="border-line rounded-md border px-1.5 py-px text-[0.625rem] font-semibold tracking-wide">
-              STAGE {item.comingInStage}
+              LATER
             </span>
             <span className="sr-only">(not available yet)</span>
           </div>

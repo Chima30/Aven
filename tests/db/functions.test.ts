@@ -49,14 +49,23 @@ describe("consent", () => {
     expect(r.audit).toEqual(["consent.granted", "consent.withdrawn"]);
   });
 
-  it("refuses to grant Walrus memory consent before Stage 6, but allows withdrawal", async () => {
-    const code = await pgErrorCode(
-      asUser(db, alice, (c) => c.query("select set_consent('memory_financial', true, 'settings')")),
-    );
-    expect(code).toBe("55000");
+  it("allows financial memory consent (new policy version) but keeps other memory categories locked", async () => {
+    const state = await asUser(db, alice, async (c) => {
+      await c.query("select set_consent('memory_financial', true, 'settings')");
+      return (
+        await c.query(
+          "select granted, policy_version from consent_state where category = 'memory_financial'",
+        )
+      ).rows[0];
+    });
+    expect(state).toEqual({ granted: true, policy_version: "2026-11-02" });
     await asUser(db, alice, (c) =>
       c.query("select set_consent('memory_financial', false, 'settings')"),
     );
+    const code = await pgErrorCode(
+      asUser(db, alice, (c) => c.query("select set_consent('memory_wellbeing', true, 'settings')")),
+    );
+    expect(code).toBe("55000");
   });
 
   it("rejects unknown categories and sources", async () => {

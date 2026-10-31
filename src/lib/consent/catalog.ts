@@ -19,21 +19,22 @@ export const CONSENT_COPY: Record<ConsentCategory, ConsentCopy> = {
     description:
       "Allows AVEN to send the parts of your data needed to answer a question to Anthropic's API. Used only when AI features are switched on and you ask the assistant something.",
     group: "ai",
-    unavailableNote: "The AI assistant arrives in Stage 6.",
+    unavailableNote:
+      "AVEN does not use an AI provider yet; its insights are calculated deterministically.",
   },
   wellbeing_data: {
     title: "Store wellbeing information",
     description:
       "Allows AVEN to store sleep, water, meal and exercise logs you enter. Only you can see them. AVEN is not a medical service.",
     group: "wellbeing",
-    unavailableNote: "Wellbeing tracking arrives in Stage 5.",
+    unavailableNote: "Wellbeing tracking is planned for a later release.",
   },
   memory_financial: {
     title: "Remember financial context",
     description:
-      "Lets AVEN keep summaries such as spending patterns and savings progress as long-term memory — never raw transactions.",
+      "Lets AVEN keep short summaries — budgeting style, regularly overspent categories, savings targets and performance, income patterns, subscriptions, and how you responded to its recommendations — as encrypted long-term memory in Walrus. Never raw transactions, balances, account numbers or credentials.",
     group: "memory",
-    unavailableNote: memoryNote(),
+    unavailableNote: "Walrus Memory isn't available right now.",
   },
   memory_shared_expenses: {
     title: "Remember shared-expense context",
@@ -63,8 +64,20 @@ export const CONSENT_COPY: Record<ConsentCategory, ConsentCopy> = {
 };
 
 function memoryNote(): string {
-  return "Locked until Stage 6. Before you can switch this on, AVEN will tell you exactly how memories stored in Walrus can be reviewed, corrected and deleted — including any limits.";
+  return "Not available yet: AVEN only uses Walrus Memory for financial context today.";
 }
+
+/**
+ * Shown, and acknowledged, before the financial memory permission can be
+ * granted. These are facts about the integration, not marketing.
+ */
+export const WALRUS_MEMORY_DISCLOSURES: readonly string[] = [
+  "Memories are short summaries written by AVEN's own code, stored on Walrus (Mainnet) through the official MemWal relayer, which encrypts them before storage.",
+  "AVEN's server holds the key that writes and reads these memories. Your memories sit in a private namespace that only your signed-in session can reach.",
+  "You can see every memory AVEN has stored, pause memory, or withdraw this permission at any time. Withdrawing or pausing stops all new memories and all recall immediately.",
+  "Deleting from Walrus is not supported by the MemWal SDK. When you forget a memory — or delete your account — AVEN permanently stops using it, but the encrypted copy stays on Walrus.",
+  "AVEN never stores bank credentials, passwords, card or account numbers, wallet keys or raw transactions in memory.",
+];
 
 export const CONSENT_ORDER: readonly ConsentCategory[] = [
   "ai_processing",

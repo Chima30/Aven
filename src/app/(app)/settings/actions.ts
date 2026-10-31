@@ -147,6 +147,16 @@ export async function setConsentAction(_prev: FormState, formData: FormData): Pr
     granted: formValue(formData, "granted"),
   });
   if (!parsed.success) return { status: "error", message: "That permission isn't recognised." };
+  if (
+    parsed.data.granted &&
+    parsed.data.category.startsWith("memory_") &&
+    formValue(formData, "acknowledged") !== "yes"
+  ) {
+    return {
+      status: "error",
+      message: "Please read and confirm the Walrus Memory notes before allowing memory.",
+    };
+  }
 
   const { error } = await ctx.supabase.rpc("set_consent", {
     p_category: parsed.data.category,
@@ -281,6 +291,39 @@ export async function changePasswordAction(
  *   4. Delete the Supabase Auth user → every public.* row cascades away.
  *   5. Record the outcome, clear cookies and send the user to the home page.
  */
+/**
+ * Honest record of what happens OUTSIDE Supabase when an account is deleted.
+ * Counts only — no user id, no memory text, no addresses.
+ */
+async function describeExternalCleanup(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<Record<string, unknown>> {
+  const [{ data: memories }, { count: wallets }] = await Promise.all([
+    admin.from("memory_records").select("status").eq("user_id", userId),
+    admin.from("sui_wallets").select("id", { count: "exact", head: true }).eq("user_id", userId),
+  ]);
+  const byStatus = (memories ?? []).reduce<Record<string, number>>((acc, r) => {
+    acc[r.status] = (acc[r.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const onWalrus = (byStatus.stored ?? 0) + (byStatus.suppressed ?? 0) + (byStatus.submitted ?? 0);
+  return {
+    walrus:
+      onWalrus === 0
+        ? { status: "nothing_stored" }
+        : {
+            status: "retained_unreachable",
+            reason:
+              "The MemWal SDK has no delete operation. Encrypted memories remain on Walrus; their namespace was derived from the deleted user id with a server secret, so AVEN can no longer reach or use them.",
+            memories_on_walrus: onWalrus,
+            memories_not_yet_written: (byStatus.queued ?? 0) + (byStatus.failed ?? 0),
+          },
+    sui: { status: "not_applicable", wallet_addresses_deleted: wallets ?? 0 },
+    ai_provider: "not_applicable",
+  };
+}
+
 export async function deleteAccountAction(
   _prev: FormState,
   formData: FormData,
@@ -305,12 +348,10 @@ export async function deleteAccountAction(
 
   const admin = createAdminClient();
   const subjectHash = createHash("sha256").update(ctx.user.id).digest("hex");
+  const externalCleanup = await describeExternalCleanup(admin, ctx.user.id);
   const { data: logRow, error: logError } = await admin
     .from("account_deletion_log")
-    .insert({
-      subject_hash: subjectHash,
-      external_cleanup: { walrus: "not_applicable", ai_provider: "not_applicable" },
-    })
+    .insert({ subject_hash: subjectHash, external_cleanup: externalCleanup })
     .select("id")
     .single();
   if (logError || !logRow) {
