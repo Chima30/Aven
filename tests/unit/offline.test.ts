@@ -137,6 +137,15 @@ describe("Outbox", () => {
   });
 });
 
+/** Adapt a per-entry fake into the batch transport the engine uses. */
+const perEntry =
+  (fn: (e: OutboxEntry) => Promise<SyncResult>) =>
+  async (entries: OutboxEntry[]): Promise<SyncResult[]> => {
+    const out: SyncResult[] = [];
+    for (const e of entries) out.push(await fn(e));
+    return out;
+  };
+
 describe("SyncEngine", () => {
   /** Fake server that de-duplicates by mutationId, like public.sync_receipts. */
   function fakeServer() {
@@ -159,7 +168,7 @@ describe("SyncEngine", () => {
     const server = fakeServer();
     const report = await new SyncEngine({
       outbox: box,
-      transport: server.transport,
+      transport: perEntry(server.transport),
       userId: USER,
       isOnline: () => true,
     }).run();
@@ -172,7 +181,7 @@ describe("SyncEngine", () => {
     await box.enqueue(newEntry());
     const report = await new SyncEngine({
       outbox: box,
-      transport: fakeServer().transport,
+      transport: perEntry(fakeServer().transport),
       userId: USER,
       isOnline: () => false,
     }).run();
@@ -196,7 +205,7 @@ describe("SyncEngine", () => {
     };
     const engine = new SyncEngine({
       outbox: box,
-      transport: flaky,
+      transport: perEntry(flaky),
       userId: USER,
       isOnline: () => true,
     });
@@ -220,10 +229,11 @@ describe("SyncEngine", () => {
       isOnline: () => true,
     });
     const report = await engine.run();
-    expect(report).toMatchObject({ attempted: 1, retrying: 1 });
+    expect(report).toMatchObject({ attempted: 2, retrying: 2, synced: 0 });
     const entries = await box.list(USER);
+    // Nothing is lost or reordered: both stay pending and will be retried together.
     expect(entries.map((e) => e.status)).toEqual(["pending", "pending"]);
-    expect(entries[1]!.attempts).toBe(0);
+    expect(entries.map((e) => e.attempts)).toEqual([1, 1]);
   });
 
   it("marks conflicts as failed and never overwrites", async () => {
@@ -231,11 +241,14 @@ describe("SyncEngine", () => {
     const entry = await box.enqueue(newEntry({ operation: "update", baseVersion: 3 }));
     const report = await new SyncEngine({
       outbox: box,
-      transport: async () => ({
-        status: "conflict",
-        serverVersion: 5,
-        message: "Changed on another device",
-      }),
+      transport: async () => [
+        {
+          status: "conflict",
+          serverVersion: 5,
+          message: "Changed on another device",
+          record: { amount_minor: 9 },
+        },
+      ],
       userId: USER,
       isOnline: () => true,
     }).run();
@@ -244,6 +257,7 @@ describe("SyncEngine", () => {
       status: "failed",
       serverVersion: 5,
       lastError: { kind: "conflict" },
+      conflictRecord: { amount_minor: 9 },
     });
   });
 
@@ -253,7 +267,7 @@ describe("SyncEngine", () => {
     await box.enqueue(newEntry());
     const report = await new SyncEngine({
       outbox: box,
-      transport: async () => ({ status: "auth_required" }),
+      transport: async (entries) => entries.map(() => ({ status: "auth_required" as const })),
       userId: USER,
       isOnline: () => true,
     }).run();
@@ -268,8 +282,8 @@ describe("SyncEngine", () => {
     const engine = new SyncEngine({
       outbox: box,
       transport: () =>
-        new Promise<SyncResult>((resolve) => {
-          release = () => resolve({ status: "applied", serverVersion: 1 });
+        new Promise<SyncResult[]>((resolve) => {
+          release = () => resolve([{ status: "applied", serverVersion: 1 }]);
         }),
       userId: USER,
       isOnline: () => true,
@@ -279,5 +293,75 @@ describe("SyncEngine", () => {
     expect((await engine.run()).stoppedReason).toBe("already_running");
     release();
     expect((await first).synced).toBe(1);
+  });
+});
+
+describe("Outbox edits before sync", () => {
+  it("lets an unsent change be edited or cancelled, but not one that may have reached the server", async () => {
+    const box = outbox();
+    const a = await box.enqueue(newEntry());
+    expect(await box.replacePayload(a.mutationId, { note: "tea" })).toBe(true);
+    expect((await box.get(a.mutationId))!.payload).toEqual({ note: "tea" });
+
+    const b = await box.enqueue(newEntry());
+    await box.claimDue(USER);
+    await box.markRetry(b.mutationId, "lost response"); // may have been applied
+    expect(await box.cancelUnsent(b.mutationId)).toBe(false);
+    expect(await box.replacePayload(b.mutationId, {})).toBe(false);
+    expect(await box.get(b.mutationId)).toBeDefined();
+  });
+
+  it("persists across reopening the database (survives a reload)", async () => {
+    const name = `persist-${randomUUID()}`;
+    const first = await openAvenDb(name);
+    const entry = await new Outbox(first).enqueue(newEntry({ createdOffline: true }));
+    first.close();
+    const second = await openAvenDb(name);
+    expect((await new Outbox(second).get(entry.mutationId))!).toMatchObject({
+      status: "pending",
+      createdOffline: true,
+    });
+    second.close();
+  });
+
+  it("syncs in batches and counts offline-created entries", async () => {
+    const box = outbox();
+    for (let i = 0; i < 5; i += 1) await box.enqueue(newEntry({ createdOffline: i < 2 }));
+    const sizes: number[] = [];
+    const report = await new SyncEngine({
+      outbox: box,
+      transport: async (entries) => {
+        sizes.push(entries.length);
+        return entries.map(() => ({ status: "applied" as const, serverVersion: 1 }));
+      },
+      userId: USER,
+      isOnline: () => true,
+      batchSize: 2,
+    }).run();
+    expect(sizes).toEqual([2, 2, 1]);
+    expect(report).toMatchObject({ synced: 5, syncedOffline: 2 });
+  });
+
+  it("treats an incomplete server response as a network failure", async () => {
+    const box = outbox();
+    await box.enqueue(newEntry());
+    await box.enqueue(newEntry());
+    const report = await new SyncEngine({
+      outbox: box,
+      transport: async () => [{ status: "applied", serverVersion: 1 }],
+      userId: USER,
+      isOnline: () => true,
+    }).run();
+    expect(report.retrying).toBe(2);
+    expect((await box.summary(USER)).pending).toBe(2);
+  });
+
+  it("recovers entries orphaned in 'syncing' when the page went away mid-request", async () => {
+    const box = outbox();
+    await box.enqueue(newEntry());
+    await box.claimDue(USER);
+    expect((await box.summary(USER)).syncing).toBe(1);
+    expect(await box.releaseOrphaned(USER)).toBe(1);
+    expect((await box.claimDue(USER)).length).toBe(1);
   });
 });

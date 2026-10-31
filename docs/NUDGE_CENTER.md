@@ -7,12 +7,14 @@ individual nudges are rare, respect quiet hours, and never exceed the user's dai
 **Deterministic rules decide delivery. AI may later help word a summary but cannot change
 whether, when or how often anyone is notified.**
 
-## Stage 1 status
+## Status
 
 - ✅ `notification_preferences` and `notification_category_preferences` tables (RLS, tested)
 - ✅ Settings → Notifications page (real, saved preferences)
 - ✅ Delivery engine `decideDelivery()` in `src/lib/nudges/engine.ts`, fully unit-tested,
   including time zones and daylight-saving changes
+- ✅ Stage 2: `finance_events` table with de-duplicated budget threshold/exceeded, savings
+  milestone and sync failed/completed events (see FINANCE.md), the inputs Stage 3 will deliver
 - ❌ No notifications are created or sent, and none are faked
 
 ## Delivery rules (in order)

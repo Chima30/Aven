@@ -16,19 +16,28 @@ closest match.
 
 ## 2. Create the database tables (one paste)
 
+**Which file?**
+
+| Your situation                                  | Run this file, once                          |
+| ----------------------------------------------- | -------------------------------------------- |
+| Brand-new, empty Supabase project               | `supabase/setup_all_in_one.sql` (all stages) |
+| You already ran the Stage 1 SQL on this project | `supabase/upgrades/stage2.sql` only          |
+
+Not sure? Open **Table Editor**. If you see `profiles` but no `transactions`, you have
+Stage 1, so run the upgrade. If you see no tables at all, run the full setup.
+
 1. In the left sidebar, open **SQL Editor** → **New query**.
-2. Open `supabase/stage1_all_in_one.sql` from the AVEN files (or on GitHub, open the file and
-   click the **Copy raw file** button).
+2. Open the right file from the AVEN files. On GitHub, open the file and click **Copy raw file**.
 3. Paste everything into the editor and click **Run**.
 4. You should see **"Success. No rows returned."** If you see an error, copy the error message
    and share it with me. The whole script runs as one unit, so a failure changes nothing.
-5. Check: open **Table Editor**. You should see 16 tables, including `profiles`,
-   `user_preferences` and `consent_state`, each with an **RLS enabled** label.
+5. Check: open **Table Editor**. You should see 23 tables, including `profiles`,
+   `financial_accounts`, `transactions` and `budgets`, each with an **RLS enabled** label.
 
-> Run the script **once**. Running it again on the same project will fail with "already
-> exists". That failure is harmless and changes nothing.
-> Developers can instead apply `supabase/migrations/*.sql` in order with the Supabase CLI.
-> Use one method, not both.
+> Run each file **once**. Running one again fails with "already exists", which is harmless
+> and changes nothing. The Stage 2 upgrade keeps all existing users and data, and gives
+> existing users the default categories. Developers can instead apply
+> `supabase/migrations/*.sql` in order with the Supabase CLI. Use one method, not both.
 
 ## 3. Email and password sign-in
 

@@ -5,6 +5,8 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { NavIcon } from "@/components/shell/nav-icon";
+import { MoneyAmount } from "@/components/finance/money-amount";
+import { balancesByCurrency, loadFinanceBasics } from "@/lib/finance/queries";
 import { auditLabel } from "@/lib/audit/labels";
 import { getAppContext } from "@/lib/auth/session";
 import { getCurrency } from "@/lib/money/currencies";
@@ -69,6 +71,8 @@ export default async function OverviewPage({
     supabase.from("consent_records").select("id", { count: "exact", head: true }),
   ]);
 
+  const finance = await loadFinanceBasics();
+  const moneyTotals = balancesByCurrency(finance.accounts);
   const regional = {
     locale: preferences.locale,
     timeZone: preferences.time_zone,
@@ -179,6 +183,48 @@ export default async function OverviewPage({
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title="Money"
+          description="Confirmed balances from the accounts you track, grouped by currency."
+          action={
+            <Link href="/money" className="text-accent text-sm font-medium hover:underline">
+              Open Money
+            </Link>
+          }
+        />
+        <CardBody>
+          {moneyTotals.length === 0 ? (
+            <EmptyState
+              title="No accounts yet"
+              description="Add your cash, bank accounts, cards or wallets to start tracking income and spending."
+              action={
+                <ButtonLink href="/money/accounts?new=1" size="sm">
+                  Add an account
+                </ButtonLink>
+              }
+            />
+          ) : (
+            <div className="flex flex-wrap gap-x-10 gap-y-4">
+              {moneyTotals.map((t) => (
+                <div key={t.currency}>
+                  <p className="text-ink-muted text-xs">
+                    {t.currency} · {t.count} account{t.count === 1 ? "" : "s"}
+                  </p>
+                  <p className="mt-1 text-2xl">
+                    <MoneyAmount
+                      minor={t.totalMinor}
+                      currency={t.currency}
+                      locale={preferences.locale}
+                    />
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       <section aria-labelledby="coming-heading">
         <h2 id="coming-heading" className="type-section">

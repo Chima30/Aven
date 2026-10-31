@@ -1,11 +1,11 @@
 "use client";
 
-import { openAvenDb, wipeLocalData } from "./db";
-import { Outbox } from "./outbox";
+import { wipeLocalData } from "./db";
+import { OUTBOX_EVENT, getOutbox, sharedDb } from "./controller";
 import type { OutboxSummary } from "./types";
 
 /** Browser-only helpers for the offline layer. */
-export const OUTBOX_CHANGED_EVENT = "aven:outbox-changed";
+export const OUTBOX_CHANGED_EVENT = OUTBOX_EVENT;
 
 export function isIndexedDbAvailable(): boolean {
   return typeof window !== "undefined" && "indexedDB" in window;
@@ -13,12 +13,7 @@ export function isIndexedDbAvailable(): boolean {
 
 export async function readOutboxSummary(userId: string): Promise<OutboxSummary | null> {
   if (!isIndexedDbAvailable()) return null;
-  const db = await openAvenDb();
-  try {
-    return await new Outbox(db).summary(userId);
-  } finally {
-    db.close();
-  }
+  return (await getOutbox()).summary(userId);
 }
 
 /**
@@ -29,9 +24,7 @@ export async function readOutboxSummary(userId: string): Promise<OutboxSummary |
 export async function clearLocalAvenData(): Promise<void> {
   if (isIndexedDbAvailable()) {
     try {
-      const db = await openAvenDb();
-      await wipeLocalData(db);
-      db.close();
+      await wipeLocalData(await sharedDb());
     } catch {
       // If IndexedDB is blocked (private mode), there is nothing stored.
     }

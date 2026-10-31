@@ -49,6 +49,167 @@ export type SecurityEventAction =
   | "auth.password_reset_completed"
   | "auth.email_confirmed";
 
+export type AccountType = "cash" | "bank" | "savings" | "credit_card" | "digital_wallet" | "other";
+export type TransactionKind = "income" | "expense" | "transfer";
+export type CategoryKind = "income" | "expense";
+export type GoalStatus = "active" | "paused" | "completed" | "archived";
+export type FinanceEntity =
+  | "transaction"
+  | "financial_account"
+  | "category"
+  | "budget"
+  | "savings_goal"
+  | "savings_goal_entry";
+
+/* Amount columns: per-row amounts are capped at 9e15 minor units, so they are exact as
+ * JSON numbers. Aggregates from views/functions are TEXT. Convert with BigInt(). */
+export type FinancialAccountRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  account_type: AccountType;
+  currency_code: string;
+  opening_balance_minor: number;
+  description: string | null;
+  archived_at: Timestamp | null;
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type TransactionCategoryRow = {
+  id: string;
+  user_id: string;
+  kind: CategoryKind;
+  name: string;
+  is_default: boolean;
+  archived_at: Timestamp | null;
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type TransactionRow = {
+  id: string;
+  user_id: string;
+  kind: TransactionKind;
+  account_id: string;
+  transfer_account_id: string | null;
+  amount_minor: number;
+  currency_code: string;
+  category_id: string | null;
+  description: string | null;
+  merchant: string | null;
+  notes: string | null;
+  occurred_on: string;
+  attachment_ref: string | null;
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type BudgetRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  category_id: string | null;
+  currency_code: string;
+  limit_minor: number;
+  alert_threshold_pct: number;
+  starts_on: string;
+  archived_at: Timestamp | null;
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type SavingsGoalRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  currency_code: string;
+  target_minor: number;
+  target_date: string | null;
+  description: string | null;
+  status: GoalStatus;
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type SavingsGoalEntryRow = {
+  id: string;
+  user_id: string;
+  goal_id: string;
+  kind: "contribution" | "withdrawal";
+  amount_minor: number;
+  occurred_on: string;
+  note: string | null;
+  created_at: Timestamp;
+};
+
+export type FinanceEventRow = {
+  id: number;
+  user_id: string;
+  kind:
+    | "budget_threshold_reached"
+    | "budget_exceeded"
+    | "savings_milestone_reached"
+    | "sync_failed"
+    | "sync_completed";
+  dedupe_key: string;
+  payload: Record<string, unknown>;
+  occurred_at: Timestamp;
+  processed_at: Timestamp | null;
+};
+
+export type AccountBalanceRow = {
+  account_id: string;
+  user_id: string;
+  currency_code: string;
+  balance_minor: string;
+  transaction_count: number;
+  last_activity_on: string | null;
+};
+
+export type SavingsGoalProgressRow = {
+  goal_id: string;
+  user_id: string;
+  saved_minor: string;
+  entry_count: number;
+};
+
+export type ListedTransaction = Omit<TransactionRow, "user_id" | "attachment_ref"> & {
+  account_name: string;
+  transfer_account_name: string | null;
+  category_name: string | null;
+  total_count: number;
+};
+
+export type BudgetProgressRow = {
+  budget_id: string;
+  name: string;
+  category_id: string | null;
+  category_name: string | null;
+  currency_code: string;
+  limit_minor: string;
+  spent_minor: string;
+  alert_threshold_pct: number;
+  starts_on: string;
+  archived: boolean;
+  version: number;
+};
+
+export type MutationResult = {
+  status: "applied" | "conflict" | "rejected";
+  replayed?: boolean;
+  reason?: "version" | "not_found" | "exists";
+  message?: string;
+  note?: string;
+  server_version?: number;
+  record?: Record<string, unknown>;
+};
+
 export type ProfileRow = {
   id: string;
   display_name: string | null;
@@ -164,6 +325,8 @@ export type SyncReceiptRow = {
   result: "applied" | "conflict" | "rejected";
   server_version: number | null;
   received_at: Timestamp;
+  /** Exact response of apply_finance_mutation(), replayed for duplicate deliveries (Stage 2). */
+  response: MutationResult | null;
 };
 
 export type DataExportLogRow = {
@@ -181,6 +344,13 @@ export type AccountDeletionLogRow = {
   completed_at: Timestamp | null;
   outcome: "started" | "completed" | "failed";
   external_cleanup: Record<string, unknown>;
+};
+
+/** Server-internal; users have no access (RLS on, no policies). Typed for completeness. */
+export type RateLimitBucketRow = {
+  bucket_key: string;
+  window_start: Timestamp;
+  hit_count: number;
 };
 
 export type CurrencyRow = {
@@ -230,19 +400,27 @@ export type Database = {
         Pick<UserDeviceRow, "id" | "user_id"> & Partial<Pick<UserDeviceRow, "label" | "platform">>,
         Partial<Pick<UserDeviceRow, "label" | "last_seen_at" | "last_sync_at">>
       >;
-      sync_receipts: Table<
-        SyncReceiptRow,
-        Omit<SyncReceiptRow, "received_at" | "server_version" | "device_id"> &
-          Partial<Pick<SyncReceiptRow, "server_version" | "device_id">>
-      >;
+      // Written only by apply_finance_mutation() since Stage 2 — no client inserts.
+      sync_receipts: Table<SyncReceiptRow>;
       data_export_log: Table<DataExportLogRow>;
+      rate_limit_buckets: Table<RateLimitBucketRow>;
+      financial_accounts: Table<FinancialAccountRow>;
+      transaction_categories: Table<TransactionCategoryRow>;
+      transactions: Table<TransactionRow>;
+      budgets: Table<BudgetRow>;
+      savings_goals: Table<SavingsGoalRow>;
+      savings_goal_entries: Table<SavingsGoalEntryRow>;
+      finance_events: Table<FinanceEventRow>;
       account_deletion_log: Table<
         AccountDeletionLogRow,
         Pick<AccountDeletionLogRow, "subject_hash"> & Partial<AccountDeletionLogRow>,
         Partial<AccountDeletionLogRow>
       >;
     };
-    Views: Record<string, never>;
+    Views: {
+      account_balances: { Row: AccountBalanceRow; Relationships: [] };
+      savings_goal_progress: { Row: SavingsGoalProgressRow; Relationships: [] };
+    };
     Functions: {
       log_security_event: { Args: { p_action: SecurityEventAction }; Returns: undefined };
       set_consent: {
@@ -269,6 +447,72 @@ export type Database = {
           monthly_token_limit: number;
           allowed: boolean;
         }[];
+      };
+      apply_finance_mutation: {
+        Args: {
+          p_mutation_id: string;
+          p_entity: FinanceEntity;
+          p_operation: "create" | "update" | "delete";
+          p_record_id: string;
+          p_payload: Record<string, unknown>;
+          p_base_version?: number | null;
+          p_device_id?: string | null;
+        };
+        Returns: MutationResult;
+      };
+      record_sync_completed: {
+        Args: { p_batch_id: string; p_applied: number };
+        Returns: undefined;
+      };
+      finance_summary: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          currency_code: string;
+          income_minor: string;
+          expense_minor: string;
+          net_minor: string;
+          transaction_count: number;
+        }[];
+      };
+      spending_by_category: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          currency_code: string;
+          category_id: string | null;
+          category_name: string;
+          expense_minor: string;
+        }[];
+      };
+      monthly_cashflow: {
+        Args: { p_months: number; p_today: string };
+        Returns: {
+          month: string;
+          currency_code: string;
+          income_minor: string;
+          expense_minor: string;
+        }[];
+      };
+      budget_progress: {
+        Args: { p_month: string; p_include_archived?: boolean };
+        Returns: BudgetProgressRow[];
+      };
+      budget_history: {
+        Args: { p_budget_id: string; p_months: number; p_today: string };
+        Returns: { month: string; spent_minor: string; limit_minor: string }[];
+      };
+      list_transactions: {
+        Args: {
+          p_q?: string | null;
+          p_kind?: TransactionKind | null;
+          p_account_id?: string | null;
+          p_category_id?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_sort?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: ListedTransaction[];
       };
       record_ai_usage: {
         Args: { p_user_id: string; p_input_tokens: number; p_output_tokens: number };

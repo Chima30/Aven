@@ -7,19 +7,27 @@
  *
  * Offline DATA (queued changes) lives in IndexedDB, not here.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `aven-static-${VERSION}`;
 const SHELL_CACHE = `aven-shell-${VERSION}`;
 const OFFLINE_URL = "/offline";
 const SHELL_ASSETS = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
 
+// Also cache the scripts and styles the offline page needs, so offline
+// transaction entry works even if those files were never loaded before.
+async function precacheOfflinePage() {
+  const shell = await caches.open(SHELL_CACHE);
+  await shell.addAll(SHELL_ASSETS);
+  const response = await shell.match(OFFLINE_URL);
+  if (!response) return;
+  const html = await response.text();
+  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)]+/g) ?? [])];
+  const statics = await caches.open(STATIC_CACHE);
+  await Promise.all(assets.map((url) => statics.add(url).catch(() => undefined)));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(precacheOfflinePage().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

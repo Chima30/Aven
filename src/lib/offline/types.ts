@@ -46,23 +46,33 @@ export interface OutboxEntry<TPayload = unknown> {
   updatedAt: number;
   syncedAt: number | null;
   serverVersion: number | null;
+  /** For updates/deletes: the server copy the change was based on (for projections and conflict UI). */
+  snapshot?: unknown;
+  /** True when the change was made while the device was offline. */
+  createdOffline?: boolean;
+  /** When a conflict is reported: the server's current copy, so the user can compare. */
+  conflictRecord?: unknown;
 }
 
 export type NewOutboxEntry<TPayload = unknown> = Pick<
   OutboxEntry<TPayload>,
   "userId" | "entity" | "operation" | "recordId" | "payload" | "baseVersion"
->;
+> &
+  Partial<Pick<OutboxEntry<TPayload>, "snapshot" | "createdOffline">>;
 
 /** What the server reported for one entry. */
 export type SyncResult =
-  | { status: "applied"; serverVersion: number }
+  | { status: "applied"; serverVersion: number | null }
   | { status: "duplicate"; serverVersion: number | null }
-  | { status: "conflict"; serverVersion: number; message: string }
+  | { status: "conflict"; serverVersion: number | null; message: string; record?: unknown }
   | { status: "rejected"; message: string }
   | { status: "auth_required" };
 
-/** Sends one entry to the server. Must THROW on network failure. */
-export type SyncTransport = (entry: OutboxEntry) => Promise<SyncResult>;
+/**
+ * Sends a batch of entries (oldest first) and returns one result per entry, in
+ * the same order. Must THROW on network failure so the whole batch is retried.
+ */
+export type SyncTransport = (entries: OutboxEntry[]) => Promise<SyncResult[]>;
 
 export interface OutboxSummary {
   pending: number;

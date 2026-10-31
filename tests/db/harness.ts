@@ -49,7 +49,9 @@ export async function createTestDatabase(): Promise<TestDb> {
 
   const url = new URL(ADMIN_URL);
   url.pathname = `/${dbName}`;
-  const pool = new pg.Pool({ connectionString: url.toString(), max: 4 });
+  const pool = new pg.Pool({ connectionString: url.toString(), max: 6 });
+  // Idle connections are terminated when the test database is dropped; that's expected.
+  pool.on("error", () => undefined);
 
   const setup = await pool.connect();
   try {

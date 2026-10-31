@@ -31,7 +31,7 @@ test.describe("public pages", () => {
   });
 
   test("unknown pages show a helpful 404", async ({ page }) => {
-    const response = await page.goto("/money/accounts");
+    const response = await page.goto("/this-page-does-not-exist");
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "This page doesn't exist" })).toBeVisible();
   });
@@ -45,7 +45,14 @@ test.describe("public pages", () => {
 });
 
 test.describe("route protection", () => {
-  for (const path of ["/overview", "/settings", "/settings/privacy", "/settings/data"]) {
+  for (const path of [
+    "/overview",
+    "/settings",
+    "/settings/privacy",
+    "/settings/data",
+    "/money",
+    "/money/transactions",
+  ]) {
     test(`${path} redirects signed-out visitors to sign-in`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(
@@ -137,5 +144,17 @@ test.describe("PWA", () => {
     expect(sw.status()).toBe(200);
     expect(sw.headers()["cache-control"]).toContain("no-store");
     expect(await sw.text()).toContain("Pages are NEVER cached".replace("Pages", "pages"));
+  });
+});
+
+test.describe("sync endpoint", () => {
+  test("refuses signed-out and cross-site requests", async ({ request, baseURL }) => {
+    const signedOut = await request.post("/api/sync", { headers: { Origin: baseURL! }, data: {} });
+    expect(signedOut.status()).toBe(401);
+    const crossSite = await request.post("/api/sync", {
+      headers: { Origin: "https://evil.example" },
+      data: {},
+    });
+    expect(crossSite.status()).toBe(403);
   });
 });

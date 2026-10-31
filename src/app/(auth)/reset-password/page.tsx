@@ -2,13 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ButtonLink } from "@/components/ui/button";
+import { cookies } from "next/headers";
+import { RECOVERY_COOKIE, verifyRecoveryToken } from "@/lib/auth/recovery";
 import { getCurrentUser } from "@/lib/auth/session";
+import { serverEnv } from "@/lib/env.server";
 import { ResetPasswordForm } from "./reset-form";
 
 export const metadata: Metadata = { title: "Choose a new password" };
 
 export default async function ResetPasswordPage() {
   const user = await getCurrentUser();
+  const token = (await cookies()).get(RECOVERY_COOKIE)?.value;
+  const fromResetEmail = user
+    ? verifyRecoveryToken(token, user.id, serverEnv().SUPABASE_SECRET_KEY)
+    : false;
+  if (user && !fromResetEmail) {
+    // Signed in, but not via a reset email: changing the password requires the current one.
+    return (
+      <AuthCard
+        title="Change your password in Settings"
+        description="For your security, this page only works from a password-reset email. While signed in, change your password in Settings → Security, which asks for your current password."
+      >
+        <ButtonLink href="/settings/security" size="lg" className="w-full">
+          Go to Security settings
+        </ButtonLink>
+      </AuthCard>
+    );
+  }
   if (!user) {
     return (
       <AuthCard

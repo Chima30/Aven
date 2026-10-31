@@ -7,6 +7,8 @@ export const RATE_LIMITS = {
   change_password: { max: 5, windowSeconds: 60 * 60 },
   export_data: { max: 10, windowSeconds: 60 * 60 },
   sign_out_everywhere: { max: 10, windowSeconds: 60 * 60 },
+  sync: { max: 120, windowSeconds: 60 },
+  finance_write: { max: 120, windowSeconds: 60 },
 } as const;
 
 export type RateLimitedAction = keyof typeof RATE_LIMITS;

@@ -1,15 +1,19 @@
 # Database
 
 Supabase PostgreSQL is AVEN's **authoritative store**. Migrations live in
-`supabase/migrations/` and must be applied in filename order. `supabase/stage1_all_in_one.sql`
-is a generated bundle of all of them (regenerate with `npm run db:bundle`).
+`supabase/migrations/` and must be applied in filename order. `supabase/setup_all_in_one.sql`
+is a generated bundle of all of them, and `supabase/upgrades/stageN.sql` holds each stage on
+its own for existing projects (regenerate both with `npm run db:bundle`).
 
-| Migration                                        | Contents                                                                         |
-| ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `20261031000100_foundation.sql`                  | `private` schema, `currencies`, `profiles`, `user_preferences`                   |
-| `20261031000200_consent_audit_notifications.sql` | `audit_log`, consent tables and `set_consent()`, notification preferences        |
-| `20261031000300_ai_limits_sync_data_rights.sql`  | AI limits/usage, rate limiting, devices, sync receipts, export log, deletion log |
-| `20261031000400_new_user_bootstrap.sql`          | Sign-up trigger that creates default rows; deletion clean-up trigger             |
+| Migration                                        | Contents                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `20261031000100_foundation.sql`                  | `private` schema, `currencies`, `profiles`, `user_preferences`                                                                                               |
+| `20261031000200_consent_audit_notifications.sql` | `audit_log`, consent tables and `set_consent()`, notification preferences                                                                                    |
+| `20261031000300_ai_limits_sync_data_rights.sql`  | AI limits/usage, rate limiting, devices, sync receipts, export log, deletion log                                                                             |
+| `20261031000400_new_user_bootstrap.sql`          | Sign-up trigger that creates default rows; deletion clean-up trigger                                                                                         |
+| `20261101000100_finance_tables.sql`              | Accounts, categories (+ defaults), transactions, budgets, goals, goal entries, finance events; ownership/currency triggers; sync receipts made function-only |
+| `20261101000200_finance_mutations.sql`           | `apply_finance_mutation()` (the only finance write path), event producers, `record_sync_completed()`                                                         |
+| `20261101000300_finance_reads.sql`               | `account_balances`, `savings_goal_progress`, summaries, cash flow, budget progress/history, `list_transactions`                                              |
 
 ## Access model
 
@@ -25,34 +29,43 @@ is a generated bundle of all of them (regenerate with `npm run db:bundle`).
 
 ## Tables
 
-| Table                               | Purpose                                                                                       | User can                    | Written by                                                                |
-| ----------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------- |
-| `currencies`                        | ISO 4217 codes + decimal places                                                               | read (incl. signed-out)     | migrations                                                                |
-| `profiles`                          | display name, country                                                                         | read/update own (2 columns) | sign-up trigger                                                           |
-| `user_preferences`                  | currency, locale, time zone, week start, formats, units, theme, `ai_enabled`, `memory_paused` | read/update own             | sign-up trigger, settings                                                 |
-| `notification_preferences`          | channels, digests, quiet hours, pause, daily cap                                              | read/update own             | sign-up trigger, settings                                                 |
-| `notification_category_preferences` | frequency per topic; `account_security` can't be `off`                                        | read/update own `frequency` | sign-up trigger, settings                                                 |
-| `consent_categories`                | catalogue; `is_available=false` locks Walrus memory categories                                | read                        | migrations                                                                |
-| `consent_records`                   | append-only consent history                                                                   | read own                    | `set_consent()` only                                                      |
-| `consent_state`                     | current consent per category                                                                  | read own                    | `set_consent()` only                                                      |
-| `audit_log`                         | security/privacy events                                                                       | read own                    | triggers, `log_security_event()`, `set_consent()`, `record_data_export()` |
-| `ai_usage_limits`                   | per-user AI quotas                                                                            | read own                    | sign-up trigger, admins                                                   |
-| `ai_usage_daily`                    | AI requests and tokens per UTC day                                                            | read own                    | `record_ai_usage()` (service role only)                                   |
-| `rate_limit_buckets`                | fixed-window counters                                                                         | nothing                     | `consume_rate_limit()`                                                    |
-| `user_devices`                      | devices that sync offline data                                                                | full CRUD on own            | app (Stage 2)                                                             |
-| `sync_receipts`                     | one row per offline mutation id — makes retries idempotent                                    | read/insert own             | app (Stage 2)                                                             |
-| `data_export_log`                   | record that an export happened                                                                | read own                    | `record_data_export()`                                                    |
-| `account_deletion_log`              | **anonymous** proof of deletion (SHA-256 of user id, outcome)                                 | nothing                     | server (secret key)                                                       |
+| Table                                   | Purpose                                                                                       | User can                    | Written by                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------- |
+| `currencies`                            | ISO 4217 codes + decimal places                                                               | read (incl. signed-out)     | migrations                                                                |
+| `profiles`                              | display name, country                                                                         | read/update own (2 columns) | sign-up trigger                                                           |
+| `user_preferences`                      | currency, locale, time zone, week start, formats, units, theme, `ai_enabled`, `memory_paused` | read/update own             | sign-up trigger, settings                                                 |
+| `notification_preferences`              | channels, digests, quiet hours, pause, daily cap                                              | read/update own             | sign-up trigger, settings                                                 |
+| `notification_category_preferences`     | frequency per topic; `account_security` can't be `off`                                        | read/update own `frequency` | sign-up trigger, settings                                                 |
+| `consent_categories`                    | catalogue; `is_available=false` locks Walrus memory categories                                | read                        | migrations                                                                |
+| `consent_records`                       | append-only consent history                                                                   | read own                    | `set_consent()` only                                                      |
+| `consent_state`                         | current consent per category                                                                  | read own                    | `set_consent()` only                                                      |
+| `audit_log`                             | security/privacy events                                                                       | read own                    | triggers, `log_security_event()`, `set_consent()`, `record_data_export()` |
+| `ai_usage_limits`                       | per-user AI quotas                                                                            | read own                    | sign-up trigger, admins                                                   |
+| `ai_usage_daily`                        | AI requests and tokens per UTC day                                                            | read own                    | `record_ai_usage()` (service role only)                                   |
+| `rate_limit_buckets`                    | fixed-window counters                                                                         | nothing                     | `consume_rate_limit()`                                                    |
+| `user_devices`                          | devices that sync offline data                                                                | full CRUD on own            | registered by `apply_finance_mutation()`                                  |
+| `sync_receipts`                         | one row per mutation id with the stored response — makes retries idempotent                   | read own                    | `apply_finance_mutation()` only                                           |
+| `data_export_log`                       | record that an export happened                                                                | read own                    | `record_data_export()`                                                    |
+| `financial_accounts`                    | accounts, opening balance, archive                                                            | read own                    | `apply_finance_mutation()`                                                |
+| `transaction_categories`                | per-user categories (18 defaults seeded)                                                      | read own                    | `apply_finance_mutation()`, sign-up trigger                               |
+| `transactions`                          | income/expense/transfer, client-generated ids, versions                                       | read own                    | `apply_finance_mutation()`                                                |
+| `budgets`                               | monthly limits                                                                                | read own                    | `apply_finance_mutation()`                                                |
+| `savings_goals`, `savings_goal_entries` | goals and tracking entries                                                                    | read own                    | `apply_finance_mutation()`                                                |
+| `finance_events`                        | de-duplicated facts for Stage 3 nudges                                                        | read own                    | database functions only                                                   |
+| `account_deletion_log`                  | **anonymous** proof of deletion (SHA-256 of user id, outcome)                                 | nothing                     | server (secret key)                                                       |
 
 ## Functions callable by signed-in users
 
-| Function                                  | What it does                                                                     |
-| ----------------------------------------- | -------------------------------------------------------------------------------- |
-| `set_consent(category, granted, source)`  | Records history, updates state, audits. Refuses to grant unavailable categories. |
-| `log_security_event(action)`              | Allow-listed events only (sign-in, sign-out, password changes…).                 |
-| `consume_rate_limit(action, max, window)` | Returns `false` when over the limit.                                             |
-| `record_data_export(format, bytes)`       | Logs an export and audits it.                                                    |
-| `ai_quota_status()`                       | Whether AI may run now: AI switch on **and** consent **and** under limits.       |
+| Function                                                                                                                | What it does                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `set_consent(category, granted, source)`                                                                                | Records history, updates state, audits. Refuses to grant unavailable categories.        |
+| `log_security_event(action)`                                                                                            | Allow-listed events only (sign-in, sign-out, password changes…).                        |
+| `consume_rate_limit(action, max, window)`                                                                               | Returns `false` when over the limit.                                                    |
+| `record_data_export(format, bytes)`                                                                                     | Logs an export and audits it.                                                           |
+| `ai_quota_status()`                                                                                                     | Whether AI may run now: AI switch on **and** consent **and** under limits.              |
+| `apply_finance_mutation(...)`                                                                                           | The only finance write path: idempotent, versioned, ownership-checked (see FINANCE.md). |
+| `record_sync_completed(batch, count)`                                                                                   | One de-duplicated event per offline sync batch.                                         |
+| `finance_summary`, `spending_by_category`, `monthly_cashflow`, `budget_progress`, `budget_history`, `list_transactions` | Read models (SECURITY INVOKER, RLS applies; money as text).                             |
 
 ## New users
 

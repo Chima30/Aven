@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logSecurityEvent } from "@/lib/audit/log";
+import { RECOVERY_COOKIE, verifyRecoveryToken } from "@/lib/auth/recovery";
+import { serverEnv } from "@/lib/env.server";
 import { publicEnv } from "@/lib/env";
 import { formValue, type FormState } from "@/lib/forms";
 import { safeRedirectPath } from "@/lib/security/redirects";
@@ -183,6 +185,20 @@ export async function resetPasswordAction(
       message: "Your reset link has expired. Please request a new one.",
     };
   }
+  const jar = await cookies();
+  if (
+    !verifyRecoveryToken(
+      jar.get(RECOVERY_COOKIE)?.value,
+      userData.user.id,
+      serverEnv().SUPABASE_SECRET_KEY,
+    )
+  ) {
+    return {
+      status: "error",
+      message:
+        "This page only works from a password-reset email. Request a new link, or change your password in Settings → Security.",
+    };
+  }
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
@@ -201,6 +217,7 @@ export async function resetPasswordAction(
     };
   }
 
+  jar.delete(RECOVERY_COOKIE);
   await logSecurityEvent(supabase, "auth.password_reset_completed");
   // Someone else may have had the old password: end every other session.
   await supabase.auth.signOut({ scope: "others" });

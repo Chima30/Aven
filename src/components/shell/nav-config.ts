@@ -17,19 +17,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Overview", icon: "overview", href: "/overview" },
-  {
-    label: "Money",
-    icon: "money",
-    comingInStage: 2,
-    children: [
-      "Accounts",
-      "Transactions",
-      "Budgets",
-      "Savings",
-      "Shared expenses",
-      "Subscriptions",
-    ],
-  },
+  { label: "Money", icon: "money", href: "/money" },
   {
     label: "Planning",
     icon: "planning",

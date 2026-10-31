@@ -37,13 +37,69 @@ const USER_OWNED_TABLES: Array<[table: string, ownerColumn: string]> = [
   ["user_devices", "user_id"],
   ["sync_receipts", "user_id"],
   ["data_export_log", "user_id"],
+  ["financial_accounts", "user_id"],
+  ["transaction_categories", "user_id"],
+  ["transactions", "user_id"],
+  ["budgets", "user_id"],
+  ["savings_goals", "user_id"],
+  ["savings_goal_entries", "user_id"],
+  ["finance_events", "user_id"],
 ];
 
 beforeAll(async () => {
   db = await createTestDatabase();
   alice = await createUser(db, "alice@example.com", { display_name: "Alice" });
   bob = await createUser(db, "bob@example.com", { display_name: "Bob" });
+  for (const uid of [alice, bob]) await seedFinance(uid);
 });
+
+/** Give a user one of everything in finance, through the only allowed write path. */
+async function seedFinance(uid: string) {
+  const device = randomUUID();
+  const account = randomUUID();
+  const budget = randomUUID();
+  const goal = randomUUID();
+  const calls: Array<[string, string, Record<string, unknown>]> = [
+    [
+      "financial_account",
+      account,
+      { name: "Main", account_type: "bank", currency_code: "USD", opening_balance_minor: "0" },
+    ],
+    [
+      "budget",
+      budget,
+      { name: "All", currency_code: "USD", limit_minor: "1", starts_on: "2026-11-01" },
+    ],
+    [
+      "transaction",
+      randomUUID(),
+      {
+        kind: "expense",
+        account_id: account,
+        amount_minor: "5",
+        currency_code: "USD",
+        occurred_on: "2026-11-02",
+      },
+    ],
+    ["savings_goal", goal, { name: "Goal", currency_code: "USD", target_minor: "100" }],
+    [
+      "savings_goal_entry",
+      randomUUID(),
+      { goal_id: goal, kind: "contribution", amount_minor: "10", occurred_on: "2026-11-02" },
+    ],
+    ["category", randomUUID(), { kind: "expense", name: "Custom" }],
+  ];
+  await asUser(db, uid, async (c) => {
+    for (const [entity, id, payload] of calls) {
+      const { rows } = await c.query<{ r: { status: string } }>(
+        "select apply_finance_mutation($1, $2, 'create', $3, $4, null, $5) as r",
+        [randomUUID(), entity, id, JSON.stringify(payload), device],
+      );
+      if (rows[0]?.r.status !== "applied")
+        throw new Error(`seed failed: ${entity} ${JSON.stringify(rows[0])}`);
+    }
+  });
+}
 
 afterAll(async () => {
   await db?.close();
@@ -63,8 +119,9 @@ describe("RLS is enabled everywhere", () => {
 
   it("covers every user-owned table in this test file", async () => {
     const { rows } = await db.pool.query<{ table_name: string }>(`
-      select distinct table_name from information_schema.columns
-      where table_schema = 'public' and column_name = 'user_id'`);
+      select distinct c.table_name from information_schema.columns c
+      join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name
+      where c.table_schema = 'public' and c.column_name = 'user_id' and t.table_type = 'BASE TABLE'`);
     const tested = new Set(USER_OWNED_TABLES.map(([t]) => t));
     for (const { table_name } of rows) expect(tested.has(table_name)).toBe(true);
   });
@@ -116,23 +173,7 @@ describe("new user bootstrap", () => {
 
 describe("cross-user isolation", () => {
   it.each(USER_OWNED_TABLES)("%s: Alice only ever sees her own rows", async (table, owner) => {
-    // Give both users at least one row where users cannot insert directly.
-    if (table === "user_devices" || table === "sync_receipts") {
-      for (const uid of [alice, bob]) {
-        await asUser(db, uid, async (c) => {
-          const device = randomUUID();
-          await c.query("insert into user_devices (id, user_id, label) values ($1, $2, 'Phone')", [
-            device,
-            uid,
-          ]);
-          await c.query(
-            `insert into sync_receipts (user_id, client_mutation_id, device_id, entity, record_id, operation, result)
-             values ($1, $2, $3, 'transactions', $4, 'create', 'applied')`,
-            [uid, randomUUID(), device, randomUUID()],
-          );
-        });
-      }
-    }
+    // Finance, device and receipt rows were created in beforeAll via seedFinance().
     if (table === "ai_usage_daily") {
       await asService(db, async (c) => {
         await c.query("select record_ai_usage($1, 10, 20)", [alice]);

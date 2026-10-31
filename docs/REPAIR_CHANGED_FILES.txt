@@ -1,0 +1,273 @@
+Changes relative to github.com/Chima30/aven @ c4b9a87 (31 Oct 2026)
+R = moved from public/ to the correct location   M = modified   A = added   D = deleted
+
+M  .github/workflows/ci.yml
+M  AGENTS.md
+M  README.md
+M  docs/ARCHITECTURE.md
+M  docs/DATABASE.md
+M  docs/DEPLOYMENT.md
+M  docs/ENVIRONMENT.md
+R100  public/docs/FINANCE.md  docs/FINANCE.md
+M  docs/GITHUB_UPLOAD.md
+M  docs/NUDGE_CENTER.md
+M  docs/OFFLINE.md
+A  docs/REPAIR_NOTES.md
+M  docs/ROADMAP.md
+M  docs/SECURITY.md
+M  docs/SUPABASE_SETUP.md
+M  docs/TESTING.md
+M  package.json
+M  playwright.config.ts
+D  public/.env.example
+D  public/.github/workflows/ci.yml
+D  public/.gitignore
+D  public/.prettierignore
+D  public/.prettierrc.json
+D  public/AGENTS.md
+D  public/README.md
+D  public/docs/ARCHITECTURE.md
+D  public/docs/DATABASE.md
+D  public/docs/DEPLOYMENT.md
+D  public/docs/ENVIRONMENT.md
+D  public/docs/GITHUB_UPLOAD.md
+D  public/docs/MEMORY.md
+D  public/docs/NUDGE_CENTER.md
+D  public/docs/OFFLINE.md
+D  public/docs/ROADMAP.md
+D  public/docs/SECURITY.md
+D  public/docs/SUPABASE_SETUP.md
+D  public/docs/TESTING.md
+D  public/eslint.config.mjs
+D  public/next.config.ts
+D  public/package-lock.json
+D  public/package.json
+D  public/playwright.config.ts
+D  public/postcss.config.mjs
+D  public/public/icons/icon-192.png
+D  public/public/icons/icon-512.png
+D  public/public/icons/icon-maskable-512.png
+D  public/public/sw.js
+D  public/scripts/build-all-in-one-sql.mjs
+D  public/scripts/check-secrets.mjs
+D  public/src/app/(app)/error.tsx
+D  public/src/app/(app)/layout.tsx
+D  public/src/app/(app)/loading.tsx
+D  public/src/app/(app)/overview/page.tsx
+D  public/src/app/(app)/settings/actions.ts
+D  public/src/app/(app)/settings/appearance/appearance-form.tsx
+D  public/src/app/(app)/settings/appearance/page.tsx
+D  public/src/app/(app)/settings/data/delete-account.tsx
+D  public/src/app/(app)/settings/data/export-button.tsx
+D  public/src/app/(app)/settings/data/export/route.ts
+D  public/src/app/(app)/settings/data/page.tsx
+D  public/src/app/(app)/settings/layout.tsx
+D  public/src/app/(app)/settings/notifications/notifications-form.tsx
+D  public/src/app/(app)/settings/notifications/page.tsx
+D  public/src/app/(app)/settings/page.tsx
+D  public/src/app/(app)/settings/privacy/consent-toggle.tsx
+D  public/src/app/(app)/settings/privacy/page.tsx
+D  public/src/app/(app)/settings/privacy/privacy-form.tsx
+D  public/src/app/(app)/settings/profile-form.tsx
+D  public/src/app/(app)/settings/regional/page.tsx
+D  public/src/app/(app)/settings/regional/regional-form.tsx
+D  public/src/app/(app)/settings/security/change-password-form.tsx
+D  public/src/app/(app)/settings/security/page.tsx
+D  public/src/app/(auth)/actions.ts
+D  public/src/app/(auth)/auth-error/page.tsx
+D  public/src/app/(auth)/check-email/page.tsx
+D  public/src/app/(auth)/forgot-password/forgot-form.tsx
+D  public/src/app/(auth)/forgot-password/page.tsx
+D  public/src/app/(auth)/layout.tsx
+D  public/src/app/(auth)/reset-password/page.tsx
+D  public/src/app/(auth)/reset-password/reset-form.tsx
+D  public/src/app/(auth)/sign-in/page.tsx
+D  public/src/app/(auth)/sign-in/sign-in-form.tsx
+D  public/src/app/(auth)/sign-up/page.tsx
+D  public/src/app/(auth)/sign-up/sign-up-form.tsx
+D  public/src/app/(marketing)/account-deleted-notice.tsx
+D  public/src/app/(marketing)/layout.tsx
+D  public/src/app/(marketing)/page.tsx
+D  public/src/app/(marketing)/privacy/page.tsx
+D  public/src/app/(marketing)/terms/page.tsx
+D  public/src/app/apple-icon.png
+D  public/src/app/auth/confirm/route.ts
+D  public/src/app/auth/sign-out/route.ts
+D  public/src/app/global-error.tsx
+D  public/src/app/globals.css
+D  public/src/app/icon.svg
+D  public/src/app/layout.tsx
+D  public/src/app/manifest.ts
+D  public/src/app/not-found.tsx
+D  public/src/app/offline/page.tsx
+D  public/src/app/offline/reload-button.tsx
+D  public/src/app/robots.ts
+D  public/src/components/auth/auth-card.tsx
+D  public/src/components/auth/password-input.tsx
+D  public/src/components/auth/sign-out-button.tsx
+D  public/src/components/brand/logo.tsx
+D  public/src/components/marketing/connections-illustration.tsx
+D  public/src/components/marketing/legal-page.tsx
+D  public/src/components/marketing/public-header.tsx
+D  public/src/components/offline/service-worker-register.tsx
+D  public/src/components/offline/sync-status.tsx
+D  public/src/components/settings/settings-form.tsx
+D  public/src/components/settings/settings-nav.tsx
+D  public/src/components/shell/app-shell.tsx
+D  public/src/components/shell/nav-config.ts
+D  public/src/components/shell/nav-icon.tsx
+D  public/src/components/shell/sidebar-nav.tsx
+D  public/src/components/ui/button.tsx
+D  public/src/components/ui/card.tsx
+D  public/src/components/ui/dialog.tsx
+D  public/src/components/ui/feedback.tsx
+D  public/src/components/ui/field.tsx
+D  public/src/components/ui/page-header.tsx
+D  public/src/components/ui/submit-button.tsx
+D  public/src/components/ui/switch.tsx
+D  public/src/components/ui/toast.tsx
+D  public/src/lib/audit/labels.ts
+D  public/src/lib/audit/log.ts
+D  public/src/lib/auth/reauth.ts
+D  public/src/lib/auth/routes.ts
+D  public/src/lib/auth/session.ts
+D  public/src/lib/cn.ts
+D  public/src/lib/consent/catalog.ts
+D  public/src/lib/data/export.ts
+D  public/src/lib/env.server.ts
+D  public/src/lib/env.ts
+D  public/src/lib/forms.ts
+D  public/src/lib/memory/policy.ts
+D  public/src/lib/memory/store.ts
+D  public/src/lib/memory/types.ts
+D  public/src/lib/money/currencies.ts
+D  public/src/lib/money/money.ts
+D  public/src/lib/nudges/engine.ts
+D  public/src/lib/nudges/time.ts
+D  public/src/lib/nudges/types.ts
+D  public/src/lib/offline/backoff.ts
+D  public/src/lib/offline/client.ts
+D  public/src/lib/offline/db.ts
+D  public/src/lib/offline/outbox.ts
+D  public/src/lib/offline/sync-engine.ts
+D  public/src/lib/offline/types.ts
+D  public/src/lib/regional/format.ts
+D  public/src/lib/regional/options.ts
+D  public/src/lib/security/origin.ts
+D  public/src/lib/security/rate-limit.ts
+D  public/src/lib/security/redirects.ts
+D  public/src/lib/supabase/admin.ts
+D  public/src/lib/supabase/client.ts
+D  public/src/lib/supabase/database.types.ts
+D  public/src/lib/supabase/server.ts
+D  public/src/lib/theme.ts
+D  public/src/lib/validation/schemas.ts
+D  public/src/proxy.ts
+D  public/supabase/migrations/20261031000100_foundation.sql
+D  public/supabase/migrations/20261031000200_consent_audit_notifications.sql
+D  public/supabase/migrations/20261031000300_ai_limits_sync_data_rights.sql
+D  public/supabase/migrations/20261031000400_new_user_bootstrap.sql
+M  public/sw.js
+D  public/tests/db/bundle.test.ts
+D  public/tests/db/functions.test.ts
+D  public/tests/db/harness.ts
+D  public/tests/db/rls.test.ts
+D  public/tests/db/supabase-shim.sql
+D  public/tests/e2e/public.spec.ts
+D  public/tests/unit/env.test.ts
+D  public/tests/unit/memory-consent-regional.test.ts
+D  public/tests/unit/money.test.ts
+D  public/tests/unit/nudges.test.ts
+D  public/tests/unit/offline.test.ts
+D  public/tests/unit/security.test.ts
+D  public/tests/unit/setup.ts
+D  public/tsconfig.json
+D  public/vitest.config.mts
+M  scripts/build-all-in-one-sql.mjs
+A  scripts/check-structure.mjs
+R100  public/src/app/(app)/money/accounts/[id]/page.tsx  src/app/(app)/money/accounts/[id]/page.tsx
+R100  public/src/app/(app)/money/accounts/account-forms.tsx  src/app/(app)/money/accounts/account-forms.tsx
+R100  public/src/app/(app)/money/accounts/page.tsx  src/app/(app)/money/accounts/page.tsx
+R100  public/src/app/(app)/money/actions.ts  src/app/(app)/money/actions.ts
+R100  public/src/app/(app)/money/budgets/[id]/page.tsx  src/app/(app)/money/budgets/[id]/page.tsx
+R100  public/src/app/(app)/money/budgets/budget-forms.tsx  src/app/(app)/money/budgets/budget-forms.tsx
+R100  public/src/app/(app)/money/budgets/page.tsx  src/app/(app)/money/budgets/page.tsx
+R100  public/src/app/(app)/money/categories/category-forms.tsx  src/app/(app)/money/categories/category-forms.tsx
+R100  public/src/app/(app)/money/categories/page.tsx  src/app/(app)/money/categories/page.tsx
+R100  public/src/app/(app)/money/goals/[id]/page.tsx  src/app/(app)/money/goals/[id]/page.tsx
+R100  public/src/app/(app)/money/goals/goal-forms.tsx  src/app/(app)/money/goals/goal-forms.tsx
+R100  public/src/app/(app)/money/goals/page.tsx  src/app/(app)/money/goals/page.tsx
+R100  public/src/app/(app)/money/layout.tsx  src/app/(app)/money/layout.tsx
+R100  public/src/app/(app)/money/page.tsx  src/app/(app)/money/page.tsx
+R100  public/src/app/(app)/money/sync/page.tsx  src/app/(app)/money/sync/page.tsx
+R100  public/src/app/(app)/money/sync/sync-center.tsx  src/app/(app)/money/sync/sync-center.tsx
+R100  public/src/app/(app)/money/transactions/[id]/page.tsx  src/app/(app)/money/transactions/[id]/page.tsx
+R100  public/src/app/(app)/money/transactions/[id]/transaction-actions.tsx  src/app/(app)/money/transactions/[id]/transaction-actions.tsx
+R100  public/src/app/(app)/money/transactions/page.tsx  src/app/(app)/money/transactions/page.tsx
+M  src/app/(app)/overview/page.tsx
+M  src/app/(auth)/actions.ts
+M  src/app/(auth)/reset-password/page.tsx
+M  src/app/(marketing)/page.tsx
+R100  public/src/app/api/sync/route.ts  src/app/api/sync/route.ts
+M  src/app/auth/confirm/route.ts
+R100  public/src/app/offline/offline-quick-add.tsx  src/app/offline/offline-quick-add.tsx
+M  src/app/offline/page.tsx
+M  src/app/robots.ts
+M  src/components/auth/sign-out-button.tsx
+R100  public/src/components/finance/action-form.tsx  src/components/finance/action-form.tsx
+R100  public/src/components/finance/add-transaction.tsx  src/components/finance/add-transaction.tsx
+R100  public/src/components/finance/charts.tsx  src/components/finance/charts.tsx
+R100  public/src/components/finance/finance-cache-writer.tsx  src/components/finance/finance-cache-writer.tsx
+R100  public/src/components/finance/form-dialog.tsx  src/components/finance/form-dialog.tsx
+R100  public/src/components/finance/money-amount.tsx  src/components/finance/money-amount.tsx
+R100  public/src/components/finance/money-nav.tsx  src/components/finance/money-nav.tsx
+R100  public/src/components/finance/pending-transactions.tsx  src/components/finance/pending-transactions.tsx
+R100  public/src/components/finance/period-picker.tsx  src/components/finance/period-picker.tsx
+R100  public/src/components/finance/progress-bar.tsx  src/components/finance/progress-bar.tsx
+R100  public/src/components/finance/projected-balances.tsx  src/components/finance/projected-balances.tsx
+R100  public/src/components/finance/transaction-form.tsx  src/components/finance/transaction-form.tsx
+R100  public/src/components/offline/sync-bootstrap.tsx  src/components/offline/sync-bootstrap.tsx
+M  src/components/offline/sync-status.tsx
+M  src/components/shell/app-shell.tsx
+M  src/components/shell/nav-config.ts
+R100  public/src/lib/auth/recovery.ts  src/lib/auth/recovery.ts
+M  src/lib/auth/routes.ts
+M  src/lib/data/export.ts
+R100  public/src/lib/finance/amount-input.ts  src/lib/finance/amount-input.ts
+R100  public/src/lib/finance/constants.ts  src/lib/finance/constants.ts
+R100  public/src/lib/finance/format.ts  src/lib/finance/format.ts
+R100  public/src/lib/finance/mutate.ts  src/lib/finance/mutate.ts
+R100  public/src/lib/finance/periods.ts  src/lib/finance/periods.ts
+R100  public/src/lib/finance/projection.ts  src/lib/finance/projection.ts
+R100  public/src/lib/finance/queries.ts  src/lib/finance/queries.ts
+R100  public/src/lib/finance/queue.ts  src/lib/finance/queue.ts
+R100  public/src/lib/finance/schemas.ts  src/lib/finance/schemas.ts
+R100  public/src/lib/finance/use-outbox.ts  src/lib/finance/use-outbox.ts
+M  src/lib/offline/client.ts
+R100  public/src/lib/offline/controller.ts  src/lib/offline/controller.ts
+M  src/lib/offline/db.ts
+M  src/lib/offline/outbox.ts
+M  src/lib/offline/sync-engine.ts
+R100  public/src/lib/offline/transport.ts  src/lib/offline/transport.ts
+M  src/lib/offline/types.ts
+M  src/lib/security/rate-limit.ts
+M  src/lib/supabase/database.types.ts
+R100  public/supabase/migrations/20261101000100_finance_tables.sql  supabase/migrations/20261101000100_finance_tables.sql
+R100  public/supabase/migrations/20261101000200_finance_mutations.sql  supabase/migrations/20261101000200_finance_mutations.sql
+R100  public/supabase/migrations/20261101000300_finance_reads.sql  supabase/migrations/20261101000300_finance_reads.sql
+R100  public/supabase/setup_all_in_one.sql  supabase/setup_all_in_one.sql
+D  supabase/stage1_all_in_one.sql
+R100  public/supabase/upgrades/stage1.sql  supabase/upgrades/stage1.sql
+R100  public/supabase/upgrades/stage2.sql  supabase/upgrades/stage2.sql
+M  tests/db/bundle.test.ts
+R100  public/tests/db/finance.test.ts  tests/db/finance.test.ts
+M  tests/db/functions.test.ts
+M  tests/db/harness.ts
+M  tests/db/rls.test.ts
+A  tests/db/types.test.ts
+R100  public/tests/e2e/money.spec.ts  tests/e2e/money.spec.ts
+M  tests/e2e/public.spec.ts
+R100  public/tests/e2e/support/fake-supabase.mjs  tests/e2e/support/fake-supabase.mjs
+R100  public/tests/unit/finance.test.ts  tests/unit/finance.test.ts
+M  tests/unit/offline.test.ts
+R100  public/tests/unit/recovery.test.ts  tests/unit/recovery.test.ts

@@ -11,7 +11,7 @@ import type { OutboxEntry, OutboxStatus } from "./types";
  * and can be cleared without warning, which would silently lose changes.
  */
 export const DB_NAME = "aven";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface AvenDbSchema extends DBSchema {
   outbox: {
@@ -27,6 +27,11 @@ export interface AvenDbSchema extends DBSchema {
     key: string;
     value: { key: string; value: string };
   };
+  /** Copies of reference data (accounts, categories) so transactions can be entered offline. */
+  cache: {
+    key: string;
+    value: { key: string; userId: string; savedAt: number; data: unknown };
+  };
 }
 
 export type AvenDb = IDBPDatabase<AvenDbSchema>;
@@ -40,6 +45,9 @@ export function openAvenDb(name: string = DB_NAME): Promise<AvenDb> {
         outbox.createIndex("by_user", "userId");
         outbox.createIndex("by_user_created", ["userId", "createdAt"]);
         db.createObjectStore("meta", { keyPath: "key" });
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore("cache", { keyPath: "key" });
       }
       // Future versions add migrations here; never delete user data in an upgrade.
     },
@@ -57,6 +65,37 @@ export async function getOrCreateDeviceId(db: AvenDb): Promise<string> {
 
 /** Remove ALL local AVEN data. Called on sign-out so the next person on this device sees nothing. */
 export async function wipeLocalData(db: AvenDb): Promise<void> {
-  const tx = db.transaction(["outbox", "meta"], "readwrite");
-  await Promise.all([tx.objectStore("outbox").clear(), tx.objectStore("meta").clear(), tx.done]);
+  const tx = db.transaction(["outbox", "meta", "cache"], "readwrite");
+  await Promise.all([
+    tx.objectStore("outbox").clear(),
+    tx.objectStore("meta").clear(),
+    tx.objectStore("cache").clear(),
+    tx.done,
+  ]);
+}
+
+export async function setMeta(db: AvenDb, key: string, value: string): Promise<void> {
+  await db.put("meta", { key, value });
+}
+
+export async function getMeta(db: AvenDb, key: string): Promise<string | undefined> {
+  return (await db.get("meta", key))?.value;
+}
+
+export async function putCache(
+  db: AvenDb,
+  userId: string,
+  name: string,
+  data: unknown,
+): Promise<void> {
+  await db.put("cache", { key: `${userId}:${name}`, userId, savedAt: Date.now(), data });
+}
+
+export async function getCache<T>(
+  db: AvenDb,
+  userId: string,
+  name: string,
+): Promise<{ data: T; savedAt: number } | undefined> {
+  const row = await db.get("cache", `${userId}:${name}`);
+  return row ? { data: row.data as T, savedAt: row.savedAt } : undefined;
 }

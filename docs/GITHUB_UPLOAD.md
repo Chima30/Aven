@@ -1,5 +1,8 @@
 # Upload AVEN to GitHub (`Chima30/aven`)
 
+> ⚠️ Never put these files inside the `public/` folder. Everything in `public/` is served
+> publicly on your website. `npm run check:structure` (run in CI) now fails if that happens.
+
 The ZIP contains the project files **at its top level**: `package.json`, `src/`, `docs/` and
 so on, with no outer folder. Those files must end up at the top of the repository.
 
@@ -29,7 +32,7 @@ keep their place**: upload `src/app` _into_ `src/` and so on, as described below
    list. If removing them is fiddly, use Option A instead. Commit message `Stage 1: src part 1`
    → **Commit changes**.
 3. **Upload 2, `src/app`.** In the repository, open the `src` folder, then **Add file → Upload
-   files** and drag in the `app` folder (about 52 files). Commit.
+   files** and drag in the `app` folder (about 73 files). Commit.
 4. **Upload 3, everything else.** Go back to the repository's top level. **Add file → Upload
    files** and drag in `docs`, `public`, `scripts`, `supabase`, `tests`, `.github`, and all the
    loose files such as `package.json`, `.gitignore`, `.env.example`, `.prettierrc.json` and
@@ -38,6 +41,13 @@ keep their place**: upload `src/app` _into_ `src/` and so on, as described below
    `aven-stage1`, and that `src/app/(app)/overview/page.tsx` exists.
 
 Option A is much less error-prone. Use it if you can.
+
+## Upgrading from Stage 1
+
+Upload the Stage 2 files the same way, so they replace the old ones. Then delete one file
+that Stage 2 replaced: on GitHub, open `supabase/stage1_all_in_one.sql` → **⋯** →
+**Delete file** → **Commit changes**. Its replacements are `supabase/setup_all_in_one.sql`
+and `supabase/upgrades/`.
 
 ## After pushing
 

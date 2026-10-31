@@ -25,6 +25,7 @@ export class Outbox {
     const now = this.clock.now();
     const entry: OutboxEntry<T> = {
       ...input,
+      createdOffline: input.createdOffline ?? false,
       mutationId: crypto.randomUUID(),
       status: "pending",
       attempts: 0,
@@ -63,7 +64,7 @@ export class Outbox {
    * Stale "syncing" entries (from a crashed tab) are reclaimed — safe because
    * the server de-duplicates by mutationId.
    */
-  async claimDue(userId: string): Promise<OutboxEntry[]> {
+  async claimDue(userId: string, limit = Infinity): Promise<OutboxEntry[]> {
     const now = this.clock.now();
     const tx = this.db.transaction("outbox", "readwrite");
     const index = tx.store.index("by_user_created");
@@ -73,7 +74,7 @@ export class Outbox {
       const entry = cursor.value;
       const due = entry.status === "pending" && entry.nextAttemptAt <= now;
       const stale = entry.status === "syncing" && now - entry.updatedAt > STALE_SYNCING_MS;
-      if (due || stale) {
+      if ((due || stale) && claimed.length < limit) {
         const updated: OutboxEntry = { ...entry, status: "syncing", updatedAt: now };
         await cursor.update(updated);
         claimed.push(updated);
@@ -82,6 +83,27 @@ export class Outbox {
     }
     await tx.done;
     return claimed;
+  }
+
+  /**
+   * Put every "syncing" entry back to "pending". Only safe when the caller holds
+   * the cross-tab sync lock, i.e. nothing can really be in flight (for example,
+   * the page was reloaded or navigated away mid-request). Re-sending is safe
+   * because the server de-duplicates by mutation id.
+   */
+  async releaseOrphaned(userId: string): Promise<number> {
+    let released = 0;
+    for (const entry of await this.list(userId)) {
+      if (entry.status === "syncing") {
+        await this.update(entry.mutationId, (e) => ({
+          ...e,
+          status: "pending",
+          nextAttemptAt: this.clock.now(),
+        }));
+        released += 1;
+      }
+    }
+    return released;
   }
 
   async markSynced(mutationId: string, serverVersion: number | null): Promise<void> {
@@ -121,13 +143,39 @@ export class Outbox {
     kind: FailureKind,
     message: string,
     serverVersion: number | null = null,
+    conflictRecord?: unknown,
   ): Promise<void> {
     await this.update(mutationId, (e) => ({
       ...e,
       status: "failed",
       lastError: { kind, message },
       serverVersion: serverVersion ?? e.serverVersion,
+      ...(conflictRecord === undefined ? {} : { conflictRecord }),
     }));
+  }
+
+  /**
+   * True when a pending entry has certainly NOT reached the server: it has
+   * never been sent. Only then may it be changed in place or cancelled.
+   */
+  static neverSent(entry: OutboxEntry): boolean {
+    return entry.status === "pending" && entry.attempts === 0 && entry.lastError === null;
+  }
+
+  /** Edit a queued change that has never been sent (e.g. fix a typo before it syncs). */
+  async replacePayload<T>(mutationId: string, payload: T): Promise<boolean> {
+    const entry = await this.get(mutationId);
+    if (!entry || !Outbox.neverSent(entry)) return false;
+    await this.update(mutationId, (e) => ({ ...e, payload }));
+    return true;
+  }
+
+  /** Cancel a queued change that has never been sent. Returns false if it might have reached the server. */
+  async cancelUnsent(mutationId: string): Promise<boolean> {
+    const entry = await this.get(mutationId);
+    if (!entry || !Outbox.neverSent(entry)) return false;
+    await this.db.delete("outbox", mutationId);
+    return true;
   }
 
   /** User-initiated retry of a failed entry. */

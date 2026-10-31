@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SyncBootstrap } from "@/components/offline/sync-bootstrap";
 import { SyncStatus } from "@/components/offline/sync-status";
 import { cn } from "@/lib/cn";
 import { SidebarNav } from "./sidebar-nav";
@@ -47,6 +48,7 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[264px_1fr]">
+      <SyncBootstrap userId={userId} />
       {/* Desktop sidebar */}
       <aside className="border-line bg-canvas sticky top-0 hidden h-dvh flex-col border-r px-4 py-5 lg:flex">
         <Link href="/overview" className="mb-8 rounded-lg px-2" aria-label="AVEN overview">

@@ -174,32 +174,18 @@ describe("AI quota", () => {
   });
 });
 
-describe("offline sync idempotency", () => {
-  it("rejects a second receipt with the same client mutation id", async () => {
-    const mutationId = randomUUID();
-    const insert = () =>
+describe("offline sync receipts", () => {
+  it("can no longer be written directly (only apply_finance_mutation writes them)", async () => {
+    const code = await pgErrorCode(
       asUser(db, alice, (c) =>
         c.query(
           `insert into sync_receipts (user_id, client_mutation_id, entity, record_id, operation, result)
-           values ($1, $2, 'transactions', $3, 'create', 'applied')`,
-          [alice, mutationId, randomUUID()],
+           values ($1, $2, 'transaction', $3, 'create', 'applied')`,
+          [alice, randomUUID(), randomUUID()],
         ),
-      );
-    await insert();
-    expect(await pgErrorCode(insert())).toBe("23505");
-  });
-
-  it("lets two users use the same mutation id independently", async () => {
-    const mutationId = randomUUID();
-    for (const uid of [alice, bob]) {
-      await asUser(db, uid, (c) =>
-        c.query(
-          `insert into sync_receipts (user_id, client_mutation_id, entity, record_id, operation, result)
-           values ($1, $2, 'transactions', $3, 'create', 'applied')`,
-          [uid, mutationId, randomUUID()],
-        ),
-      );
-    }
+      ),
+    );
+    expect(code).toBe("42501");
   });
 });
 
@@ -213,10 +199,30 @@ describe("account deletion", () => {
       await c.query("select consume_rate_limit('export_data', 5, 60)");
       const device = randomUUID();
       await c.query("insert into user_devices (id, user_id) values ($1, $2)", [device, erin]);
+      const account = randomUUID();
       await c.query(
-        `insert into sync_receipts (user_id, client_mutation_id, device_id, entity, record_id, operation, result)
-         values ($1, $2, $3, 'transactions', $4, 'create', 'applied')`,
-        [erin, randomUUID(), device, randomUUID()],
+        "select apply_finance_mutation($1, 'financial_account', 'create', $2, $3, null, $4)",
+        [
+          randomUUID(),
+          account,
+          JSON.stringify({ name: "A", account_type: "cash", currency_code: "NGN" }),
+          device,
+        ],
+      );
+      await c.query(
+        "select apply_finance_mutation($1, 'transaction', 'create', $2, $3, null, $4)",
+        [
+          randomUUID(),
+          randomUUID(),
+          JSON.stringify({
+            kind: "income",
+            account_id: account,
+            amount_minor: "5",
+            currency_code: "NGN",
+            occurred_on: "2026-11-01",
+          }),
+          device,
+        ],
       );
     });
     await asService(db, (c) => c.query("select record_ai_usage($1, 1, 1)", [erin]));

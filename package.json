@@ -15,8 +15,9 @@
     "test:all": "vitest run",
     "test:e2e": "playwright test",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "verify": "npm run check:secrets && npm run typecheck && npm run lint && npm run format:check && npm test && npm run build",
-    "db:bundle": "node scripts/build-all-in-one-sql.mjs"
+    "verify": "npm run check:structure && npm run check:secrets && npm run typecheck && npm run lint && npm run format:check && npm test && npm run build",
+    "db:bundle": "node scripts/build-all-in-one-sql.mjs",
+    "check:structure": "node scripts/check-structure.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

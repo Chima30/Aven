@@ -1,6 +1,8 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { logSecurityEvent } from "@/lib/audit/log";
+import { RECOVERY_COOKIE, RECOVERY_COOKIE_OPTIONS, createRecoveryToken } from "@/lib/auth/recovery";
+import { serverEnv } from "@/lib/env.server";
 import { safeRedirectPath } from "@/lib/security/redirects";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,7 +47,20 @@ export async function GET(request: NextRequest) {
   }
 
   const isRecovery = type === "recovery" || next === "/reset-password";
-  if (!isRecovery) await logSecurityEvent(supabase, "auth.email_confirmed");
-  const destination = isRecovery ? "/reset-password" : next;
-  return NextResponse.redirect(new URL(destination, request.url), { status: 303 });
+  if (!isRecovery) {
+    await logSecurityEvent(supabase, "auth.email_confirmed");
+    return NextResponse.redirect(new URL(next, request.url), { status: 303 });
+  }
+
+  // Prove this browser came from a reset email, so /reset-password may skip the current password.
+  const { data } = await supabase.auth.getUser();
+  const response = NextResponse.redirect(new URL("/reset-password", request.url), { status: 303 });
+  if (data.user) {
+    response.cookies.set(
+      RECOVERY_COOKIE,
+      createRecoveryToken(data.user.id, serverEnv().SUPABASE_SECRET_KEY),
+      RECOVERY_COOKIE_OPTIONS,
+    );
+  }
+  return response;
 }

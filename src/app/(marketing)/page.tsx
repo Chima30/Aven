@@ -56,8 +56,12 @@ const PRINCIPLES = [
 
 const ROADMAP: Array<{ stage: string; title: string; status: "live" | "next" | "planned" }> = [
   { stage: "1", title: "Secure accounts, settings, privacy and consent controls", status: "live" },
-  { stage: "2", title: "Accounts, transactions, budgets and savings goals", status: "next" },
-  { stage: "3", title: "Subscriptions, planning and the Nudge Center", status: "planned" },
+  {
+    stage: "2",
+    title: "Accounts, transactions, budgets and savings goals — offline too",
+    status: "live",
+  },
+  { stage: "3", title: "Subscriptions, planning and the Nudge Center", status: "next" },
   { stage: "4", title: "Shared expenses", status: "planned" },
   { stage: "5", title: "Wellbeing", status: "planned" },
   { stage: "6", title: "Personal agent and Walrus Memory", status: "planned" },
@@ -75,7 +79,7 @@ export default async function LandingPage({
 
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-14 pb-20 sm:px-8 md:pt-20 lg:grid-cols-[1.05fr_1fr]">
         <div>
-          <Badge tone="accent">Early access · Stage 1</Badge>
+          <Badge tone="accent">Early access · Stage 2</Badge>
           <h1 className="type-display text-ink mt-5">
             Your money, wellbeing and plans —{" "}
             <span className="text-accent">finally talking to each other.</span>

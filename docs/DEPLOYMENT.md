@@ -1,5 +1,15 @@
 # Deploy to Vercel (browser only)
 
+> **Upgrading an existing Stage 1 deployment to Stage 2?** You need three steps:
+>
+> 1. Supabase → SQL Editor: run `supabase/upgrades/stage2.sql` once (see
+>    [SUPABASE_SETUP.md step 2](SUPABASE_SETUP.md#2-create-the-database-tables-one-paste)).
+>    Do this **before** pushing the new code.
+> 2. Upload the new files to GitHub ([GITHUB_UPLOAD.md](GITHUB_UPLOAD.md)). Vercel redeploys automatically.
+> 3. Run the Stage 2 smoke test below.
+>
+> No environment variables change.
+
 Do the [Supabase setup](SUPABASE_SETUP.md) steps 1–3 and the [GitHub upload](GITHUB_UPLOAD.md)
 first.
 
@@ -41,6 +51,8 @@ On the project page, under **Domains**, copy the address (e.g. `https://aven-chi
 
 ## 5. Smoke test (about 5 minutes)
 
+**Stage 1 checks**
+
 1. Open your address. The landing page loads.
 2. Create an account. You should land on "Check your email".
 3. Click the email link. You should land on **Overview**, greeted by name.
@@ -56,6 +68,24 @@ On the project page, under **Domains**, copy the address (e.g. `https://aven-chi
 If a step fails, note which step it was and the exact message, and share it with me. Don't
 send keys or passwords.
 
+**Stage 2 checks (about 10 minutes)**
+
+1. **Money → Accounts → Add account**: "Cash", NGN (or your currency), balance `5000`. The
+   account page shows a confirmed balance of 5,000.
+2. **Add transaction**: an expense of `250.50`. Within a few seconds the balance shows 4,749.50
+   and the top-right indicator says **Synced**.
+3. **Offline test.** Turn on airplane mode, or in Chrome open DevTools → Network → Offline. Add an
+   expense of `100`. The status changes to **Offline · 1 pending**, a yellow
+   "On this device · not yet synced" panel appears, and the account shows a **Projected**
+   balance while the confirmed balance stays the same.
+4. Turn the network back on. Within about 10 seconds the panel disappears, the status says
+   **Synced** and the confirmed balance updates. In Supabase → Table Editor → `transactions`
+   there are exactly 2 rows.
+5. **Transfer**: add a second NGN account and transfer between them. One balance goes down,
+   the other goes up, and the dashboard's income/expense figures don't change.
+6. **Budgets → Create budget** for this month and check the spent amount and percentage.
+7. **Savings goals → Create goal**, record a contribution, and check that no account balance changes.
+
 ## Troubleshooting
 
 | Symptom                                                 | Likely cause                                                                                      |
@@ -63,6 +93,8 @@ send keys or passwords.
 | Sign-in page says "AVEN isn't configured yet"           | Supabase variables missing in Vercel → add them and redeploy                                      |
 | "That link didn't work" after clicking the email        | Redirect URL not added in Supabase, or `NEXT_PUBLIC_SITE_URL` wrong, or the link was already used |
 | "Your AVEN profile could not be loaded"                 | The SQL setup wasn't run on this Supabase project                                                 |
+| "Your money data could not be loaded"                   | The Stage 2 upgrade (`supabase/upgrades/stage2.sql`) wasn't run                                   |
+| Transactions stay "pending" while online                | Open Money → Sync → **Sync now**. If it fails, check you are still signed in                      |
 | Sign-out or export returns "Cross-site request refused" | `NEXT_PUBLIC_SITE_URL` doesn't match the address you're using                                     |
 | No confirmation email                                   | Supabase's built-in email hourly limit. Wait, or set up custom SMTP                               |
 

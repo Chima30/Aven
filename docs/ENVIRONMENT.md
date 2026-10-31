@@ -26,5 +26,8 @@ The validation refuses a secret key placed in the publishable slot, and vice ver
 - `NEXT_PUBLIC_` values are built into the app, so after changing one in Vercel you must
   **Redeploy**.
 - Local development: copy `.env.example` to `.env.local` (git-ignored) and fill it in.
-- Tests only: `TEST_DATABASE_URL` (Postgres for RLS tests) and `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
-  (optional path to an existing Chromium).
+- Stage 2 adds **no new environment variables**. `SUPABASE_SECRET_KEY` is now also used to sign
+  the short-lived password-recovery cookie.
+- Tests only: `TEST_DATABASE_URL` (Postgres for database and end-to-end tests) and
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE` (optional path to an existing Chromium). The e2e build
+  uses `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54400` (the test-only fake Supabase).

@@ -2,55 +2,117 @@
 
 ## Goal
 
-Logging an expense, a glass of water or a habit must never fail because the connection is
-poor. Changes are saved on the device first and synced to Supabase (the source of truth) when
-the network allows, without duplicates and without silently overwriting anything.
+Recording an expense must never fail because the connection is poor. Every
+transaction change is saved on the device first (IndexedDB) and then synced to
+Supabase — the source of truth — without duplicates, without silently overwriting
+anything, and with a visible status.
 
-## Pieces (Stage 1 status)
+## Status (Stage 2)
 
-| Piece                                                               | File                                     | Status                                       |
-| ------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------- |
-| PWA manifest and icons                                              | `src/app/manifest.ts`, `public/icons/`   | ✅ built                                     |
-| Service worker (assets + offline page only, never private pages)    | `public/sw.js`                           | ✅ built                                     |
-| IndexedDB schema (`outbox`, `meta`)                                 | `src/lib/offline/db.ts`                  | ✅ built + tested                            |
-| Outbox (queue)                                                      | `src/lib/offline/outbox.ts`              | ✅ built + tested                            |
-| Sync engine                                                         | `src/lib/offline/sync-engine.ts`         | ✅ built + tested (with a fake server)       |
-| Server idempotency (`sync_receipts`, unique per user + mutation id) | migration 3                              | ✅ built + tested                            |
-| Visible status (Online / Offline / Syncing n / n need attention)    | `src/components/offline/sync-status.tsx` | ✅ built                                     |
-| Transport to Supabase + per-entity apply functions                  | —                                        | ⏳ Stage 2 (finance) and Stage 5 (wellbeing) |
-| Conflict resolution UI                                              | —                                        | ⏳ Stage 2                                   |
+| Piece                                                                             | File                                                    | Status  |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------- | ------- |
+| IndexedDB (`outbox`, `meta`, `cache`)                                             | `src/lib/offline/db.ts`                                 | ✅ v2   |
+| Outbox (persistent queue)                                                         | `src/lib/offline/outbox.ts`                             | ✅      |
+| Batch sync engine                                                                 | `src/lib/offline/sync-engine.ts`                        | ✅      |
+| Browser controller (triggers, cross-tab lock, events)                             | `src/lib/offline/controller.ts`                         | ✅      |
+| HTTP transport                                                                    | `src/lib/offline/transport.ts` → `POST /api/sync`       | ✅      |
+| Server endpoint (origin check, rate limit, per-item Zod, DB function)             | `src/app/api/sync/route.ts`                             | ✅      |
+| Idempotent, versioned database writes                                             | `apply_finance_mutation()`                              | ✅      |
+| Safe local edit/cancel rules                                                      | `src/lib/finance/queue.ts`                              | ✅      |
+| Pending list, projected balances, sync status, Sync page with conflict resolution | `src/components/finance/*`, `/money/sync`               | ✅      |
+| Offline entry on the cached offline page                                          | `src/app/offline/offline-quick-add.tsx`, `public/sw.js` | ✅      |
+| Wellbeing offline logging                                                         | —                                                       | Stage 5 |
 
-## The outbox contract
+## One path for every transaction change
 
-Each offline change is one `OutboxEntry` (`src/lib/offline/types.ts`):
-`mutationId` (client UUID), `userId`, `entity`, `operation` (create/update/delete), `recordId`
-(client UUID for creates), `payload`, `baseVersion` (server version the edit was based on),
-`status`, `attempts`, `nextAttemptAt`, `lastError`, timestamps and `serverVersion`.
+The transaction form never calls the server directly. It writes an outbox entry,
+then asks the controller to sync. Online, that happens immediately; offline, it waits.
+So online and offline entry behave identically, and a request lost mid-flight is never lost.
 
-States: **pending → syncing → synced**, or **failed** (with a reason: `conflict`, `rejected`,
-`exhausted`). Failed entries are never dropped automatically; the user retries, edits or
-discards them. Only failed entries can be discarded.
+```
+Form ──► Outbox (IndexedDB, status=pending) ──► SyncEngine ──► POST /api/sync ──► apply_finance_mutation()
+                                ▲                                   │
+                                └──── synced / failed(+reason) ◄─────┘
+```
 
-## Guarantees and how they're achieved
+## Entry contract
 
-| Guarantee              | Mechanism                                                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No duplicates on retry | Server inserts a `sync_receipts` row keyed by `(user_id, client_mutation_id)` in the same transaction as the change. A repeat returns `duplicate`, which the client treats as synced. Tested with a "response lost" scenario. |
-| Correct order          | Entries are processed oldest-first per user; the run stops at the first network error so later edits never overtake earlier ones.                                                                                             |
-| Retry with backoff     | Exponential backoff with full jitter (2 s → 5 min cap), 8 attempts, then `failed/exhausted`.                                                                                                                                  |
-| Crash safety           | Entries stuck in `syncing` for > 2 minutes are reclaimed (safe because the server de-duplicates).                                                                                                                             |
-| No silent overwrite    | Updates carry `baseVersion`; the server returns `conflict` if its version differs. Conflicts become `failed/conflict` for the user to resolve.                                                                                |
-| Expired session        | `auth_required` pauses the run and leaves entries pending.                                                                                                                                                                    |
-| One run at a time      | Single-flight guard in the engine (Stage 2 adds a Web Locks guard across tabs).                                                                                                                                               |
-| Account separation     | Entries carry `userId`; the engine only processes the signed-in user's entries; sign-out wipes IndexedDB.                                                                                                                     |
-| Honest balances        | Stage 2 rule: balances shown as "synced" are computed from server data only; pending local items are shown separately, labelled "on this device".                                                                             |
+`mutationId` (UUID, the idempotency key) · `userId` · `entity` · `operation`
+(create/update/delete) · `recordId` (client UUID, stable across sync) · `payload`
+(Zod-validated wire format, amounts as minor-unit strings) · `baseVersion` (server
+version the edit was based on) · `snapshot` (server copy before an edit, for
+projections and conflict display) · `createdOffline` · `status` · `attempts` ·
+`nextAttemptAt` · `lastError {kind, message}` · `conflictRecord` · timestamps.
 
-## Why not localStorage
+States: **pending → syncing → synced**, or **failed** with `conflict`,
+`rejected` or `exhausted`. Failed entries are never removed automatically.
 
-It's synchronous, small, string-only and can be cleared without warning. It's used only for
-trivial preferences, never for queued data.
+## Sync triggers
 
-## Sign-out warning (Stage 2)
+On enqueue · when the browser comes back online · when the tab becomes visible or
+is restored from the back/forward cache · every 10 s while work is waiting · "Sync now".
 
-Signing out wipes local data. Once offline logging exists, the sign-out button will warn when
-unsynced entries are present and offer to sync first.
+**Cross-tab coordination.** A Web Lock (`aven-sync`) lets one tab sync at a time.
+While holding it, the tab resets any entries left in `syncing` by a page that was
+closed or navigated away mid-request. If the lock stays busy (a frozen page can hold
+it indefinitely), it is taken over after two 1.5 s waits. That is safe because the
+**server**, not the lock, guarantees no duplicates. This exact scenario was found and
+fixed by the end-to-end tests.
+
+## Idempotency and retries
+
+- The server stores a receipt per `(user_id, mutation_id)` with the full response, in
+  the same database transaction as the change. A repeat returns the stored response
+  (`replayed: true`) and changes nothing.
+- Concurrent deliveries of the same mutation are serialised with an advisory lock (tested).
+- Network errors, 5xx and 429 retry with exponential backoff and full jitter (2 s →
+  5 min, 8 attempts), then `failed/exhausted` with a "Try again" button.
+- 401 (session expired) keeps everything queued until the user signs in.
+- Each mutation in a batch is validated separately; one invalid entry is `rejected`
+  without blocking the rest.
+- After a batch applies offline-created changes, one `sync_completed` event is recorded.
+
+## Editing "where safe"
+
+| Situation                                                                     | What happens                                                          |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Edit/cancel a change that has **never been sent**                             | Changed or removed in place                                           |
+| Edit/delete a change that **may have reached the server** (sent, answer lost) | Refused with "still syncing — try again in a moment" until it settles |
+| Edit a synced transaction                                                     | New `update` entry with `baseVersion` and `snapshot`                  |
+| Delete a synced transaction                                                   | Confirmation dialog → `delete` entry with `baseVersion`               |
+| Delete a device-only transaction                                              | Cancelled locally; nothing is sent                                    |
+
+## Conflicts
+
+A conflict happens when the server's version differs from `baseVersion`, or the record
+was deleted on the server. AVEN never overwrites. The change becomes `failed/conflict`
+with the server's copy attached, and **Money → Sync** shows both versions:
+
+- **Keep my version** — re-queued as an update on top of the server's current version
+  (or recreated as a new transaction if the server copy is gone).
+- **Keep server version** — the local change is discarded.
+- Rejected changes (invalid on the server) can only be discarded and re-entered.
+
+## Balances while offline
+
+- **Confirmed balance**: calculated by the server from synced data only.
+- **Projected balance**: confirmed + pending local changes (`projectBalances`), always
+  labelled "Projected · includes N unsynced changes". It is never presented as confirmed.
+- Pages with server totals show a banner when unsynced changes exist and aren't included.
+
+## Offline page and caching
+
+- The service worker never caches pages, because signed-in pages contain personal data.
+  It caches `/_next/static` assets, icons and the static `/offline` page.
+- On install it also pre-caches the scripts the offline page needs. Opening AVEN with no
+  connection shows the offline page with a working **Record a transaction offline** form.
+- That form uses a copy of the user's accounts and categories cached in IndexedDB the last
+  time the Money section was opened online.
+- Sign-out warns if anything is unsynced (and offers "Sync now"), then wipes IndexedDB and
+  caches and sends `Clear-Site-Data`.
+
+## Known limits
+
+- Accounts, budgets, goals and categories are managed online only.
+- Background Sync API is not used (no Safari support); syncing happens when AVEN is open.
+- Two tabs can briefly both sync after a lock takeover; the server's idempotency keeps that safe.

@@ -2,49 +2,51 @@
 
 ## Suites
 
-| Command                         | What it covers                                                                                                                                                                                                                                                                                                                                                      | Needs                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `npm run check:secrets`         | No key-shaped strings or `.env` files committed; `.env.example` holds names only                                                                                                                                                                                                                                                                                    | —                           |
-| `npm run typecheck`             | TypeScript strict (+ `noUncheckedIndexedAccess`)                                                                                                                                                                                                                                                                                                                    | —                           |
-| `npm run lint` / `format:check` | ESLint (Next.js rules), Prettier                                                                                                                                                                                                                                                                                                                                    | —                           |
-| `npm test`                      | **Unit:** currency precision and money maths, env validation, open-redirect and CSRF guards, route classification, nudge rules and time zones/DST, offline outbox + sync engine (fake IndexedDB), memory policy gate, consent catalogue, regional formatting                                                                                                        | —                           |
-| `npm run test:db`               | **Database:** every migration on PostgreSQL 16 with a small Supabase shim; RLS isolation between two users for every user-owned table; anonymous access denied; protected columns; consent, audit, rate limit, AI quota, sync idempotency; account deletion removes every row and keeps only an anonymous log; all-in-one SQL bundle is current and applies cleanly | PostgreSQL (CI provides it) |
-| `npm run test:e2e`              | **Browser (desktop + mobile):** public pages, 404, skip link, theme, protected-route redirects, open-redirect, server-side form validation, password toggle, security headers, sign-out/export CSRF refusal, PWA manifest and service worker                                                                                                                        | `npm run build` first       |
+| Command                                       | What it covers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Needs                          |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `npm run check:secrets`                       | No key-shaped strings or `.env` files committed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | —                              |
+| `npm run typecheck` / `lint` / `format:check` | TypeScript strict, ESLint, Prettier                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | —                              |
+| `npm test`                                    | **Unit (138):** money precision; amount entry (decimal separators, 0/2/3-decimal currencies, over-precision, caps); transaction/sync Zod validation; balance effects and projected balances; periods and time zones; outbox persistence, retries/backoff, safe edit/cancel, orphan recovery; batch sync engine (lost-response duplicates, conflicts, auth expiry, incomplete responses); nudge rules; memory gate; env; CSRF/open-redirect guards; recovery cookie                                                                                                                                                                                                                                                                                                                  | —                              |
+| `npm run test:db`                             | **Database (119), real PostgreSQL 16:** RLS on every table; two-user isolation for every user-owned table and view; anonymous access denied; finance write path only; income/expense/transfer balances; opening balance counted once; transfer atomicity and same-currency rule; JPY/KWD precision; categories (type match, ownership, uniqueness); idempotent replay incl. concurrent duplicates; version conflicts (never overwrite); safe deletes; ownership attacks with guessed ids; budgets (expenses only, currency/category/month scoping, history, one-time threshold/exceeded events); goals (tracking only, no balance change, race-free withdrawals, milestones); reporting functions; account deletion cascade; SQL bundles (full setup and Stage 1 → Stage 2 upgrade) | PostgreSQL                     |
+| `npm run test:e2e`                            | **Browser (54 = 27 × desktop + mobile):** public pages, headers, CSRF, PWA; **signed-in finance against real Postgres + RLS** via the test-only fake Supabase: empty states; online entry; **offline entry → pending display → projected balance → automatic sync exactly once**; **stale offline edit → conflict → resolution**; cross-user access blocked; budgets; **entry from the cached offline page with no connection**                                                                                                                                                                                                                                                                                                                                                     | PostgreSQL, build with e2e env |
 
-The database shim (`tests/db/supabase-shim.sql`) recreates Supabase's roles, `auth.users`,
-`auth.uid()` and Supabase's permissive default grants, so the tests prove the migrations'
-own `REVOKE`s and policies work. As a sanity check, a deliberately leaky policy was
-introduced during development and the RLS tests caught it.
+### About the fake Supabase used in e2e
 
-## Stage 1 results, actually executed 31 Oct 2026 in the build environment
+`tests/e2e/support/fake-supabase.mjs` imitates only the HTTP layer of Supabase
+(a subset of PostgREST and GoTrue). Every query runs on a real PostgreSQL database with
+AVEN's real migrations, as the `authenticated` role with the user's JWT claims, so RLS
+and every database function behave as in production. It does **not** test real Supabase
+Auth (sign-up emails, password checks, token refresh) or PostgREST itself.
 
-| Check                                                | Result                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------- |
-| Secret scan                                          | ✅ No secrets found                                           |
-| TypeScript                                           | ✅ 0 errors                                                   |
-| ESLint                                               | ✅ 0 errors, 0 warnings                                       |
-| Prettier                                             | ✅ all files formatted                                        |
-| Unit tests (Vitest)                                  | ✅ 103 / 103 passed (6 files)                                 |
-| Database & RLS tests (Vitest + PostgreSQL 16.15)     | ✅ 62 / 62 passed (3 files)                                   |
-| Production build (`next build`, Next 16.4.3)         | ✅ succeeded, 27 routes                                       |
-| End-to-end (Playwright, Chromium, desktop + Pixel 7) | ✅ 36 / 36 passed                                             |
-| `npm audit --omit=dev` (production dependencies)     | ✅ 0 vulnerabilities (16 moderate in dev-only ESLint tooling) |
+## Results after the integration repair, actually executed 31 Oct 2026 on the repaired repository
 
-## Not verified in Stage 1 (needs your Supabase project)
+| Check                                                | Result                                                            |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| Project structure guard                              | ✅ OK                                                             |
+| Secret scan                                          | ✅ No secrets found                                               |
+| TypeScript (strict)                                  | ✅ 0 errors                                                       |
+| ESLint                                               | ✅ 0 errors, 0 warnings                                           |
+| Prettier                                             | ✅ all files formatted                                            |
+| Unit tests (Vitest)                                  | ✅ 138 / 138 passed                                               |
+| Database tests (Vitest + PostgreSQL 16.15)           | ✅ 121 / 121 passed (incl. schema-vs-types drift test)            |
+| Production build (`next build`, Next 16.4.3)         | ✅ succeeded (35 routes)                                          |
+| End-to-end (Playwright, Chromium, desktop + Pixel 7) | ✅ 54 / 54 passed, three consecutive full runs after the last fix |
+| `npm audit --omit=dev`                               | ✅ 0 vulnerabilities                                              |
 
-These depend on a live Supabase Auth server, which the build environment doesn't have:
+Bugs the new tests found and that were fixed before delivery: amount validation could throw
+instead of rejecting a decimal minor-unit value; changes could stay "syncing" when a page was
+left mid-request; a frozen previous page could hold the cross-tab sync lock indefinitely.
 
-- Real sign-up, email confirmation, sign-in, password reset and email delivery.
-- Sign out everywhere actually revoking other sessions.
-- Server-verified re-authentication, password change and account deletion through Supabase's Admin API.
-- Migrations on real Supabase (tested on plain PostgreSQL 16 with a shim of the Supabase pieces they use).
-- The GitHub Actions workflow itself (written, but first runs when you push).
-- Vercel deployment.
-- Service worker offline behaviour in a real installed PWA.
+## Not verified (needs your Supabase project / GitHub / Vercel)
 
-The [deployment smoke test](DEPLOYMENT.md#5-smoke-test-about-5-minutes) covers the first three
-by hand. Automated signed-in tests against a dedicated Supabase test project are planned once
-that project exists.
+- Real Supabase Auth flows: sign-up email, sign-in, password reset email, sign out everywhere,
+  account deletion via the Admin API.
+- The migrations and upgrade on real Supabase. They are tested on PostgreSQL 16 with a shim of
+  the Supabase pieces they use; Supabase runs PostgreSQL 15+ and `security_invoker` views
+  need 15+.
+- PostgREST-specific behaviour (the e2e stand-in imitates it).
+- GitHub Actions and Vercel deployment (first run when you push).
+- Real devices: installing the PWA and offline entry on iOS Safari and Android Chrome.
 
 ## Running database tests locally (developers)
 

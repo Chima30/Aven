@@ -23,6 +23,13 @@ export const EXPORT_TABLES = [
   "user_devices",
   "sync_receipts",
   "data_export_log",
+  "financial_accounts",
+  "transaction_categories",
+  "transactions",
+  "budgets",
+  "savings_goals",
+  "savings_goal_entries",
+  "finance_events",
 ] as const;
 
 export type ExportTable = (typeof EXPORT_TABLES)[number];
