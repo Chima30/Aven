@@ -1,0 +1,893 @@
+-- =============================================================================
+-- AVEN — ALL MIGRATIONS IN ONE FILE (generated; do not edit by hand)
+-- Paste this whole file into Supabase → SQL Editor → New query → Run, ONCE,
+-- on a NEW, EMPTY project. It runs inside a single transaction: if anything
+-- fails, nothing is applied.
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql
+-- =============================================================================
+
+begin;
+-- >>> 20261031000100_foundation.sql
+-- =============================================================================
+-- AVEN Stage 1 — Migration 1: Foundation
+-- Profiles, reference currencies, user preferences, new-user bootstrap.
+--
+-- Access model:
+--   * Every user-owned table has Row Level Security (RLS) enabled.
+--   * Table privileges are granted explicitly; the anonymous role gets nothing.
+--   * Helper functions that must bypass RLS live in the "private" schema,
+--     which is NOT exposed through the Supabase Data API.
+-- =============================================================================
+
+create schema if not exists private;
+revoke all on schema private from public;
+
+-- -----------------------------------------------------------------------------
+-- Shared trigger: keep updated_at current
+-- -----------------------------------------------------------------------------
+create or replace function private.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Reference data: currencies (ISO 4217) with their minor-unit precision.
+-- Readable by everyone; writable only through migrations.
+-- Must stay in sync with src/lib/money/currencies.ts (a database test checks this).
+-- -----------------------------------------------------------------------------
+create table public.currencies (
+  code text primary key check (code ~ '^[A-Z]{3}$'),
+  minor_units smallint not null check (minor_units between 0 and 4),
+  name text not null check (char_length(name) between 1 and 80)
+);
+
+alter table public.currencies enable row level security;
+revoke all on table public.currencies from anon, authenticated;
+grant select on table public.currencies to anon, authenticated;
+create policy "Currencies are readable by everyone"
+  on public.currencies for select
+  to anon, authenticated
+  using (true);
+
+insert into public.currencies (code, minor_units, name) values
+  ('AED', 2, 'UAE Dirham'),
+  ('ARS', 2, 'Argentine Peso'),
+  ('AUD', 2, 'Australian Dollar'),
+  ('BDT', 2, 'Bangladeshi Taka'),
+  ('BHD', 3, 'Bahraini Dinar'),
+  ('BRL', 2, 'Brazilian Real'),
+  ('BWP', 2, 'Botswana Pula'),
+  ('CAD', 2, 'Canadian Dollar'),
+  ('CHF', 2, 'Swiss Franc'),
+  ('CLP', 0, 'Chilean Peso'),
+  ('CNY', 2, 'Chinese Yuan'),
+  ('COP', 2, 'Colombian Peso'),
+  ('CZK', 2, 'Czech Koruna'),
+  ('DKK', 2, 'Danish Krone'),
+  ('EGP', 2, 'Egyptian Pound'),
+  ('ETB', 2, 'Ethiopian Birr'),
+  ('EUR', 2, 'Euro'),
+  ('GBP', 2, 'British Pound'),
+  ('GHS', 2, 'Ghanaian Cedi'),
+  ('HKD', 2, 'Hong Kong Dollar'),
+  ('HUF', 2, 'Hungarian Forint'),
+  ('IDR', 2, 'Indonesian Rupiah'),
+  ('ILS', 2, 'Israeli New Shekel'),
+  ('INR', 2, 'Indian Rupee'),
+  ('IQD', 3, 'Iraqi Dinar'),
+  ('ISK', 0, 'Icelandic Króna'),
+  ('JOD', 3, 'Jordanian Dinar'),
+  ('JPY', 0, 'Japanese Yen'),
+  ('KES', 2, 'Kenyan Shilling'),
+  ('KRW', 0, 'South Korean Won'),
+  ('KWD', 3, 'Kuwaiti Dinar'),
+  ('LYD', 3, 'Libyan Dinar'),
+  ('MAD', 2, 'Moroccan Dirham'),
+  ('MXN', 2, 'Mexican Peso'),
+  ('MYR', 2, 'Malaysian Ringgit'),
+  ('NGN', 2, 'Nigerian Naira'),
+  ('NOK', 2, 'Norwegian Krone'),
+  ('NZD', 2, 'New Zealand Dollar'),
+  ('OMR', 3, 'Omani Rial'),
+  ('PEN', 2, 'Peruvian Sol'),
+  ('PHP', 2, 'Philippine Peso'),
+  ('PKR', 2, 'Pakistani Rupee'),
+  ('PLN', 2, 'Polish Złoty'),
+  ('QAR', 2, 'Qatari Riyal'),
+  ('RON', 2, 'Romanian Leu'),
+  ('RWF', 0, 'Rwandan Franc'),
+  ('SAR', 2, 'Saudi Riyal'),
+  ('SEK', 2, 'Swedish Krona'),
+  ('SGD', 2, 'Singapore Dollar'),
+  ('THB', 2, 'Thai Baht'),
+  ('TND', 3, 'Tunisian Dinar'),
+  ('TRY', 2, 'Turkish Lira'),
+  ('TWD', 2, 'New Taiwan Dollar'),
+  ('TZS', 2, 'Tanzanian Shilling'),
+  ('UAH', 2, 'Ukrainian Hryvnia'),
+  ('UGX', 0, 'Ugandan Shilling'),
+  ('USD', 2, 'US Dollar'),
+  ('VND', 0, 'Vietnamese Đồng'),
+  ('XAF', 0, 'Central African CFA Franc'),
+  ('XOF', 0, 'West African CFA Franc'),
+  ('ZAR', 2, 'South African Rand'),
+  ('ZMW', 2, 'Zambian Kwacha');
+
+-- -----------------------------------------------------------------------------
+-- Profiles: one row per Supabase Auth user. Created automatically on sign-up.
+-- Deleting the auth user deletes the profile and everything that hangs off it.
+-- -----------------------------------------------------------------------------
+create table public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  display_name text check (
+    display_name is null or char_length(btrim(display_name)) between 1 and 80
+  ),
+  country_code text check (country_code is null or country_code ~ '^[A-Z]{2}$'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function private.set_updated_at();
+
+alter table public.profiles enable row level security;
+revoke all on table public.profiles from anon, authenticated;
+grant select on table public.profiles to authenticated;
+-- Column-level grant: users can only change these two columns.
+grant update (display_name, country_code) on table public.profiles to authenticated;
+
+create policy "Users can read their own profile"
+  on public.profiles for select
+  to authenticated
+  using (id = (select auth.uid()));
+
+create policy "Users can update their own profile"
+  on public.profiles for update
+  to authenticated
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
+
+-- -----------------------------------------------------------------------------
+-- User preferences: regional settings, appearance, AI switch, memory pause.
+-- -----------------------------------------------------------------------------
+create table public.user_preferences (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  currency_code text not null default 'USD' references public.currencies (code),
+  locale text not null default 'en-US' check (
+    char_length(locale) between 2 and 35 and locale ~ '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$'
+  ),
+  time_zone text not null default 'UTC' check (char_length(time_zone) between 1 and 64),
+  week_start smallint not null default 1 check (week_start between 0 and 6),
+  date_format text not null default 'locale' check (date_format in ('locale', 'dmy', 'mdy', 'ymd')),
+  number_format text not null default 'locale' check (
+    number_format in ('locale', 'comma_dot', 'dot_comma', 'space_comma')
+  ),
+  measurement_system text not null default 'metric' check (
+    measurement_system in ('metric', 'imperial')
+  ),
+  theme text not null default 'system' check (theme in ('system', 'light', 'dark')),
+  -- Master AI switch. When false, no user data may be sent to an AI provider.
+  ai_enabled boolean not null default false,
+  -- Master memory pause. When true, no new memories may be created (Stage 6+).
+  memory_paused boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+-- Reject time zones PostgreSQL does not recognise (e.g. "Mars/Olympus").
+create or replace function private.validate_time_zone()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if not exists (select 1 from pg_catalog.pg_timezone_names where name = new.time_zone) then
+    raise exception 'Unknown time zone: %', new.time_zone using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger user_preferences_validate_time_zone
+  before insert or update of time_zone on public.user_preferences
+  for each row execute function private.validate_time_zone();
+
+create trigger user_preferences_set_updated_at
+  before update on public.user_preferences
+  for each row execute function private.set_updated_at();
+
+alter table public.user_preferences enable row level security;
+revoke all on table public.user_preferences from anon, authenticated;
+grant select on table public.user_preferences to authenticated;
+grant update (
+  currency_code, locale, time_zone, week_start, date_format, number_format,
+  measurement_system, theme, ai_enabled, memory_paused
+) on table public.user_preferences to authenticated;
+
+create policy "Users can read their own preferences"
+  on public.user_preferences for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy "Users can update their own preferences"
+  on public.user_preferences for update
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+-- >>> 20261031000200_consent_audit_notifications.sql
+-- =============================================================================
+-- AVEN Stage 1 — Migration 2: Audit log, consent, notification preferences
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- Audit log: security-relevant events for the user's own review.
+-- Users can READ their own entries. Nobody writes directly; entries are added
+-- by database functions and triggers so they cannot be edited or deleted.
+-- -----------------------------------------------------------------------------
+create table public.audit_log (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  action text not null check (action ~ '^[a-z_]+\.[a-z_]+$' and char_length(action) <= 64),
+  metadata jsonb not null default '{}'::jsonb check (
+    jsonb_typeof(metadata) = 'object' and pg_column_size(metadata) <= 2048
+  ),
+  created_at timestamptz not null default now()
+);
+
+create index audit_log_user_created_idx on public.audit_log (user_id, created_at desc);
+
+alter table public.audit_log enable row level security;
+revoke all on table public.audit_log from anon, authenticated;
+grant select on table public.audit_log to authenticated;
+
+create policy "Users can read their own audit log"
+  on public.audit_log for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+-- Internal writer (not callable through the API).
+create or replace function private.write_audit(p_user_id uuid, p_action text, p_metadata jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.audit_log (user_id, action, metadata)
+  values (p_user_id, p_action, coalesce(p_metadata, '{}'::jsonb));
+end;
+$$;
+revoke all on function private.write_audit(uuid, text, jsonb) from public;
+
+-- Public, allow-listed event logger for events that happen outside the database
+-- (sign-in, sign-out, password change). The user id always comes from the session.
+create or replace function public.log_security_event(p_action text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  if p_action not in (
+    'auth.signed_in',
+    'auth.signed_out',
+    'auth.signed_out_everywhere',
+    'auth.password_changed',
+    'auth.password_reset_completed',
+    'auth.email_confirmed'
+  ) then
+    raise exception 'Action not allowed: %', p_action using errcode = '22023';
+  end if;
+  perform private.write_audit(v_user, p_action, '{}'::jsonb);
+end;
+$$;
+revoke all on function public.log_security_event(text) from public, anon;
+grant execute on function public.log_security_event(text) to authenticated;
+
+-- Log changes to privacy-relevant preferences automatically.
+create or replace function private.audit_preference_changes()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.ai_enabled is distinct from old.ai_enabled then
+    perform private.write_audit(new.user_id, 'privacy.ai_preference_changed',
+      jsonb_build_object('ai_enabled', new.ai_enabled));
+  end if;
+  if new.memory_paused is distinct from old.memory_paused then
+    perform private.write_audit(new.user_id, 'privacy.memory_pause_changed',
+      jsonb_build_object('memory_paused', new.memory_paused));
+  end if;
+  return new;
+end;
+$$;
+
+create trigger user_preferences_audit
+  after update on public.user_preferences
+  for each row execute function private.audit_preference_changes();
+
+-- -----------------------------------------------------------------------------
+-- Consent
+--   consent_categories : catalogue (which categories exist, which are available)
+--   consent_records    : append-only history of every grant / withdrawal
+--   consent_state      : current state per category, maintained by set_consent()
+-- -----------------------------------------------------------------------------
+create table public.consent_categories (
+  category text primary key check (category ~ '^[a-z_]+$'),
+  is_sensitive boolean not null,
+  -- false = the feature is not built/verified yet; consent cannot be granted.
+  is_available boolean not null default false,
+  policy_version text not null check (char_length(policy_version) between 1 and 32)
+);
+
+alter table public.consent_categories enable row level security;
+revoke all on table public.consent_categories from anon, authenticated;
+grant select on table public.consent_categories to authenticated;
+create policy "Consent catalogue is readable by signed-in users"
+  on public.consent_categories for select
+  to authenticated
+  using (true);
+
+insert into public.consent_categories (category, is_sensitive, is_available, policy_version) values
+  ('ai_processing',          true,  true,  '2026-10-31'),
+  ('wellbeing_data',         true,  true,  '2026-10-31'),
+  -- Walrus Memory categories stay unavailable until Stage 6 has verified
+  -- Walrus write, retrieval, access-revocation and deletion behaviour.
+  ('memory_financial',       true,  false, '2026-10-31'),
+  ('memory_shared_expenses', true,  false, '2026-10-31'),
+  ('memory_wellbeing',       true,  false, '2026-10-31'),
+  ('memory_planning',        false, false, '2026-10-31'),
+  ('memory_interactions',    false, false, '2026-10-31');
+
+create table public.consent_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  category text not null references public.consent_categories (category),
+  granted boolean not null,
+  policy_version text not null,
+  source text not null check (source in ('settings', 'onboarding', 'feature_prompt')),
+  created_at timestamptz not null default now()
+);
+
+create index consent_records_user_idx on public.consent_records (user_id, created_at desc);
+
+alter table public.consent_records enable row level security;
+revoke all on table public.consent_records from anon, authenticated;
+grant select on table public.consent_records to authenticated;
+create policy "Users can read their own consent history"
+  on public.consent_records for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+create table public.consent_state (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  category text not null references public.consent_categories (category),
+  granted boolean not null,
+  policy_version text not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, category)
+);
+
+alter table public.consent_state enable row level security;
+revoke all on table public.consent_state from anon, authenticated;
+grant select on table public.consent_state to authenticated;
+create policy "Users can read their own consent state"
+  on public.consent_state for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+-- The only way to change consent. Records history, updates state, writes audit.
+create or replace function public.set_consent(p_category text, p_granted boolean, p_source text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_cat public.consent_categories%rowtype;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  if p_granted is null then
+    raise exception 'granted must be true or false' using errcode = '22023';
+  end if;
+  if p_source not in ('settings', 'onboarding', 'feature_prompt') then
+    raise exception 'Invalid consent source' using errcode = '22023';
+  end if;
+
+  select * into v_cat from public.consent_categories where category = p_category;
+  if not found then
+    raise exception 'Unknown consent category: %', p_category using errcode = '22023';
+  end if;
+  -- Withdrawing is always allowed. Granting requires the feature to be available.
+  if p_granted and not v_cat.is_available then
+    raise exception 'Consent category % is not available yet', p_category using errcode = '55000';
+  end if;
+
+  insert into public.consent_records (user_id, category, granted, policy_version, source)
+  values (v_user, p_category, p_granted, v_cat.policy_version, p_source);
+
+  insert into public.consent_state (user_id, category, granted, policy_version, updated_at)
+  values (v_user, p_category, p_granted, v_cat.policy_version, now())
+  on conflict (user_id, category) do update
+    set granted = excluded.granted,
+        policy_version = excluded.policy_version,
+        updated_at = excluded.updated_at;
+
+  perform private.write_audit(v_user,
+    case when p_granted then 'consent.granted' else 'consent.withdrawn' end,
+    jsonb_build_object('category', p_category, 'policy_version', v_cat.policy_version));
+end;
+$$;
+revoke all on function public.set_consent(text, boolean, text) from public, anon;
+grant execute on function public.set_consent(text, boolean, text) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Notification preferences (Nudge Center foundation).
+-- Deterministic rules in src/lib/nudges enforce these; AI can never override them.
+-- -----------------------------------------------------------------------------
+create table public.notification_preferences (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  in_app_enabled boolean not null default true,
+  -- Email and push delivery are not built yet; the UI keeps them disabled.
+  email_enabled boolean not null default false,
+  push_enabled boolean not null default false,
+  daily_digest_enabled boolean not null default true,
+  daily_digest_time time not null default '08:00',
+  weekly_digest_enabled boolean not null default true,
+  weekly_digest_day smallint not null default 0 check (weekly_digest_day between 0 and 6),
+  quiet_hours_enabled boolean not null default true,
+  quiet_hours_start time not null default '22:00',
+  quiet_hours_end time not null default '07:00',
+  pause_nonessential boolean not null default false,
+  max_nudges_per_day smallint not null default 3 check (max_nudges_per_day between 0 and 20),
+  updated_at timestamptz not null default now(),
+  check (quiet_hours_start <> quiet_hours_end)
+);
+
+create trigger notification_preferences_set_updated_at
+  before update on public.notification_preferences
+  for each row execute function private.set_updated_at();
+
+alter table public.notification_preferences enable row level security;
+revoke all on table public.notification_preferences from anon, authenticated;
+grant select on table public.notification_preferences to authenticated;
+grant update (
+  in_app_enabled, daily_digest_enabled, daily_digest_time, weekly_digest_enabled,
+  weekly_digest_day, quiet_hours_enabled, quiet_hours_start, quiet_hours_end,
+  pause_nonessential, max_nudges_per_day
+) on table public.notification_preferences to authenticated;
+
+create policy "Users can read their own notification preferences"
+  on public.notification_preferences for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy "Users can update their own notification preferences"
+  on public.notification_preferences for update
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+create table public.notification_category_preferences (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  category text not null check (category in (
+    'subscriptions', 'shared_expenses', 'budgets', 'savings',
+    'routines', 'wellbeing', 'planning', 'account_security'
+  )),
+  frequency text not null check (frequency in ('immediate', 'daily_digest', 'weekly_digest', 'off')),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, category),
+  -- Account security notices are essential and cannot be switched off.
+  check (category <> 'account_security' or frequency <> 'off')
+);
+
+create trigger notification_category_preferences_set_updated_at
+  before update on public.notification_category_preferences
+  for each row execute function private.set_updated_at();
+
+alter table public.notification_category_preferences enable row level security;
+revoke all on table public.notification_category_preferences from anon, authenticated;
+grant select on table public.notification_category_preferences to authenticated;
+grant update (frequency) on table public.notification_category_preferences to authenticated;
+
+create policy "Users can read their own notification categories"
+  on public.notification_category_preferences for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy "Users can update their own notification categories"
+  on public.notification_category_preferences for update
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+-- >>> 20261031000300_ai_limits_sync_data_rights.sql
+-- =============================================================================
+-- AVEN Stage 1 — Migration 3: AI usage limits, rate limiting, offline sync
+-- metadata, data export log, anonymised account deletion log.
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- AI usage limits (enforced server-side from Stage 6; created now so limits
+-- exist before any AI call is ever made).
+-- Users can read their limits and usage. Only the server (service role) records usage.
+-- -----------------------------------------------------------------------------
+create table public.ai_usage_limits (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  daily_request_limit integer not null default 25 check (daily_request_limit between 0 and 1000),
+  monthly_token_limit integer not null default 250000 check (monthly_token_limit between 0 and 50000000),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.ai_usage_limits enable row level security;
+revoke all on table public.ai_usage_limits from anon, authenticated;
+grant select on table public.ai_usage_limits to authenticated;
+create policy "Users can read their own AI limits"
+  on public.ai_usage_limits for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+create table public.ai_usage_daily (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  usage_date date not null,
+  request_count integer not null default 0 check (request_count >= 0),
+  input_tokens bigint not null default 0 check (input_tokens >= 0),
+  output_tokens bigint not null default 0 check (output_tokens >= 0),
+  primary key (user_id, usage_date)
+);
+
+alter table public.ai_usage_daily enable row level security;
+revoke all on table public.ai_usage_daily from anon, authenticated;
+grant select on table public.ai_usage_daily to authenticated;
+create policy "Users can read their own AI usage"
+  on public.ai_usage_daily for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+-- Quota check for the signed-in user. Days and months are measured in UTC.
+create or replace function public.ai_quota_status()
+returns table (
+  ai_enabled boolean,
+  ai_consent boolean,
+  requests_today integer,
+  daily_request_limit integer,
+  tokens_this_month bigint,
+  monthly_token_limit integer,
+  allowed boolean
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  with me as (select auth.uid() as id),
+  pref as (select p.ai_enabled from public.user_preferences p, me where p.user_id = me.id),
+  consent as (
+    select coalesce((select c.granted from public.consent_state c, me
+      where c.user_id = me.id and c.category = 'ai_processing'), false) as granted
+  ),
+  lim as (select l.* from public.ai_usage_limits l, me where l.user_id = me.id),
+  today as (
+    select coalesce(sum(d.request_count), 0)::integer as n
+    from public.ai_usage_daily d, me
+    where d.user_id = me.id and d.usage_date = (now() at time zone 'utc')::date
+  ),
+  month as (
+    select coalesce(sum(d.input_tokens + d.output_tokens), 0)::bigint as n
+    from public.ai_usage_daily d, me
+    where d.user_id = me.id
+      and d.usage_date >= date_trunc('month', now() at time zone 'utc')::date
+  )
+  select
+    coalesce(pref.ai_enabled, false),
+    consent.granted,
+    today.n,
+    coalesce(lim.daily_request_limit, 0),
+    month.n,
+    coalesce(lim.monthly_token_limit, 0),
+    coalesce(pref.ai_enabled, false)
+      and consent.granted
+      and today.n < coalesce(lim.daily_request_limit, 0)
+      and month.n < coalesce(lim.monthly_token_limit, 0)
+  from consent, today, month
+  left join pref on true
+  left join lim on true;
+$$;
+revoke all on function public.ai_quota_status() from public, anon;
+grant execute on function public.ai_quota_status() to authenticated;
+
+-- Server-only usage recorder (service role). Not callable by users.
+create or replace function public.record_ai_usage(p_user_id uuid, p_input_tokens bigint, p_output_tokens bigint)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_input_tokens < 0 or p_output_tokens < 0 then
+    raise exception 'Token counts cannot be negative' using errcode = '22023';
+  end if;
+  insert into public.ai_usage_daily (user_id, usage_date, request_count, input_tokens, output_tokens)
+  values (p_user_id, (now() at time zone 'utc')::date, 1, p_input_tokens, p_output_tokens)
+  on conflict (user_id, usage_date) do update
+    set request_count = public.ai_usage_daily.request_count + 1,
+        input_tokens = public.ai_usage_daily.input_tokens + excluded.input_tokens,
+        output_tokens = public.ai_usage_daily.output_tokens + excluded.output_tokens;
+end;
+$$;
+revoke all on function public.record_ai_usage(uuid, bigint, bigint) from public, anon, authenticated;
+grant execute on function public.record_ai_usage(uuid, bigint, bigint) to service_role;
+
+-- -----------------------------------------------------------------------------
+-- Rate limiting for sensitive actions (fixed window, stored in Postgres so it
+-- works across Vercel serverless instances without another platform).
+-- The table is invisible to users; only consume_rate_limit() touches it.
+-- -----------------------------------------------------------------------------
+create table public.rate_limit_buckets (
+  bucket_key text not null,
+  window_start timestamptz not null,
+  hit_count integer not null default 0,
+  primary key (bucket_key, window_start)
+);
+
+alter table public.rate_limit_buckets enable row level security;
+revoke all on table public.rate_limit_buckets from anon, authenticated;
+-- No policies: users cannot read or write this table directly.
+
+create or replace function public.consume_rate_limit(p_action text, p_max integer, p_window_seconds integer)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_key text;
+  v_window timestamptz;
+  v_count integer;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  if p_action !~ '^[a-z_]{1,48}$' then
+    raise exception 'Invalid action' using errcode = '22023';
+  end if;
+  if p_max not between 1 and 1000 or p_window_seconds not between 1 and 86400 then
+    raise exception 'Invalid rate limit parameters' using errcode = '22023';
+  end if;
+
+  v_key := v_user::text || ':' || p_action || ':' || p_window_seconds::text;
+  v_window := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+
+  insert into public.rate_limit_buckets as b (bucket_key, window_start, hit_count)
+  values (v_key, v_window, 1)
+  on conflict (bucket_key, window_start) do update set hit_count = b.hit_count + 1
+  returning hit_count into v_count;
+
+  -- Housekeeping: drop this user's expired windows.
+  delete from public.rate_limit_buckets
+  where bucket_key = v_key and window_start < v_window;
+
+  return v_count <= p_max;
+end;
+$$;
+revoke all on function public.consume_rate_limit(text, integer, integer) from public, anon;
+grant execute on function public.consume_rate_limit(text, integer, integer) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Offline sync metadata (used by the Stage 2 sync engine).
+--   user_devices  : devices that have synced offline data
+--   sync_receipts : one row per client mutation id → makes retries idempotent
+-- -----------------------------------------------------------------------------
+create table public.user_devices (
+  id uuid primary key,  -- generated on the device and kept in IndexedDB
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  label text check (label is null or char_length(label) between 1 and 60),
+  platform text check (platform is null or char_length(platform) between 1 and 40),
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  last_sync_at timestamptz
+);
+
+create index user_devices_user_idx on public.user_devices (user_id);
+
+alter table public.user_devices enable row level security;
+revoke all on table public.user_devices from anon, authenticated;
+grant select, insert, delete on table public.user_devices to authenticated;
+grant update (label, last_seen_at, last_sync_at) on table public.user_devices to authenticated;
+
+create policy "Users can read their own devices"
+  on public.user_devices for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "Users can register their own devices"
+  on public.user_devices for insert to authenticated
+  with check (user_id = (select auth.uid()));
+create policy "Users can update their own devices"
+  on public.user_devices for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+create policy "Users can remove their own devices"
+  on public.user_devices for delete to authenticated
+  using (user_id = (select auth.uid()));
+
+create table public.sync_receipts (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  client_mutation_id uuid not null,
+  device_id uuid references public.user_devices (id) on delete set null,
+  entity text not null check (entity ~ '^[a-z_]{1,48}$'),
+  record_id uuid not null,
+  operation text not null check (operation in ('create', 'update', 'delete')),
+  result text not null check (result in ('applied', 'conflict', 'rejected')),
+  server_version bigint,
+  received_at timestamptz not null default now(),
+  primary key (user_id, client_mutation_id)
+);
+
+alter table public.sync_receipts enable row level security;
+revoke all on table public.sync_receipts from anon, authenticated;
+grant select, insert on table public.sync_receipts to authenticated;
+
+create policy "Users can read their own sync receipts"
+  on public.sync_receipts for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "Users can record their own sync receipts"
+  on public.sync_receipts for insert to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and (
+      device_id is null
+      or exists (
+        select 1 from public.user_devices d
+        where d.id = device_id and d.user_id = (select auth.uid())
+      )
+    )
+  );
+
+-- -----------------------------------------------------------------------------
+-- Data export log: a record that an export happened (not the export itself).
+-- -----------------------------------------------------------------------------
+create table public.data_export_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  format text not null check (format in ('json')),
+  byte_size integer not null check (byte_size >= 0),
+  created_at timestamptz not null default now()
+);
+
+alter table public.data_export_log enable row level security;
+revoke all on table public.data_export_log from anon, authenticated;
+grant select on table public.data_export_log to authenticated;
+create policy "Users can read their own export log"
+  on public.data_export_log for select to authenticated
+  using (user_id = (select auth.uid()));
+
+create or replace function public.record_data_export(p_format text, p_byte_size integer)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+  insert into public.data_export_log (user_id, format, byte_size) values (v_user, p_format, p_byte_size);
+  perform private.write_audit(v_user, 'data.exported',
+    jsonb_build_object('format', p_format, 'byte_size', p_byte_size));
+end;
+$$;
+revoke all on function public.record_data_export(text, integer) from public, anon;
+grant execute on function public.record_data_export(text, integer) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Account deletion log. Deliberately contains NO personal data: only a SHA-256
+-- hash of the user id, timestamps, outcome and the status of external cleanup.
+-- It survives the deletion so operators can prove a deletion was carried out.
+-- Service role only (no policies, no grants to users).
+-- -----------------------------------------------------------------------------
+create table public.account_deletion_log (
+  id uuid primary key default gen_random_uuid(),
+  subject_hash text not null check (subject_hash ~ '^[a-f0-9]{64}$'),
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  outcome text not null default 'started' check (outcome in ('started', 'completed', 'failed')),
+  -- e.g. {"walrus": "not_applicable"} — external stores report their own status.
+  external_cleanup jsonb not null default '{}'::jsonb check (jsonb_typeof(external_cleanup) = 'object')
+);
+
+alter table public.account_deletion_log enable row level security;
+revoke all on table public.account_deletion_log from anon, authenticated;
+
+-- >>> 20261031000400_new_user_bootstrap.sql
+-- =============================================================================
+-- AVEN Stage 1 — Migration 4: New-user bootstrap
+-- When Supabase Auth creates a user, create their profile and default settings.
+-- No financial, wellbeing or sample data is created — new users start empty.
+-- =============================================================================
+
+create or replace function private.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_name text := nullif(btrim(coalesce(new.raw_user_meta_data ->> 'display_name', '')), '');
+begin
+  -- Never let a bad display name block sign-up; store nothing instead.
+  if v_name is not null and char_length(v_name) > 80 then
+    v_name := null;
+  end if;
+
+  insert into public.profiles (id, display_name) values (new.id, v_name);
+  insert into public.user_preferences (user_id) values (new.id);
+  insert into public.notification_preferences (user_id) values (new.id);
+  insert into public.ai_usage_limits (user_id) values (new.id);
+
+  insert into public.notification_category_preferences (user_id, category, frequency) values
+    (new.id, 'subscriptions',    'daily_digest'),
+    (new.id, 'shared_expenses',  'daily_digest'),
+    (new.id, 'budgets',          'daily_digest'),
+    (new.id, 'savings',          'weekly_digest'),
+    (new.id, 'routines',         'daily_digest'),
+    (new.id, 'wellbeing',        'weekly_digest'),
+    (new.id, 'planning',         'daily_digest'),
+    (new.id, 'account_security', 'immediate');
+
+  -- Every consent category starts explicitly NOT granted.
+  insert into public.consent_state (user_id, category, granted, policy_version)
+  select new.id, c.category, false, c.policy_version from public.consent_categories c;
+
+  perform private.write_audit(new.id, 'account.created', '{}'::jsonb);
+  return new;
+end;
+$$;
+
+revoke all on function private.handle_new_user() from public;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function private.handle_new_user();
+
+-- -----------------------------------------------------------------------------
+-- Account deletion clean-up for data that is not linked by a foreign key.
+-- (Rate-limit buckets are keyed by text so they can be pruned cheaply.)
+-- -----------------------------------------------------------------------------
+create or replace function private.cleanup_deleted_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.rate_limit_buckets where bucket_key like old.id::text || ':%';
+  return old;
+end;
+$$;
+
+revoke all on function private.cleanup_deleted_profile() from public;
+
+create trigger on_profile_deleted
+  after delete on public.profiles
+  for each row execute function private.cleanup_deleted_profile();
+
+commit;
