@@ -89,6 +89,7 @@
   update `MEMWAL_PRIVATE_KEY`. **Do not** change `MEMWAL_NAMESPACE_SECRET` unless you accept
   that existing memories become unreachable.
 - **Tatum key leaked:** delete it in the Tatum dashboard, create a new one, update Vercel.
+- **`SMTP_PASSWORD` leaked:** revoke the Gmail app password (or provider key), create a new one, update Vercel.
 - **`CRON_SECRET` leaked:** pick a new one and update it in both Vercel and the GitHub
   repository secret. The worst a leaked value allows is running the (idempotent) scheduler early.
 

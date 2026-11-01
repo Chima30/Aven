@@ -249,7 +249,7 @@ export function TaskCheck({
       }}
       className={cn(
         "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-        done ? "border-accent bg-accent text-white" : "border-line-strong hover:border-accent",
+        done ? "border-accent bg-accent text-accent-fg" : "border-line-strong hover:border-accent",
         optimistic !== null && "opacity-70",
       )}
     >

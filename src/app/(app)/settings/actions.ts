@@ -14,6 +14,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { NotificationCategory, NotificationFrequency } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { THEME_COOKIE, THEME_COOKIE_OPTIONS } from "@/lib/theme";
+import { emailConfig } from "@/lib/integrations/config";
+import { smtpSender } from "@/lib/nudges/email";
+import { buildNudgeEmail } from "@/lib/nudges/email-content";
+import { publicEnv } from "@/lib/env";
 import {
   appearanceSchema,
   changePasswordSchema,
@@ -189,6 +193,8 @@ export async function updateNotificationsAction(
   }
   const parsed = notificationSchema.safeParse({
     inAppEnabled: formData.get("inAppEnabled"),
+    emailEnabled: formData.get("emailEnabled"),
+    emailMode: formValue(formData, "emailMode") || undefined,
     dailyDigestEnabled: formData.get("dailyDigestEnabled"),
     dailyDigestTime: formValue(formData, "dailyDigestTime"),
     weeklyDigestEnabled: formData.get("weeklyDigestEnabled"),
@@ -203,10 +209,20 @@ export async function updateNotificationsAction(
   if (!parsed.success) return { status: "error", fieldErrors: fieldErrors(parsed.error) };
 
   const d = parsed.data;
+  // Email can only be switched on when this server can actually send it.
+  const emailReady = emailConfig().status === "configured";
+  if (d.emailEnabled && !emailReady) {
+    return {
+      status: "error",
+      fieldErrors: { emailEnabled: "Email isn't set up on this server yet." },
+    };
+  }
   const { error } = await ctx.supabase
     .from("notification_preferences")
     .update({
       in_app_enabled: d.inAppEnabled,
+      email_enabled: d.emailEnabled,
+      email_mode: d.emailMode,
       daily_digest_enabled: d.dailyDigestEnabled,
       daily_digest_time: d.dailyDigestTime,
       weekly_digest_enabled: d.weeklyDigestEnabled,
@@ -384,4 +400,60 @@ export async function deleteAccountAction(
     if (cookie.name.startsWith("sb-") || cookie.name === THEME_COOKIE) jar.delete(cookie.name);
   }
   redirect("/?account_deleted=1");
+}
+
+/** Sends a test email to the signed-in user's own address (rate-limited). */
+export async function sendTestEmailAction(): Promise<FormState> {
+  const ctx = await session();
+  if (!ctx) return SESSION_EXPIRED;
+  const config = emailConfig();
+  if (config.status !== "configured") {
+    return { status: "error", message: "Email isn't set up on this server yet." };
+  }
+  if (!ctx.user.email) return { status: "error", message: "Your account has no email address." };
+  if (!(await consumeRateLimit(ctx.supabase, "email_test"))) {
+    return { status: "error", message: "You can send 3 test emails an hour. Try again later." };
+  }
+  const siteUrl = publicEnv().NEXT_PUBLIC_SITE_URL;
+  const { data: profile } = await ctx.supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", ctx.user.id)
+    .maybeSingle();
+  const email = buildNudgeEmail({
+    name: profile?.display_name ?? ctx.user.email.split("@")[0] ?? "there",
+    siteUrl,
+    items: [
+      {
+        id: "test",
+        kind: "suggestion",
+        category: "account_security",
+        priority: "normal",
+        title: "Email notifications are working",
+        body: "This is a test from AVEN. Your nudges will arrive like this.",
+        action_url: "/nudges",
+        status: "delivered",
+        read_at: null,
+        dismissed_at: null,
+        emailed_at: null,
+        email_attempts: 0,
+        delivered_at: new Date().toISOString(),
+      },
+    ],
+  });
+  try {
+    await smtpSender(config.config, {
+      to: ctx.user.email,
+      ...email,
+      settingsUrl: `${siteUrl}/settings/notifications`,
+    });
+  } catch (error) {
+    console.error("[email] test failed:", error instanceof Error ? error.name : "error");
+    return {
+      status: "error",
+      message:
+        "The email server refused the message. Check SMTP_HOST, SMTP_USER, SMTP_PASSWORD and EMAIL_FROM in Vercel.",
+    };
+  }
+  return { status: "success", message: `Test email sent to ${ctx.user.email}.` };
 }

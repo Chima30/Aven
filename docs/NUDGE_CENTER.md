@@ -23,7 +23,8 @@ whether, when or how often anyone is notified.**
   are never relied on.
 - ✅ Preferences (Settings → Notifications): right away / daily / weekly / off per category,
   quiet hours, pause, daily limit. New category: **Suggestions** (memory-based suggestions).
-- ❌ **No push notifications** to phones yet (requirements in SCHEDULER.md). Nudges appear inside AVEN.
+- ✅ **Email (opt-in)**: off by default; each user chooses summaries-and-important or everything. See EMAIL.md.
+- ❌ **No push notifications** to phones yet (requirements in SCHEDULER.md).
 
 ## Rules that produce nudges (deterministic; AI can't override)
 

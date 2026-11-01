@@ -170,3 +170,78 @@ export function cronSecret(): string | null {
   const v = process.env.CRON_SECRET?.trim();
   return v && v.length >= 32 ? v : null;
 }
+
+/* -------------------------------------------------------------------- Email */
+
+export interface EmailConfig {
+  host: string;
+  port: number;
+  /** Implicit TLS (port 465). Other ports use STARTTLS, which is required. */
+  secure: boolean;
+  user: string;
+  password: string;
+  from: string;
+}
+
+const EMAIL_REQUIRED = ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_FROM"] as const;
+
+const emailSchema = z.object({
+  SMTP_HOST: z
+    .string()
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, "must be a host name such as smtp.gmail.com"),
+  SMTP_PORT: z.coerce
+    .number()
+    .int()
+    .refine((p) => [465, 587, 2465, 2587].includes(p), "must be 465 or 587")
+    .default(465),
+  SMTP_USER: z.string().min(1).max(320),
+  SMTP_PASSWORD: z.string().min(8, "looks too short"),
+  // "Name <address>" or a bare address; no line breaks (header injection).
+  EMAIL_FROM: z
+    .string()
+    .max(200)
+    .regex(
+      /^(?:[^<>\r\n]{1,80}<[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/,
+      'must look like "AVEN <you@example.com>"',
+    ),
+});
+
+/** Optional SMTP settings for email notifications (works with Gmail, Resend, Brevo…). */
+export function parseEmailConfig(
+  source: Record<string, string | undefined>,
+): IntegrationConfig<EmailConfig> {
+  const blank = (k: string) => !source[k] || source[k]!.trim() === "";
+  const missing = EMAIL_REQUIRED.filter(blank);
+  if (missing.length === EMAIL_REQUIRED.length) return { status: "not_configured", missing };
+  if (missing.length > 0) {
+    return { status: "invalid", issues: missing.map((k) => `${k} is missing`) };
+  }
+  const clean = Object.fromEntries(
+    Object.entries(source).map(([k, v]) => [k, v && v.trim() !== "" ? v.trim() : undefined]),
+  );
+  const result = emailSchema.safeParse(clean);
+  if (!result.success) return { status: "invalid", issues: formatIssues(result.error) };
+  const d = result.data;
+  return {
+    status: "configured",
+    config: {
+      host: d.SMTP_HOST,
+      port: d.SMTP_PORT,
+      secure: d.SMTP_PORT === 465 || d.SMTP_PORT === 2465,
+      user: d.SMTP_USER,
+      password: d.SMTP_PASSWORD,
+      from: d.EMAIL_FROM,
+    },
+  };
+}
+
+export function emailConfig(): IntegrationConfig<EmailConfig> {
+  return parseEmailConfig({
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    // Gmail shows app passwords with spaces; they work without them.
+    SMTP_PASSWORD: process.env.SMTP_PASSWORD?.replace(/\s+/g, ""),
+    EMAIL_FROM: process.env.EMAIL_FROM,
+  });
+}

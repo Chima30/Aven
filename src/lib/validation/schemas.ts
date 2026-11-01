@@ -95,6 +95,8 @@ const checkbox = z
 export const notificationSchema = z
   .object({
     inAppEnabled: checkbox,
+    emailEnabled: checkbox,
+    emailMode: z.enum(["summaries", "all"]).default("summaries"),
     dailyDigestEnabled: checkbox,
     dailyDigestTime: timeOfDay,
     weeklyDigestEnabled: checkbox,

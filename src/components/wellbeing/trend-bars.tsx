@@ -33,7 +33,7 @@ export function TrendBars({
             style={{ bottom: `${(target / max) * 100}%` }}
           />
         ) : null}
-        {days.map((d) => {
+        {days.map((d, i) => {
           const v = values.get(d);
           return (
             <div
@@ -45,8 +45,16 @@ export function TrendBars({
                 <div className="bg-surface-muted h-0.5 rounded" />
               ) : (
                 <div
-                  className={cn("rounded-t", target && v >= target ? "bg-accent" : "bg-accent/50")}
-                  style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
+                  className={cn(
+                    "grow-bar rounded-t",
+                    target && v >= target ? "bg-accent" : "bg-accent/50",
+                  )}
+                  style={
+                    {
+                      height: `${Math.max(2, (v / max) * 100)}%`,
+                      "--i": i,
+                    } as React.CSSProperties
+                  }
                 />
               )}
             </div>

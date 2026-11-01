@@ -38,7 +38,7 @@ test.describe("public pages", () => {
 
   test("has a skip link and a theme attribute", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "system");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page.keyboard.press("Tab");
     await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
   });

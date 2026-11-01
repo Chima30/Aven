@@ -2,92 +2,101 @@
 
 /*
  * AVEN design tokens.
- * Deep navy, warm off-white and restrained green. Every colour used in the
- * UI comes from these variables, so light and dark themes stay consistent.
+ * Default look: near-black charcoal with a single green accent (dark), plus a
+ * neutral light theme. Every colour comes from these variables.
  * Contrast pairs (ink on canvas, primary-fg on primary, etc.) meet WCAG AA.
  */
 
 :root,
-[data-theme="light"] {
-  color-scheme: light;
-  --canvas: #f6f4ef;
-  --surface: #ffffff;
-  --surface-muted: #eeebe4;
-  --line: #e0dbd1;
-  --line-strong: #c9c2b5;
-  --ink: #0f1b2d;
-  --ink-muted: #586274;
-  --ink-subtle: #737b8a;
-  --primary: #14243d;
-  --primary-hover: #0c1729;
-  --primary-fg: #f6f4ef;
-  --accent: #2c7356;
-  --accent-soft: #e2eee7;
-  --success: #2c7356;
-  --success-soft: #e2eee7;
-  --warning: #8a5d0b;
-  --warning-soft: #f8ecd2;
-  --danger: #a8352b;
-  --danger-soft: #f8e4e1;
-  --info: #2a5785;
-  --info-soft: #e3ebf5;
-  --ring: #2c7356;
-  --shadow: 15 27 45;
-}
-
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0a1220;
-  --surface: #101b2d;
-  --surface-muted: #162338;
-  --line: #22314a;
-  --line-strong: #31425f;
-  --ink: #ece8df;
-  --ink-muted: #a3abba;
-  --ink-subtle: #8a93a3;
-  --primary: #e8e3d8;
+  --canvas: #09090a;
+  --panel: #0e0e10;
+  --surface: #151517;
+  --surface-muted: #1c1c1f;
+  --line: #232326;
+  --line-strong: #313136;
+  --ink: #f4f4f5;
+  --ink-muted: #a1a1aa;
+  --ink-subtle: #85858e;
+  --primary: #f4f4f5;
   --primary-hover: #ffffff;
-  --primary-fg: #0a1220;
-  --accent: #63b892;
-  --accent-soft: #15302a;
-  --success: #63b892;
-  --success-soft: #15302a;
-  --warning: #e2b55a;
-  --warning-soft: #33280f;
-  --danger: #f08378;
-  --danger-soft: #3a1b19;
-  --info: #84b2e3;
-  --info-soft: #172a42;
-  --ring: #63b892;
+  --primary-fg: #09090a;
+  --accent: #4ade80;
+  --accent-fg: #052e16;
+  --accent-soft: #11261a;
+  --success: #4ade80;
+  --success-soft: #11261a;
+  --warning: #fbbf24;
+  --warning-soft: #2a210b;
+  --danger: #f87171;
+  --danger-soft: #2c1416;
+  --info: #93c5fd;
+  --info-soft: #14213a;
+  --ring: #4ade80;
+  --glow: 74 222 128;
   --shadow: 0 0 0;
 }
 
-@media (prefers-color-scheme: dark) {
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f3f3f1;
+  --panel: #fafaf9;
+  --surface: #ffffff;
+  --surface-muted: #f0f0ed;
+  --line: #e5e5e1;
+  --line-strong: #d2d2cd;
+  --ink: #111113;
+  --ink-muted: #54545b;
+  --ink-subtle: #6b6b73;
+  --primary: #111113;
+  --primary-hover: #000000;
+  --primary-fg: #fafaf9;
+  --accent: #15803d;
+  --accent-fg: #ffffff;
+  --accent-soft: #e5f4ea;
+  --success: #15803d;
+  --success-soft: #e5f4ea;
+  --warning: #92600a;
+  --warning-soft: #f9eed6;
+  --danger: #b42318;
+  --danger-soft: #fbe6e3;
+  --info: #1d5fa8;
+  --info-soft: #e3edf9;
+  --ring: #15803d;
+  --glow: 21 128 61;
+  --shadow: 17 17 19;
+}
+
+@media (prefers-color-scheme: light) {
   [data-theme="system"] {
-    color-scheme: dark;
-    --canvas: #0a1220;
-    --surface: #101b2d;
-    --surface-muted: #162338;
-    --line: #22314a;
-    --line-strong: #31425f;
-    --ink: #ece8df;
-    --ink-muted: #a3abba;
-    --ink-subtle: #8a93a3;
-    --primary: #e8e3d8;
-    --primary-hover: #ffffff;
-    --primary-fg: #0a1220;
-    --accent: #63b892;
-    --accent-soft: #15302a;
-    --success: #63b892;
-    --success-soft: #15302a;
-    --warning: #e2b55a;
-    --warning-soft: #33280f;
-    --danger: #f08378;
-    --danger-soft: #3a1b19;
-    --info: #84b2e3;
-    --info-soft: #172a42;
-    --ring: #63b892;
-    --shadow: 0 0 0;
+    color-scheme: light;
+    --canvas: #f3f3f1;
+    --panel: #fafaf9;
+    --surface: #ffffff;
+    --surface-muted: #f0f0ed;
+    --line: #e5e5e1;
+    --line-strong: #d2d2cd;
+    --ink: #111113;
+    --ink-muted: #54545b;
+    --ink-subtle: #6b6b73;
+    --primary: #111113;
+    --primary-hover: #000000;
+    --primary-fg: #fafaf9;
+    --accent: #15803d;
+    --accent-fg: #ffffff;
+    --accent-soft: #e5f4ea;
+    --success: #15803d;
+    --success-soft: #e5f4ea;
+    --warning: #92600a;
+    --warning-soft: #f9eed6;
+    --danger: #b42318;
+    --danger-soft: #fbe6e3;
+    --info: #1d5fa8;
+    --info-soft: #e3edf9;
+    --ring: #15803d;
+    --glow: 21 128 61;
+    --shadow: 17 17 19;
   }
 }
 
@@ -105,6 +114,8 @@
   --color-primary-fg: var(--primary-fg);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-panel: var(--panel);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -176,15 +187,187 @@
   }
 }
 
+/* ------------------------------------------------------------- Motion */
+
+@theme {
+  --animate-page-in: page-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-menu-in: menu-in 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: var(--path-length, 2000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* Landing illustration: slow, ambient movement. */
+@keyframes illo-dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@keyframes illo-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes illo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes illo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.illo-flow {
+  animation: illo-dash 6s linear infinite;
+}
+.illo-pulse {
+  animation: illo-pulse 2.8s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+.illo-spin {
+  animation: illo-spin 80s linear infinite;
+}
+.illo-float {
+  animation: illo-float 6s ease-in-out infinite;
+}
+
+/* Scroll reveal (only when JS has confirmed motion is welcome). */
+.motion-ok .reveal {
+  opacity: 0;
+  transform: translateY(16px) scale(0.985);
+  transition:
+    opacity 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
+    border-color 0.2s ease;
+}
+.motion-ok .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* Bars and lines inside a revealed block grow into place. */
+.motion-ok .reveal.is-visible .grow-bar {
+  transform-origin: bottom;
+  animation: grow-y 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * 45ms);
+}
+.motion-ok .reveal.is-visible .grow-x {
+  transform-origin: left;
+  animation: grow-x 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 150ms);
+}
+.motion-ok .reveal.is-visible .draw-line {
+  stroke-dasharray: var(--path-length, 2000);
+  animation: draw-line 1.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 120ms);
+}
+.motion-ok .reveal .fade-area {
+  opacity: 0;
+  transition: opacity 1.2s ease 0.5s;
+}
+.motion-ok .reveal.is-visible .fade-area {
+  opacity: 1;
+}
+
+/* Interactive lift for tiles and links-as-cards. */
+.lift {
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+}
+
+/* Soft ambient glow behind the app canvas. */
+.ambient {
+  position: relative;
+  isolation: isolate;
+}
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  background: radial-gradient(closest-side, rgb(var(--glow) / 0.07), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
 dialog::backdrop {
-  background: rgb(10 18 32 / 0.55);
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
 }

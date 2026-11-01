@@ -60,6 +60,9 @@ test("navigation: Planning, Nudge Center and Wellbeing are available (no LATER l
     ).toBeVisible();
   }
   await expect(page.getByText("LATER", { exact: true })).toHaveCount(0);
+  // Only the username is shown in the app shell, never the sign-in email.
+  await expect(page.locator("body")).not.toContainText("@example.com");
+  await expect(page.getByText(/Stage \d/)).toHaveCount(0);
 });
 
 test("tasks: create one, then complete it (through the offline outbox)", async ({

@@ -66,7 +66,7 @@ export const CONSENT_COPY: Record<ConsentCategory, ConsentCopy> = {
 };
 
 function memoryNote(): string {
-  return "Not available yet: AVEN only uses Walrus Memory for financial context today.";
+  return "Not available yet.";
 }
 
 /**

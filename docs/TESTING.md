@@ -20,6 +20,14 @@ AVEN's real migrations, as the `authenticated` role with the user's JWT claims, 
 and every database function behave as in production. It does **not** test real Supabase
 Auth (sign-up emails, password checks, token refresh) or PostgREST itself.
 
+## Results — email, redesign and motion, executed 1 Nov 2026
+
+Unit 249 / 249 · Database 197 / 197 · build ✅ · end-to-end 84 / 84 (two consecutive full runs) ·
+lint, types, formatting, secret scan clean · `npm audit --omit=dev` 0 vulnerabilities.
+New: email selection/escaping/subject/SMTP-settings tests, stage 6 grants and upgrade bundle,
+dark default theme, no email address or "Stage N" text in the app shell. A test race in the
+offline-conflict e2e (navigating away before the offline edit was stored) was fixed.
+
 ## Results — Planning, Nudge Center & Wellbeing phase, executed 1 Nov 2026 on branch `stage-life`
 
 | Check                                   | Result                                                                                                                                                                                                                                                                       |

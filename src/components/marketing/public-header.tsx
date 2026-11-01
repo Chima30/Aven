@@ -26,7 +26,7 @@ export function PublicFooter() {
   return (
     <footer className="border-line border-t">
       <div className="text-ink-muted mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <p>© {new Date().getFullYear()} AVEN. Built carefully, in stages.</p>
+        <p>© {new Date().getFullYear()} AVEN.</p>
         <nav aria-label="Legal" className="flex gap-5">
           <Link href="/privacy" className="hover:text-ink">
             Privacy

@@ -13,8 +13,8 @@ import type {
 import { updateNotificationsAction } from "../actions";
 
 const CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  subscriptions: "Subscription renewals (later)",
-  shared_expenses: "Shared expenses (later)",
+  subscriptions: "Subscription renewals",
+  shared_expenses: "Shared expenses",
   budgets: "Finance: budget alerts",
   savings: "Finance: savings progress",
   routines: "Habits and routines",
@@ -29,14 +29,16 @@ const hhmm = (t: string) => t.slice(0, 5);
 export function NotificationsForm({
   prefs,
   categories,
+  emailReady,
 }: {
   prefs: NotificationPreferencesRow;
   categories: Array<{ category: NotificationCategory; frequency: NotificationFrequency }>;
+  emailReady: boolean;
 }) {
   return (
     <SettingsForm
-      title="Nudges and Pulse Check"
-      description="AVEN groups updates into calm summaries instead of constant alerts. These rules are enforced by the app itself — the AI assistant can never override them."
+      title="Nudges"
+      description="Calm summaries instead of constant alerts. Fixed rules decide what you get — AI can't override them."
       action={updateNotificationsAction}
     >
       {(state) => (
@@ -50,21 +52,36 @@ export function NotificationsForm({
               defaultChecked={prefs.in_app_enabled}
             />
             <Switch
-              id="emailChannel"
-              name="_email"
+              id="emailEnabled"
               label="Email"
-              badge={<Badge>Not available yet</Badge>}
-              disabled
-              defaultChecked={false}
+              description={
+                emailReady
+                  ? "Off unless you turn it on. Sent to the address you sign in with. Quiet hours and your limits still apply."
+                  : "The site owner hasn't set up an email server yet (see docs/EMAIL.md)."
+              }
+              badge={emailReady ? null : <Badge>Not set up</Badge>}
+              disabled={!emailReady}
+              defaultChecked={emailReady && prefs.email_enabled}
             />
-            <Switch
-              id="pushChannel"
-              name="_push"
-              label="Push notifications"
-              badge={<Badge>Not available yet</Badge>}
-              disabled
-              defaultChecked={false}
-            />
+            {state.fieldErrors?.emailEnabled ? (
+              <p className="text-danger -mt-3 text-xs">{state.fieldErrors.emailEnabled}</p>
+            ) : null}
+            {emailReady ? (
+              <Field id="emailMode" label="What to email">
+                {(a11y) => (
+                  <Select
+                    {...a11y}
+                    defaultValue={prefs.email_mode ?? "summaries"}
+                    className="sm:w-96"
+                  >
+                    <option value="summaries">
+                      Daily and weekly summaries, plus important alerts
+                    </option>
+                    <option value="all">Everything that reaches my Nudge Center</option>
+                  </Select>
+                )}
+              </Field>
+            ) : null}
           </section>
 
           <section className="border-line flex flex-col gap-5 border-t pt-6">
@@ -137,7 +154,7 @@ export function NotificationsForm({
             <Field
               id="maxNudgesPerDay"
               label="Most individual nudges per day"
-              hint="Anything beyond this is folded into your daily Pulse Check."
+              hint="Anything beyond this waits for your daily summary."
               error={state.fieldErrors?.maxNudgesPerDay}
               className="max-w-xs [&_input]:w-28"
             >
@@ -162,6 +179,17 @@ export function NotificationsForm({
             <div className="divide-line border-line divide-y rounded-xl border">
               {categories.map(({ category, frequency }) => {
                 const essential = category === "account_security";
+                // Topics for features that aren't built yet keep their saved value, unseen.
+                if (category === "subscriptions" || category === "shared_expenses") {
+                  return (
+                    <input
+                      key={category}
+                      type="hidden"
+                      name={`category_${category}`}
+                      value={frequency}
+                    />
+                  );
+                }
                 return (
                   <div
                     key={category}
@@ -181,8 +209,8 @@ export function NotificationsForm({
                       className="h-9 sm:w-52"
                     >
                       <option value="immediate">Right away</option>
-                      <option value="daily_digest">In daily Pulse Check</option>
-                      <option value="weekly_digest">In weekly review</option>
+                      <option value="daily_digest">In daily summary</option>
+                      <option value="weekly_digest">In weekly summary</option>
                       {essential ? null : <option value="off">Off</option>}
                     </Select>
                   </div>

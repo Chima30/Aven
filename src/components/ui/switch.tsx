@@ -52,7 +52,7 @@ export function Switch({
         />
         <span
           aria-hidden="true"
-          className="bg-surface pointer-events-none absolute top-0.5 left-0.5 size-5 rounded-full shadow-sm transition-transform peer-checked:translate-x-5"
+          className="bg-ink-subtle peer-checked:bg-accent-fg pointer-events-none absolute top-0.5 left-0.5 size-5 rounded-full shadow-sm transition-[transform,background-color] duration-200 peer-checked:translate-x-5"
         />
       </span>
     </div>

@@ -66,48 +66,51 @@ export default async function PrivacyPage() {
                 {group.title}
               </h3>
               <ul className="divide-line border-line divide-y rounded-xl border">
-                {CONSENT_ORDER.filter((c) => CONSENT_COPY[c].group === group.key).map(
-                  (category) => {
-                    const copy = CONSENT_COPY[category];
-                    const info = catalog.get(category);
-                    const state = current.get(category);
-                    const granted = state?.granted ?? false;
-                    const available = info?.is_available ?? false;
-                    return (
-                      <li
-                        key={category}
-                        className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-ink text-sm font-medium">{copy.title}</p>
-                            {granted ? <Badge tone="success">Allowed</Badge> : <Badge>Off</Badge>}
-                            {info?.is_sensitive ? <Badge tone="warning">Sensitive</Badge> : null}
-                          </div>
-                          <p className="text-ink-muted mt-1 text-sm">{copy.description}</p>
-                          {!available ? (
-                            <p className="text-ink-subtle mt-2 text-xs">{copy.unavailableNote}</p>
-                          ) : null}
-                          {state && granted ? (
-                            <p className="text-ink-subtle mt-2 text-xs">
-                              Allowed {formatDateTime(new Date(state.updated_at), regional)} ·
-                              policy {state.policy_version}
-                            </p>
-                          ) : null}
+                {CONSENT_ORDER.filter(
+                  (c) =>
+                    CONSENT_COPY[c].group === group.key &&
+                    // Features that don't exist yet aren't shown, unless (somehow) still allowed.
+                    ((catalog.get(c)?.is_available ?? false) || current.get(c)?.granted),
+                ).map((category) => {
+                  const copy = CONSENT_COPY[category];
+                  const info = catalog.get(category);
+                  const state = current.get(category);
+                  const granted = state?.granted ?? false;
+                  const available = info?.is_available ?? false;
+                  return (
+                    <li
+                      key={category}
+                      className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-ink text-sm font-medium">{copy.title}</p>
+                          {granted ? <Badge tone="success">Allowed</Badge> : <Badge>Off</Badge>}
+                          {info?.is_sensitive ? <Badge tone="warning">Sensitive</Badge> : null}
                         </div>
-                        <ConsentToggle
-                          category={category}
-                          granted={granted}
-                          available={available}
-                          title={copy.title}
-                          disclosures={
-                            copy.group === "memory" ? WALRUS_MEMORY_DISCLOSURES : undefined
-                          }
-                        />
-                      </li>
-                    );
-                  },
-                )}
+                        <p className="text-ink-muted mt-1 text-sm">{copy.description}</p>
+                        {!available ? (
+                          <p className="text-ink-subtle mt-2 text-xs">{copy.unavailableNote}</p>
+                        ) : null}
+                        {state && granted ? (
+                          <p className="text-ink-subtle mt-2 text-xs">
+                            Allowed {formatDateTime(new Date(state.updated_at), regional)} · policy{" "}
+                            {state.policy_version}
+                          </p>
+                        ) : null}
+                      </div>
+                      <ConsentToggle
+                        category={category}
+                        granted={granted}
+                        available={available}
+                        title={copy.title}
+                        disclosures={
+                          copy.group === "memory" ? WALRUS_MEMORY_DISCLOSURES : undefined
+                        }
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}

@@ -238,6 +238,8 @@ export type NotificationPreferencesRow = {
   user_id: string;
   in_app_enabled: boolean;
   email_enabled: boolean;
+  /** What email carries when enabled: summaries + important nudges, or everything. */
+  email_mode: "summaries" | "all";
   push_enabled: boolean;
   daily_digest_enabled: boolean;
   daily_digest_time: string;
@@ -760,6 +762,8 @@ export type NotificationRow = {
   dismissed_at: Timestamp | null;
   expires_at: Timestamp | null;
   created_at: Timestamp;
+  emailed_at: Timestamp | null;
+  email_attempts: number;
 };
 
 export type SchedulerRunRow = {
@@ -796,12 +800,7 @@ export type Database = {
       notification_preferences: Table<
         NotificationPreferencesRow,
         never,
-        Partial<
-          Omit<
-            NotificationPreferencesRow,
-            "user_id" | "updated_at" | "email_enabled" | "push_enabled"
-          >
-        >
+        Partial<Omit<NotificationPreferencesRow, "user_id" | "updated_at" | "push_enabled">>
       >;
       notification_category_preferences: Table<
         NotificationCategoryPreferenceRow,
@@ -888,7 +887,10 @@ export type Database = {
       // Written by the server scheduler; users may only set read_at / dismissed_at.
       notifications: Table<
         NotificationRow,
-        Omit<NotificationRow, "id" | "created_at" | "read_at" | "dismissed_at"> &
+        Omit<
+          NotificationRow,
+          "id" | "created_at" | "read_at" | "dismissed_at" | "emailed_at" | "email_attempts"
+        > &
           Partial<Pick<NotificationRow, "id">>,
         Partial<NotificationRow>
       >;

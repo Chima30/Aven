@@ -228,7 +228,7 @@ export default async function CalendarPage({
                     <span
                       className={cn(
                         "type-figure inline-flex size-6 items-center justify-center rounded-full text-xs",
-                        d === today && "bg-accent font-semibold text-white",
+                        d === today && "bg-accent text-accent-fg font-semibold",
                       )}
                     >
                       {Number(d.slice(8))}

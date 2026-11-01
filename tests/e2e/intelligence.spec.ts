@@ -172,7 +172,8 @@ test.describe("intelligence", () => {
     await expect(page.getByRole("heading", { name: "No memories yet" })).toBeVisible();
 
     await page.goto("/settings/integrations");
-    await expect(page.getByText("Not configured")).toHaveCount(2);
+    // Walrus, Sui, email and the scheduler.
+    await expect(page.getByText("Not configured")).toHaveCount(4);
     await expect(page.getByText(/TATUM_API_KEY is not set/)).toBeVisible();
   });
 });
@@ -201,9 +202,10 @@ test.describe("privacy", () => {
     await expect(
       page.getByRole("button", { name: "Withdraw: Remember wellbeing routines" }),
     ).toHaveCount(0);
+    // Features that don't exist yet aren't offered at all.
     await expect(
       page.getByRole("button", { name: "Grant: Remember assistant conversations" }),
-    ).toBeDisabled();
+    ).toHaveCount(0);
   });
 });
 

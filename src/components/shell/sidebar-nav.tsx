@@ -20,13 +20,25 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
+                "group relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200",
                 active
-                  ? "bg-surface text-ink ring-line shadow-[0_1px_2px_rgb(var(--shadow)/0.06)] ring-1"
-                  : "text-ink-muted hover:bg-surface-muted hover:text-ink",
+                  ? "bg-surface-muted text-ink"
+                  : "text-ink-muted hover:bg-surface-muted/60 hover:text-ink",
               )}
             >
-              <NavIcon name={item.icon} className={cn("size-[18px]", active && "text-accent")} />
+              {active ? (
+                <span
+                  aria-hidden="true"
+                  className="bg-accent absolute top-2.5 -left-3 h-5 w-1 rounded-r-full"
+                />
+              ) : null}
+              <NavIcon
+                name={item.icon}
+                className={cn(
+                  "size-[18px] transition-transform duration-200 group-hover:scale-110",
+                  active && "text-accent",
+                )}
+              />
               {item.label}
             </Link>
           );

@@ -18,19 +18,19 @@ closest match.
 
 **Which file?**
 
-| Your situation                                           | Run this file, once                                                                   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Brand-new, empty Supabase project                        | `supabase/setup_all_in_one.sql` (all stages)                                          |
-| You already ran the Stage 1 SQL on this project          | `stage2.sql`, `stage3.sql`, `stage4.sql`, then `stage5.sql` (in `supabase/upgrades/`) |
-| You already have Stage 2 (you can see `transactions`)    | `stage3.sql`, `stage4.sql`, then `stage5.sql`                                         |
-| You already have Stage 3 (you can see `memory_records`)  | `stage4.sql`, then `stage5.sql`                                                       |
-| You already have Stage 4 (you can see `recommendations`) | `supabase/upgrades/stage5.sql` only                                                   |
+| Your situation                                           | Run this file, once                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------- |
+| Brand-new, empty Supabase project                        | `supabase/setup_all_in_one.sql` (all stages)                    |
+| You already ran the Stage 1 SQL on this project          | `stage2.sql` … `stage6.sql`, in order (in `supabase/upgrades/`) |
+| You already have Stage 2 (you can see `transactions`)    | `stage3.sql` … `stage6.sql`, in order                           |
+| You already have Stage 3 (you can see `memory_records`)  | `stage4.sql`, `stage5.sql`, `stage6.sql`                        |
+| You already have Stage 4 (you can see `recommendations`) | `stage5.sql`, then `stage6.sql`                                 |
 
 Not sure? Open **Table Editor**:
 no tables → full setup · `profiles` but no `transactions` → from stage 2 ·
 `transactions` but no `memory_records` → stage 3, 4, 5 · `memory_records` but no
 `recommendations` → stage 4 then 5 · `recommendations` but no `tasks` → stage 5 only ·
-`tasks` present → nothing to do.
+`tasks` present → `stage6.sql` (safe to check: Table Editor → `notifications` has an `emailed_at` column once stage 6 has run).
 
 What the new upgrades add: **Stage 3** — `memory_records` (Walrus bookkeeping), `sui_wallets`,
 `chain_imports`, `import_chain_transaction()`, and makes _Remember financial context_
@@ -39,7 +39,7 @@ available with policy version `2026-11-02`. **Stage 4** — `recommendations` an
 tables (tasks, calendar, habits, reviews, sleep/water/meal/activity/mood logs, notifications…),
 `apply_life_mutation()`, `scheduler_status()`, and makes _Store wellbeing information_,
 _Remember planning preferences_ and _Remember wellbeing routines_ available. Existing users and
-data are kept.
+data are kept. **Stage 6** — opt-in email notifications (`email_enabled`/`email_mode`, `emailed_at`) and the new dark default theme.
 
 1. In the left sidebar, open **SQL Editor** → **New query**.
 2. Open the right file from the AVEN files. On GitHub, open the file and click **Copy raw file**.

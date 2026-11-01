@@ -35,6 +35,11 @@ const PATTERNS = [
     re: /MEMWAL_NAMESPACE_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/_-]{32,}/,
   },
   {
+    name: "SMTP password assignment",
+    // Env-file style only (KEY=value on one line).
+    re: /SMTP_PASSWORD[ \t]*=[ \t]*["']?[^\s"'<]{8,}/,
+  },
+  {
     name: "Cron secret assignment",
     re: /CRON_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/_-]{32,}/,
   },
@@ -48,6 +53,7 @@ const EXAMPLE_DEFAULTS_ALLOWED = new Set([
   "TATUM_SUI_TRANSPORT",
   "MEMWAL_SERVER_URL",
   "MEMWAL_NAMESPACE",
+  "SMTP_PORT",
 ]);
 
 const problems = [];

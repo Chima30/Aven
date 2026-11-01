@@ -18,19 +18,21 @@ Validated in `src/lib/integrations/config.ts`. If none of a group is set, the fe
 configured"; a partial or malformed group is reported as **invalid** (by variable name, never
 echoing the value) on Settings → Integrations.
 
-| Variable                  | Required for      | Default                                     | Details                                                              |
-| ------------------------- | ----------------- | ------------------------------------------- | -------------------------------------------------------------------- |
-| `MEMWAL_PRIVATE_KEY`      | Walrus Memory     | —                                           | **Secret.** WALRUS_SETUP.md                                          |
-| `MEMWAL_ACCOUNT_ID`       | Walrus Memory     | —                                           | `0x…` account object id                                              |
-| `MEMWAL_NAMESPACE_SECRET` | Walrus Memory     | —                                           | **Secret.** 32+ chars, set once                                      |
-| `MEMWAL_SERVER_URL`       | —                 | `https://relayer.memory.walrus.xyz`         | https only                                                           |
-| `MEMWAL_NAMESPACE`        | —                 | `aven-production`                           | lowercase, digits, hyphens                                           |
-| `TATUM_API_KEY`           | Sui wallets       | —                                           | **Secret.** TATUM_SETUP.md                                           |
-| `TATUM_SUI_TRANSPORT`     | —                 | `grpc`                                      | `grpc` · `grpc-web` · `jsonrpc`                                      |
-| `TATUM_SUI_GRPC_HOST`     | —                 | `sui-mainnet-grpc.gateway.tatum.io:443`     | host:port                                                            |
-| `TATUM_SUI_GRPC_WEB_URL`  | —                 | `https://sui-mainnet-grpc.gateway.tatum.io` |                                                                      |
-| `TATUM_SUI_RPC_URL`       | —                 | `https://sui-mainnet.gateway.tatum.io`      | deprecated JSON-RPC fallback                                         |
-| `CRON_SECRET`             | Background nudges | —                                           | **Secret.** 32+ chars; same value as the GitHub secret. SCHEDULER.md |
+| Variable                                            | Required for        | Default                                     | Details                                                              |
+| --------------------------------------------------- | ------------------- | ------------------------------------------- | -------------------------------------------------------------------- |
+| `MEMWAL_PRIVATE_KEY`                                | Walrus Memory       | —                                           | **Secret.** WALRUS_SETUP.md                                          |
+| `MEMWAL_ACCOUNT_ID`                                 | Walrus Memory       | —                                           | `0x…` account object id                                              |
+| `MEMWAL_NAMESPACE_SECRET`                           | Walrus Memory       | —                                           | **Secret.** 32+ chars, set once                                      |
+| `MEMWAL_SERVER_URL`                                 | —                   | `https://relayer.memory.walrus.xyz`         | https only                                                           |
+| `MEMWAL_NAMESPACE`                                  | —                   | `aven-production`                           | lowercase, digits, hyphens                                           |
+| `TATUM_API_KEY`                                     | Sui wallets         | —                                           | **Secret.** TATUM_SETUP.md                                           |
+| `TATUM_SUI_TRANSPORT`                               | —                   | `grpc`                                      | `grpc` · `grpc-web` · `jsonrpc`                                      |
+| `TATUM_SUI_GRPC_HOST`                               | —                   | `sui-mainnet-grpc.gateway.tatum.io:443`     | host:port                                                            |
+| `TATUM_SUI_GRPC_WEB_URL`                            | —                   | `https://sui-mainnet-grpc.gateway.tatum.io` |                                                                      |
+| `TATUM_SUI_RPC_URL`                                 | —                   | `https://sui-mainnet.gateway.tatum.io`      | deprecated JSON-RPC fallback                                         |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `EMAIL_FROM` | Email notifications | port `465`                                  | EMAIL.md                                                             |
+| `SMTP_PASSWORD`                                     | Email notifications | —                                           | **Secret.** e.g. a Gmail app password. EMAIL.md                      |
+| `CRON_SECRET`                                       | Background nudges   | —                                           | **Secret.** 32+ chars; same value as the GitHub secret. SCHEDULER.md |
 
 Live-check only (your machine, never Vercel): `AVEN_WALRUS_MAINNET_CONFIRM`,
 `TATUM_VERIFY_ADDRESS`, `TATUM_VERIFY_ALL_TRANSPORTS` — see the setup guides.

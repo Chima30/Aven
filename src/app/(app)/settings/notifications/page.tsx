@@ -6,6 +6,8 @@ import { isQuietNow } from "@/lib/nudges/engine";
 import { NOTIFICATION_CATEGORIES } from "@/lib/nudges/types";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationsForm } from "./notifications-form";
+import { TestEmailButton } from "./test-email";
+import { emailConfig } from "@/lib/integrations/config";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -19,6 +21,7 @@ export default async function NotificationsPage() {
   if (!prefs)
     throw new Error("Notification preferences are missing. Check that all migrations have run.");
 
+  const emailReady = emailConfig().status === "configured";
   const ordered = NOTIFICATION_CATEGORIES.map((c) => ({
     category: c,
     frequency: categories?.find((row) => row.category === c)?.frequency ?? "daily_digest",
@@ -43,16 +46,16 @@ export default async function NotificationsPage() {
 
   return (
     <>
-      <Alert tone="info" title="These settings control the Nudge Center">
-        Nudges appear in the{" "}
+      <Alert tone="info">
+        Nudges land in your{" "}
         <Link href="/nudges" className="underline">
           Nudge Center
-        </Link>{" "}
-        inside AVEN (push notifications to your phone aren&apos;t available yet). Rules decide what
-        you get; these choices decide when. Times use your time zone ({preferences.time_zone}).
-        {quiet ? " Your quiet hours are active right now." : ""}
+        </Link>
+        {emailReady ? ", and in your email if you turn it on" : ""}. Times use{" "}
+        {preferences.time_zone}.{quiet ? " Quiet hours are on right now." : ""}
       </Alert>
-      <NotificationsForm prefs={prefs} categories={ordered} />
+      <NotificationsForm prefs={prefs} categories={ordered} emailReady={emailReady} />
+      {emailReady ? <TestEmailButton /> : null}
     </>
   );
 }
