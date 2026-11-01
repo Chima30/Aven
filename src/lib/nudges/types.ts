@@ -11,6 +11,7 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
   "wellbeing",
   "planning",
   "account_security",
+  "suggestions",
 ];
 
 /** Categories that can never be switched off or paused. */

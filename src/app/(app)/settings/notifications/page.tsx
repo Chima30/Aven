@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Alert } from "@/components/ui/feedback";
 import { getAppContext } from "@/lib/auth/session";
 import { isQuietNow } from "@/lib/nudges/engine";
@@ -42,9 +43,13 @@ export default async function NotificationsPage() {
 
   return (
     <>
-      <Alert tone="info" title="No notifications are sent yet">
-        The Nudge Center is planned for a later release. Your choices here are saved now and will
-        control it from day one. Times use your time zone ({preferences.time_zone}).
+      <Alert tone="info" title="These settings control the Nudge Center">
+        Nudges appear in the{" "}
+        <Link href="/nudges" className="underline">
+          Nudge Center
+        </Link>{" "}
+        inside AVEN (push notifications to your phone aren&apos;t available yet). Rules decide what
+        you get; these choices decide when. Times use your time zone ({preferences.time_zone}).
         {quiet ? " Your quiet hours are active right now." : ""}
       </Alert>
       <NotificationsForm prefs={prefs} categories={ordered} />

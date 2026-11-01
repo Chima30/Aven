@@ -34,6 +34,10 @@ const PATTERNS = [
     name: "Namespace secret assignment",
     re: /MEMWAL_NAMESPACE_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/_-]{32,}/,
   },
+  {
+    name: "Cron secret assignment",
+    re: /CRON_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/_-]{32,}/,
+  },
 ];
 
 /** Non-secret variables that .env.example may give a default value for. */

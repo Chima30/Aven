@@ -182,22 +182,27 @@ test.describe("privacy", () => {
     await signIn(context, unique("consent"));
     await page.goto("/settings/privacy");
     const allow = page.getByRole("button", { name: "Grant: Remember financial context" });
+    // Every memory category (financial, planning, wellbeing) shows its own disclosures.
+    const financial = page.locator("form").filter({ has: allow });
     await expect(
-      page.getByText(/Deleting from Walrus is not supported by the MemWal SDK/),
+      financial.getByText(/Deleting from Walrus is not supported by the MemWal SDK/),
     ).toBeVisible();
     await allow.click();
     // Native validation blocks the form until the box is ticked.
     await expect(
       page.getByRole("button", { name: "Withdraw: Remember financial context" }),
     ).toHaveCount(0);
-    await page.getByLabel(/I understand, including that memories can.t be deleted/).check();
+    await financial.getByLabel(/I understand, including that memories can.t be deleted/).check();
     await allow.click();
     await expect(
       page.getByRole("button", { name: "Withdraw: Remember financial context" }),
     ).toBeVisible();
-    // Other memory categories stay locked.
+    // Planning and wellbeing memory are separate choices (still off); unbuilt ones stay locked.
     await expect(
-      page.getByRole("button", { name: "Grant: Remember wellbeing routines" }),
+      page.getByRole("button", { name: "Withdraw: Remember wellbeing routines" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Grant: Remember assistant conversations" }),
     ).toBeDisabled();
   });
 });

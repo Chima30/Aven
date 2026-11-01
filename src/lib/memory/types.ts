@@ -43,6 +43,18 @@ export const MEMORY_KIND_LABELS: Record<MemoryKind, string> = {
   recommendation: "Recommendation made",
   recommendation_outcome: "Recommendation outcome",
   preference: "Preference",
+  habit_pattern: "Habit pattern",
+  routine_preference: "Routine preference",
+  scheduling_preference: "Scheduling preference",
+  notification_preference: "Notification preference",
+  sleep_pattern: "Sleep pattern",
+  activity_routine: "Activity routine",
+  water_pattern: "Water intake pattern",
+  meal_routine: "Meal routine",
+  mood_pattern: "Mood and energy pattern",
+  wellbeing_goal: "Wellbeing goal",
+  review_reflection: "Review reflection",
+  correction: "Your correction",
 };
 
 /** A fact value inside a memory. Kept small and single-line. */

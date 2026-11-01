@@ -13,14 +13,15 @@ import type {
 import { updateNotificationsAction } from "../actions";
 
 const CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  subscriptions: "Subscription renewals",
-  shared_expenses: "Shared expenses",
-  budgets: "Budget alerts",
-  savings: "Savings progress",
-  routines: "Routines",
+  subscriptions: "Subscription renewals (later)",
+  shared_expenses: "Shared expenses (later)",
+  budgets: "Finance: budget alerts",
+  savings: "Finance: savings progress",
+  routines: "Habits and routines",
   wellbeing: "Wellbeing reminders",
-  planning: "Planning and reviews",
+  planning: "Planning: tasks, events and reviews",
   account_security: "Account security",
+  suggestions: "Suggestions from your memory",
 };
 
 const hhmm = (t: string) => t.slice(0, 5);
@@ -71,8 +72,8 @@ export function NotificationsForm({
             <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
               <Switch
                 id="dailyDigestEnabled"
-                label="Daily Pulse Check"
-                description="One summary of what matters today."
+                label="Daily summary"
+                description="“Your day in AVEN”: one briefing built from your real tasks, events, habits and reviews."
                 defaultChecked={prefs.daily_digest_enabled}
               />
               <Field id="dailyDigestTime" label="Time" error={state.fieldErrors?.dailyDigestTime}>
@@ -89,7 +90,7 @@ export function NotificationsForm({
             <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
               <Switch
                 id="weeklyDigestEnabled"
-                label="Weekly review"
+                label="Weekly summary"
                 description="A look back at your week and what's ahead."
                 defaultChecked={prefs.weekly_digest_enabled}
               />

@@ -25,9 +25,9 @@ export const CONSENT_COPY: Record<ConsentCategory, ConsentCopy> = {
   wellbeing_data: {
     title: "Store wellbeing information",
     description:
-      "Allows AVEN to store sleep, water, meal and exercise logs you enter. Only you can see them. AVEN is not a medical service.",
+      "Allows AVEN to store the sleep, water, meal, activity and mood logs (including Pulse Checks) that you enter. Only you can see them, and withdrawing this stops new logs. AVEN is not a medical service and never diagnoses.",
     group: "wellbeing",
-    unavailableNote: "Wellbeing tracking is planned for a later release.",
+    unavailableNote: "Wellbeing tracking isn't available right now.",
   },
   memory_financial: {
     title: "Remember financial context",
@@ -44,13 +44,15 @@ export const CONSENT_COPY: Record<ConsentCategory, ConsentCopy> = {
   },
   memory_wellbeing: {
     title: "Remember wellbeing routines",
-    description: "Lets AVEN remember routines and goals, such as your usual sleep schedule.",
+    description:
+      "Lets AVEN keep short pattern summaries — usual bedtime and average sleep, how often you meet your water target, activity routine, meal-logging routine and broad mood trends — as encrypted memory in Walrus, and use them for suggestions. Never individual logs, notes or meal descriptions, and never medical conclusions.",
     group: "memory",
     unavailableNote: memoryNote(),
   },
   memory_planning: {
     title: "Remember planning preferences",
-    description: "Lets AVEN remember how you like to plan your days and weeks.",
+    description:
+      "Lets AVEN keep short summaries of how you plan — when you usually complete habits, your preferred time of day, review and reminder timing, and focus notes you choose to save — as encrypted memory in Walrus, and use them for suggestions. Never task titles or calendar details.",
     group: "memory",
     unavailableNote: memoryNote(),
   },

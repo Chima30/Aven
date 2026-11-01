@@ -156,3 +156,17 @@ export function tatumConfig(): IntegrationConfig<TatumConfig> {
     TATUM_SUI_RPC_URL: process.env.TATUM_SUI_RPC_URL,
   });
 }
+
+/* ---------------------------------------------------------------- Scheduler */
+
+/**
+ * Shared secret that authorises the background scheduler endpoint
+ * (/api/cron/nudges). Vercel Cron sends it automatically as
+ * `Authorization: Bearer <CRON_SECRET>`; the GitHub Actions schedule sends the
+ * same header. Returns null when unset or too short (the endpoint then refuses
+ * every request).
+ */
+export function cronSecret(): string | null {
+  const v = process.env.CRON_SECRET?.trim();
+  return v && v.length >= 32 ? v : null;
+}

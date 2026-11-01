@@ -51,7 +51,7 @@ describe("copy-paste SQL bundles", () => {
   it("full setup applies cleanly to an empty project", async () => {
     const c = await freshDatabase();
     await c.query(read("supabase/setup_all_in_one.sql"));
-    expect(await tableCount(c)).toBe(27);
+    expect(await tableCount(c)).toBe(44);
     await c.end();
   });
 
@@ -84,6 +84,28 @@ describe("copy-paste SQL bundles", () => {
       policy_version: "2026-11-02",
     });
     expect(rows.filter((r) => r.is_available)).toHaveLength(1);
+    await c.end();
+  });
+
+  it("stage 4 then the stage 5 upgrade adds Planning, Wellbeing and the Nudge Center for existing users", async () => {
+    const c = await freshDatabase();
+    for (const stage of [1, 2, 3, 4]) await c.query(read(`supabase/upgrades/stage${stage}.sql`));
+    await c.query("insert into auth.users (email) values ('existing@example.com')");
+    await c.query(read("supabase/upgrades/stage5.sql"));
+    expect(await tableCount(c)).toBe(44);
+    const { rows } = await c.query(
+      "select category from consent_categories where is_available and category in ('wellbeing_data', 'memory_planning', 'memory_wellbeing') order by category",
+    );
+    expect(rows.map((r) => r.category)).toEqual([
+      "memory_planning",
+      "memory_wellbeing",
+      "wellbeing_data",
+    ]);
+    // Existing users get the new "suggestions" notification category.
+    const prefs = await c.query(
+      "select count(*)::int as n from notification_category_preferences where category = 'suggestions'",
+    );
+    expect(prefs.rows[0].n).toBe(1);
     await c.end();
   });
 });

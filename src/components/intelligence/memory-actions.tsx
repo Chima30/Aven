@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   forgetAllMemoriesAction,
+  correctMemoryAction,
   forgetMemoryAction,
   loadWalrusContentsAction,
   refreshMemoryAction,
@@ -28,6 +29,58 @@ export function ForgetMemoryButton({ id, label }: { id: string; label: string })
       >
         Forget
       </SubmitButton>
+    </form>
+  );
+}
+
+/** Replace an inaccurate memory with the user's own correction. */
+export function CorrectMemoryButton({ id, label }: { id: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, action] = useActionState(correctMemoryAction, initialFormState);
+  useFormToast(state);
+  if (!open || state.status === "success") {
+    return (
+      <button
+        type="button"
+        className="text-ink-muted hover:text-ink px-2 text-sm underline"
+        aria-label={`Correct: ${label}`}
+        onClick={() => setOpen(true)}
+      >
+        Correct
+      </button>
+    );
+  }
+  return (
+    <form action={action} className="flex w-full flex-col gap-2 sm:w-72">
+      <input type="hidden" name="id" value={id} />
+      <Field
+        id={`statement-${id}`}
+        label="What's right instead?"
+        error={state.fieldErrors?.statement}
+      >
+        {(a) => (
+          <Input
+            {...a}
+            name="statement"
+            maxLength={260}
+            required
+            autoFocus
+            placeholder="e.g. I usually exercise in the evening"
+          />
+        )}
+      </Field>
+      <p className="text-ink-subtle text-xs">
+        The original is forgotten; your correction is saved instead. Don&apos;t include passwords or
+        account numbers.
+      </p>
+      <div className="flex gap-2">
+        <SubmitButton size="sm" pendingLabel="Saving…">
+          Save correction
+        </SubmitButton>
+        <button type="button" className="text-ink-muted text-sm" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

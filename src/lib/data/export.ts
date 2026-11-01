@@ -34,6 +34,22 @@ export const EXPORT_TABLES = [
   "recommendations",
   "sui_wallets",
   "chain_imports",
+  "task_categories",
+  "tasks",
+  "calendar_events",
+  "calendar_event_exceptions",
+  "habits",
+  "habit_check_ins",
+  "reviews",
+  "planning_preferences",
+  "wellbeing_preferences",
+  "sleep_logs",
+  "water_logs",
+  "meal_logs",
+  "activity_logs",
+  "mood_logs",
+  "life_events",
+  "notifications",
 ] as const;
 
 export type ExportTable = (typeof EXPORT_TABLES)[number];
