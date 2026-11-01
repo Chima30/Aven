@@ -290,41 +290,58 @@
   animation: illo-float 6s ease-in-out infinite;
 }
 
-/* Scroll reveal (only when JS has confirmed motion is welcome). */
-.motion-ok .reveal {
-  opacity: 0;
-  transform: translateY(16px) scale(0.985);
-  transition:
-    opacity 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
-    transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
-    border-color 0.2s ease;
+/*
+ * Scroll reveal — pure CSS, driven by scroll position (no JavaScript state).
+ * A block fades up while it enters the bottom of the screen and is fully
+ * shown once it is all on screen or 200px in, whichever comes first. So
+ * anything you can see is visible; browsers without scroll-driven
+ * animations (and reduced-motion users) simply get no animation.
+ * Uses `translate`/`scale` so hover effects on `transform` still work.
+ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+    scale: 0.985;
+  }
+  to {
+    opacity: 1;
+    translate: none;
+    scale: none;
+  }
 }
-.motion-ok .reveal.is-visible {
-  opacity: 1;
-  transform: none;
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    #main [data-reveal],
+    #main
+      section:not(section section):not(dialog section):not(:has([data-reveal])):not(
+        [data-no-reveal]
+      ) {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry min(100%, 200px);
+    }
+  }
 }
-/* Bars and lines inside a revealed block grow into place. */
-.motion-ok .reveal.is-visible .grow-bar {
-  transform-origin: bottom;
-  animation: grow-y 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * 45ms);
-}
-.motion-ok .reveal.is-visible .grow-x {
-  transform-origin: left;
-  animation: grow-x 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--reveal-delay, 0ms) + 150ms);
-}
-.motion-ok .reveal.is-visible .draw-line {
-  stroke-dasharray: var(--path-length, 2000);
-  animation: draw-line 1.4s cubic-bezier(0.4, 0, 0.2, 1) both;
-  animation-delay: calc(var(--reveal-delay, 0ms) + 120ms);
-}
-.motion-ok .reveal .fade-area {
-  opacity: 0;
-  transition: opacity 1.2s ease 0.5s;
-}
-.motion-ok .reveal.is-visible .fade-area {
-  opacity: 1;
+
+/* Charts draw themselves once, when the page loads. */
+@media (prefers-reduced-motion: no-preference) {
+  .grow-bar {
+    transform-origin: bottom;
+    animation: grow-y 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(150ms + var(--i, 0) * 45ms);
+  }
+  .grow-x {
+    transform-origin: left;
+    animation: grow-x 1s cubic-bezier(0.2, 0.7, 0.2, 1) 200ms both;
+  }
+  .draw-line {
+    stroke-dasharray: var(--path-length, 2000);
+    animation: draw-line 1.4s cubic-bezier(0.4, 0, 0.2, 1) 200ms both;
+  }
+  .fade-area {
+    animation: page-in 1.2s ease 0.6s both;
+  }
 }
 
 /* Interactive lift for tiles and links-as-cards. */
@@ -370,4 +387,12 @@
 dialog::backdrop {
   background: rgb(0 0 0 / 0.6);
   backdrop-filter: blur(4px);
+}
+
+/* Horizontally scrollable tab bars: swipeable, without visible scrollbar arrows. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

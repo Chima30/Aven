@@ -18,7 +18,10 @@ export const SETTINGS_SECTIONS = [
 export function SettingsNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Settings" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+    <nav
+      aria-label="Settings"
+      className="no-scrollbar -mx-4 overflow-x-auto overflow-y-hidden px-4 lg:mx-0 lg:px-0"
+    >
       <ul className="flex gap-1 lg:flex-col">
         {SETTINGS_SECTIONS.map((s) => {
           const active = pathname === s.href;

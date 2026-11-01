@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SyncBootstrap } from "@/components/offline/sync-bootstrap";
 import { SyncStatus } from "@/components/offline/sync-status";
-import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { cn } from "@/lib/cn";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeSync } from "./theme-sync";
@@ -24,7 +22,6 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const pathname = usePathname();
 
   const initials =
     displayName
@@ -56,7 +53,6 @@ export function AppShell({
     <div className="bg-canvas min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
       <SyncBootstrap userId={userId} />
       <ThemeSync theme={theme} />
-      <ScrollReveal routeKey={pathname} />
 
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col px-3 py-5 lg:flex">

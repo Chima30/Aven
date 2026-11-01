@@ -20,7 +20,7 @@ export function MoneyNav() {
   return (
     <nav
       aria-label="Money"
-      className="border-line -mx-4 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0"
+      className="border-line no-scrollbar -mx-4 overflow-x-auto overflow-y-hidden border-b px-4 sm:mx-0 sm:px-0"
     >
       <ul className="flex gap-1">
         {TABS.map((t) => {

@@ -1,8 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 /**
- * Scroll animations must never leave content hidden: not on long pages, not
- * after moving between tabs of the same section.
+ * Scroll animations must never leave content hidden: anything on screen is
+ * fully visible, on long pages and after moving between tabs.
  */
 
 const FAKE = "http://127.0.0.1:54400";
@@ -23,52 +23,51 @@ async function signIn(context: BrowserContext): Promise<void> {
   ]);
 }
 
-async function scrollThrough(page: Page) {
-  await page.evaluate(async () => {
-    for (let y = 0; y <= document.body.scrollHeight; y += 300) {
-      window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 40));
+/** Every section/card that sits fully on screen must be fully opaque. */
+async function onScreenFaded(page: Page) {
+  return page.evaluate(async () => {
+    const faded: string[] = [];
+    const blocks = [
+      ...document.querySelectorAll<HTMLElement>("#main section, #main [data-reveal]"),
+    ];
+    for (const el of blocks) {
+      el.scrollIntoView({ block: "center" });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const r = el.getBoundingClientRect();
+      if (r.height === 0) continue;
+      let node: HTMLElement | null = el;
+      let opacity = 1;
+      while (node) {
+        opacity *= Number(getComputedStyle(node).opacity);
+        node = node.parentElement;
+      }
+      if (opacity < 0.99) faded.push(`${el.tagName} ${el.textContent?.slice(0, 30)} (${opacity})`);
     }
+    return faded;
   });
 }
 
-const hiddenCount = (page: Page) =>
-  page.evaluate(
-    () =>
-      [...document.querySelectorAll("#main .reveal")].filter(
-        (el) => getComputedStyle(el).opacity !== "1" && !el.classList.contains("is-visible"),
-      ).length,
-  );
-
 test("moving between tabs never leaves sections hidden", async ({ page, context }) => {
-  test.setTimeout(90_000); // visits eight pages
+  test.setTimeout(90_000);
   await signIn(context);
   await page.goto("/intelligence");
   for (const tab of ["Walrus Memory", "Insights & recommendations", "Walrus Memory"]) {
     await page.getByRole("link", { name: tab, exact: true }).first().click();
     await page.waitForLoadState("networkidle");
-    await scrollThrough(page);
-    await expect.poll(() => hiddenCount(page), { timeout: 5_000 }).toBe(0);
+    await page.waitForTimeout(600); // page fade-in
+    expect(await onScreenFaded(page)).toEqual([]);
   }
-  for (const path of [
-    "/planning",
-    "/planning/calendar",
-    "/planning/tasks",
-    "/wellbeing",
-    "/nudges",
-  ]) {
+  for (const path of ["/overview", "/planning", "/planning/tasks", "/wellbeing", "/nudges", "/"]) {
     await page.goto(path);
-    await scrollThrough(page);
-    await expect.poll(() => hiddenCount(page), { timeout: 5_000 }).toBe(0);
+    await page.waitForTimeout(600);
+    expect(await onScreenFaded(page)).toEqual([]);
   }
 });
 
-test("a very tall section still appears when only part of it is on screen", async ({
-  page,
-  context,
-}) => {
+test("a very tall section is visible as soon as it's on screen", async ({ page, context }) => {
   await signIn(context);
   await page.goto("/intelligence/memory");
+  await page.waitForTimeout(600);
   await page.evaluate(() => {
     const s = document.createElement("section");
     s.id = "tall";
@@ -76,8 +75,27 @@ test("a very tall section still appears when only part of it is on screen", asyn
     s.textContent = "Long list";
     document.querySelector("#main")!.appendChild(s);
   });
-  await page.locator("#tall").scrollIntoViewIfNeeded();
+  // Scroll so the section's top is in the middle of the screen.
+  await page.evaluate(() => {
+    const el = document.querySelector("#tall")!;
+    window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2);
+  });
+  await page.waitForTimeout(100);
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#tall")!).opacity))
     .toBe("1");
+});
+
+test("scroll animation is actually active (and only as content enters)", async ({
+  page,
+  context,
+}) => {
+  await signIn(context);
+  await page.goto("/overview");
+  const supported = await page.evaluate(() => CSS.supports("animation-timeline: view()"));
+  test.skip(!supported, "This browser has no scroll-driven animations (content is simply static)");
+  const name = await page.evaluate(
+    () => getComputedStyle(document.querySelector("#main section")!).animationName,
+  );
+  expect(name).toBe("reveal-up");
 });
