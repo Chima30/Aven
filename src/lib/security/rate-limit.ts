@@ -18,6 +18,7 @@ export const RATE_LIMITS = {
   recommendations: { max: 30, windowSeconds: 60 * 60 },
   life_write: { max: 120, windowSeconds: 60 },
   notification_update: { max: 120, windowSeconds: 60 },
+  email_test: { max: 3, windowSeconds: 60 * 60 },
 } as const;
 
 export type RateLimitedAction = keyof typeof RATE_LIMITS;

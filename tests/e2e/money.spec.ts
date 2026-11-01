@@ -121,6 +121,8 @@ test.describe("money", () => {
 
     await page.getByRole("link", { name: /Groceries/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Groceries" })).toBeVisible();
+    // Let any refresh from the first sync finish, so this page holds version 1.
+    await page.waitForLoadState("networkidle");
 
     // Another device changes the same transaction while this one is offline.
     await context.setOffline(true);
@@ -148,6 +150,8 @@ test.describe("money", () => {
     const dialog = page.getByRole("dialog", { name: "Edit transaction" });
     await dialog.getByLabel(/^Amount/).fill("150");
     await dialog.getByRole("button", { name: "Save changes" }).click();
+    // Wait until the edit is safely stored on this device before reconnecting.
+    await expect(dialog).toBeHidden();
 
     await context.setOffline(false);
     await page.goto("/money/sync");

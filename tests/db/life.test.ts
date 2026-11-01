@@ -458,3 +458,38 @@ describe("notifications", () => {
     ).toBe("42501");
   });
 });
+
+describe("email notifications (stage 6)", () => {
+  it("users can opt in to email and choose what's sent, but can't touch delivery bookkeeping", async () => {
+    const before = await asUser(db, alice, (c) =>
+      c.query("select email_enabled, email_mode from notification_preferences"),
+    );
+    expect(before.rows[0]).toEqual({ email_enabled: false, email_mode: "summaries" });
+    await asUser(db, alice, (c) =>
+      c.query("update notification_preferences set email_enabled = true, email_mode = 'all'"),
+    );
+    expect(
+      await pgErrorCode(
+        asUser(db, alice, (c) =>
+          c.query("update notification_preferences set email_mode = 'spam'"),
+        ),
+      ),
+    ).toBe("23514");
+    expect(
+      await pgErrorCode(
+        asUser(db, alice, (c) => c.query("update notifications set emailed_at = now()")),
+      ),
+    ).toBe("42501");
+    // Bob's preference is untouched by Alice's updates.
+    const bob2 = await asService(db, (c) =>
+      c.query("select email_enabled from notification_preferences where user_id = $1", [bob]),
+    );
+    expect(bob2.rows[0]).toEqual({ email_enabled: false });
+  });
+
+  it("new users default to the dark theme", async () => {
+    const dave = await createUser(db, "dave@example.com");
+    const { rows } = await asUser(db, dave, (c) => c.query("select theme from user_preferences"));
+    expect(rows).toEqual([{ theme: "dark" }]);
+  });
+});

@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { getAppContext } from "@/lib/auth/session";
 import { checkSui, checkWalrus, type CheckResult } from "@/lib/integrations/health";
+import { emailConfig, cronSecret } from "@/lib/integrations/config";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Integrations" };
@@ -37,6 +38,8 @@ export default async function IntegrationsPage() {
     checkSui(),
     supabase.from("memory_records").select("status"),
   ]);
+  const email = emailConfig();
+  const scheduler = cronSecret() !== null;
   const counts = (records.data ?? []).reduce<Record<string, number>>((acc, r) => {
     acc[r.status] = (acc[r.status] ?? 0) + 1;
     return acc;
@@ -115,6 +118,62 @@ export default async function IntegrationsPage() {
               <Row label="Chain identifier" value={sui.detail.chainId ?? "not reported"} />
               <Row label="Checked" value={new Date(sui.checkedAt).toUTCString()} />
             </dl>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Email (SMTP)"
+          description="Optional email copies of nudges, for users who turn email on."
+          action={
+            email.status === "configured" ? (
+              <Badge tone="success">Configured</Badge>
+            ) : email.status === "invalid" ? (
+              <Badge tone="danger">Invalid settings</Badge>
+            ) : (
+              <Badge tone="warning">Not configured</Badge>
+            )
+          }
+        />
+        <CardBody>
+          {email.status === "configured" ? (
+            <dl className="flex flex-col gap-2">
+              <Row label="Server" value={`${email.config.host}:${email.config.port}`} />
+              <Row label="Sends as" value={email.config.from} />
+            </dl>
+          ) : email.status === "invalid" ? (
+            <Alert tone="danger">{email.issues.join(" · ")}</Alert>
+          ) : (
+            <Alert tone="warning">
+              SMTP_HOST, SMTP_USER, SMTP_PASSWORD and EMAIL_FROM are not set. See docs/EMAIL.md.
+            </Alert>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Background scheduler"
+          description="Creates reminders and summaries on a schedule, even when nobody has AVEN open."
+          action={
+            scheduler ? (
+              <Badge tone="success">Configured</Badge>
+            ) : (
+              <Badge tone="warning">Not configured</Badge>
+            )
+          }
+        />
+        <CardBody>
+          {scheduler ? (
+            <p className="text-ink-muted text-sm">
+              CRON_SECRET is set. The schedule runs from GitHub Actions and Vercel Cron.
+            </p>
+          ) : (
+            <Alert tone="warning">
+              CRON_SECRET is not set, so reminders are only checked when someone opens AVEN. See
+              docs/SCHEDULER.md.
+            </Alert>
           )}
         </CardBody>
       </Card>

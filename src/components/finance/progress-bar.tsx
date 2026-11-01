@@ -34,7 +34,7 @@ export function ProgressBar({
       className={cn("bg-surface-muted h-2 w-full overflow-hidden rounded-full", className)}
     >
       <div
-        className={cn("h-full rounded-full transition-[width]", color)}
+        className={cn("grow-x h-full rounded-full transition-[width]", color)}
         style={{ width: `${clamped}%` }}
       />
     </div>

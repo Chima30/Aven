@@ -4,8 +4,8 @@
  */
 const NODES = [
   { label: "Money", x: 70, y: 70 },
-  { label: "Shared bills", x: 330, y: 58 },
-  { label: "Subscriptions", x: 376, y: 220 },
+  { label: "Intelligence", x: 330, y: 58 },
+  { label: "Memory", x: 376, y: 220 },
   { label: "Wellbeing", x: 300, y: 362 },
   { label: "Planning", x: 74, y: 334 },
   { label: "Nudges", x: 26, y: 200 },
@@ -18,7 +18,7 @@ export function ConnectionsIllustration() {
     <svg
       viewBox="-30 0 480 420"
       role="img"
-      aria-label="Diagram: Money, Shared bills, Subscriptions, Wellbeing, Planning and Nudges all connect to your personal agent and memory at the centre."
+      aria-label="Diagram: Money, Intelligence, Memory, Wellbeing, Planning and Nudges all connect to your personal agent and memory at the centre."
       className="h-auto w-full max-w-[520px]"
     >
       <defs>
@@ -35,6 +35,8 @@ export function ConnectionsIllustration() {
         fill="none"
         stroke="var(--line-strong)"
         strokeDasharray="2 6"
+        className="illo-spin"
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
       />
       {NODES.map((n) => (
         <line
@@ -43,8 +45,11 @@ export function ConnectionsIllustration() {
           y1={cy}
           x2={n.x}
           y2={n.y}
-          stroke="var(--line-strong)"
+          stroke="var(--accent)"
+          strokeOpacity="0.45"
           strokeWidth="1.2"
+          strokeDasharray="3 7"
+          className="illo-flow"
         />
       ))}
       {NODES.map((n, i) => (
@@ -59,6 +64,16 @@ export function ConnectionsIllustration() {
         />
       ))}
       <g>
+        <circle
+          cx={cx}
+          cy={cy}
+          r="58"
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="1.5"
+          className="illo-pulse"
+          style={{ transformOrigin: `${cx}px ${cy}px` }}
+        />
         <circle cx={cx} cy={cy} r="58" fill="var(--primary)" />
         <text
           x={cx}
@@ -75,14 +90,15 @@ export function ConnectionsIllustration() {
           y={cy + 16}
           textAnchor="middle"
           fontSize="11.5"
-          fill="var(--accent)"
+          fill="var(--primary-fg)"
+          fillOpacity="0.6"
           fontWeight="600"
         >
           + memory
         </text>
       </g>
-      {NODES.map((n) => (
-        <g key={n.label}>
+      {NODES.map((n, i) => (
+        <g key={n.label} className="illo-float" style={{ animationDelay: `${i * -1.1}s` }}>
           <rect
             x={n.x - 58}
             y={n.y - 17}

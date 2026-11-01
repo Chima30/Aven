@@ -108,4 +108,17 @@ describe("copy-paste SQL bundles", () => {
     expect(prefs.rows[0].n).toBe(1);
     await c.end();
   });
+
+  it("stage 6 upgrade adds opt-in email and moves default themes to dark", async () => {
+    const c = await freshDatabase();
+    for (const stage of [1, 2, 3, 4, 5]) await c.query(read(`supabase/upgrades/stage${stage}.sql`));
+    await c.query("insert into auth.users (email) values ('existing@example.com')");
+    await c.query(read("supabase/upgrades/stage6.sql"));
+    expect(await tableCount(c)).toBe(44);
+    const { rows } = await c.query(
+      "select p.theme, n.email_enabled, n.email_mode from user_preferences p join notification_preferences n using (user_id)",
+    );
+    expect(rows).toEqual([{ theme: "dark", email_enabled: false, email_mode: "summaries" }]);
+    await c.end();
+  });
 });

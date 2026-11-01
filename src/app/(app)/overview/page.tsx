@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { after } from "next/server";
+import { CashflowArea } from "@/components/overview/cashflow-area";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
-import { PageHeader } from "@/components/ui/page-header";
+import { Alert, EmptyState } from "@/components/ui/feedback";
+import { StatTile } from "@/components/ui/stat-tile";
 import { NavIcon } from "@/components/shell/nav-icon";
-import { MoneyAmount } from "@/components/finance/money-amount";
-import { balancesByCurrency, loadFinanceBasics } from "@/lib/finance/queries";
-import { auditLabel } from "@/lib/audit/labels";
 import { getAppContext } from "@/lib/auth/session";
-import { getCurrency } from "@/lib/money/currencies";
-import { formatDateTime } from "@/lib/regional/format";
-import { createClient } from "@/lib/supabase/server";
+import { formatMinor } from "@/lib/finance/format";
+import { monthStart } from "@/lib/finance/periods";
+import { balancesByCurrency, loadFinanceBasics } from "@/lib/finance/queries";
+import { getCurrency, isCurrencyCode } from "@/lib/money/currencies";
+import { CATEGORY_LABEL } from "@/lib/nudges/labels";
+import { runNudgeScheduler } from "@/lib/nudges/runner";
+import { isScheduled } from "@/lib/planning/habits";
+import { loadHabits, loadOccurrences, loadTasks, timeIn } from "@/lib/planning/queries";
+import { occursOnDay } from "@/lib/planning/recurrence";
+import { addDays, localDate } from "@/lib/time/zoned";
+import { formatWater } from "@/lib/wellbeing/units";
+import { loadWellbeingBasics } from "@/lib/wellbeing/queries";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -27,32 +35,16 @@ function greeting(timeZone: string): string {
   return "Good evening";
 }
 
-const UPCOMING = [
-  {
-    icon: "money" as const,
-    title: "Money",
-    stage: 2,
-    body: "Accounts, transactions, budgets and savings goals — with offline logging.",
-  },
-  {
-    icon: "planning" as const,
-    title: "Planning & Nudge Center",
-    stage: 3,
-    body: "Subscriptions, reminders, routines and your daily Pulse Check.",
-  },
-  {
-    icon: "wellbeing" as const,
-    title: "Wellbeing",
-    stage: 5,
-    body: "Sleep, water, meals, exercise and habits, private to you.",
-  },
-  {
-    icon: "intelligence" as const,
-    title: "Your agent",
-    stage: 6,
-    body: "Ask questions across AVEN, with memory you control.",
-  },
-];
+/** Minor units → a plain number for chart geometry only (labels use exact formatting). */
+function toNumber(minor: string, currency: string): number {
+  const units = isCurrencyCode(currency) ? getCurrency(currency).minorUnits : 2;
+  return Number(minor) / 10 ** units;
+}
+
+function pctChange(now: bigint, before: bigint): number | null {
+  if (before <= 0n) return null;
+  return Math.round(Number(((now - before) * 1000n) / before) / 10);
+}
 
 export default async function OverviewPage({
   searchParams,
@@ -61,235 +53,425 @@ export default async function OverviewPage({
 }) {
   const params = await searchParams;
   const { user, profile, preferences } = await getAppContext();
-  const supabase = await createClient();
-  const [{ data: activity }, { count: consentDecisions }] = await Promise.all([
+  const finance = await loadFinanceBasics();
+  const { supabase, regional } = finance;
+  const tz = preferences.time_zone;
+  const today = regional.today;
+  const locale = preferences.locale;
+
+  after(() =>
+    runNudgeScheduler({ source: "catch_up", userIds: [user.id], deadlineMs: 15_000 })
+      .then(() => undefined)
+      .catch(() => undefined),
+  );
+
+  const thisMonth = monthStart(today);
+  const lastMonth = monthStart(addDays(thisMonth, -1));
+  const [
+    summaryNow,
+    summaryBefore,
+    cashflow,
+    { tasks },
+    { occurrences },
+    { habits, checkIns },
+    nudges,
+    { count: unread },
+    consents,
+    wellbeing,
+  ] = await Promise.all([
+    supabase.rpc("finance_summary", { p_from: thisMonth, p_to: today }),
+    supabase.rpc("finance_summary", { p_from: lastMonth, p_to: addDays(thisMonth, -1) }),
+    supabase.rpc("monthly_cashflow", { p_months: 6, p_today: today }),
+    loadTasks(),
+    loadOccurrences(today, addDays(today, 1)),
+    loadHabits(14),
     supabase
-      .from("audit_log")
-      .select("id, action, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5),
+      .from("notifications")
+      .select("id, title, category, priority, action_url, delivered_at, read_at")
+      .eq("status", "delivered")
+      .is("dismissed_at", null)
+      .order("delivered_at", { ascending: false })
+      .limit(4),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "delivered")
+      .is("dismissed_at", null)
+      .is("read_at", null),
     supabase.from("consent_records").select("id", { count: "exact", head: true }),
+    loadWellbeingBasics(),
   ]);
 
-  const finance = await loadFinanceBasics();
-  const moneyTotals = balancesByCurrency(finance.accounts);
-  const regional = {
-    locale: preferences.locale,
-    timeZone: preferences.time_zone,
-    dateFormat: preferences.date_format,
-    numberFormat: preferences.number_format,
-  };
-  const currency = getCurrency(preferences.currency_code);
-  const name = profile.display_name ?? user.email?.split("@")[0] ?? "there";
+  // ---- Money (never mixes currencies)
+  const totals = balancesByCurrency(finance.accounts);
+  const main = totals.find((t) => t.currency === preferences.currency_code) ?? totals[0] ?? null;
+  const mainCurrency = main?.currency ?? preferences.currency_code;
+  const pick = (rows: typeof summaryNow.data) =>
+    (rows ?? []).find((r) => r.currency_code === mainCurrency);
+  const spentNow = BigInt(pick(summaryNow.data)?.expense_minor ?? "0");
+  const spentBefore = BigInt(pick(summaryBefore.data)?.expense_minor ?? "0");
+  const incomeNow = BigInt(pick(summaryNow.data)?.income_minor ?? "0");
+  const spentChange = pctChange(spentNow, spentBefore);
+  const flow = (cashflow.data ?? []).filter((r) => r.currency_code === mainCurrency);
+  const hasFlow = flow.some((r) => r.income_minor !== "0" || r.expense_minor !== "0");
+  const monthLabel = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(
+      new Date(`${iso}T00:00:00Z`),
+    );
+  const points = flow.map((r) => ({
+    label: monthLabel(r.month),
+    income: toNumber(r.income_minor, mainCurrency),
+    expense: toNumber(r.expense_minor, mainCurrency),
+    incomeText: formatMinor(r.income_minor, mainCurrency, locale),
+    expenseText: formatMinor(r.expense_minor, mainCurrency, locale),
+  }));
 
+  // ---- Planning (real records only)
+  const open = tasks.filter((t) => t.status === "not_started" || t.status === "in_progress");
+  const dueToday = open.filter((t) => t.due_on === today);
+  const overdue = open.filter((t) => t.due_on && t.due_on < today);
+  const events = occurrences.filter((o) => occursOnDay(o, today, tz));
+  const activeHabits = habits.filter((h) => !h.archived_at);
+  const habitsToday = activeHabits.filter((h) =>
+    isScheduled(h, localDate(new Date(), h.time_zone)),
+  );
+  const habitsDone = habitsToday.filter((h) =>
+    checkIns.some(
+      (c) =>
+        c.habit_id === h.id &&
+        c.on_date === localDate(new Date(), h.time_zone) &&
+        c.status === "done",
+    ),
+  ).length;
+
+  // ---- Wellbeing (only with consent)
+  let water: number | null = null;
+  if (wellbeing.consented) {
+    const { data } = await supabase.from("water_logs").select("amount_ml").eq("local_date", today);
+    water = (data ?? []).reduce((s, r) => s + r.amount_ml, 0);
+  }
+
+  const name = profile.display_name ?? user.email?.split("@")[0] ?? "there";
   const checklist = [
     { done: Boolean(profile.country_code), label: "Add your country", href: "/settings" },
+    { done: tz !== "UTC", label: "Set your time zone and currency", href: "/settings/regional" },
     {
-      done: preferences.time_zone !== "UTC",
-      label: "Set your time zone and currency",
-      href: "/settings/regional",
-    },
-    {
-      done: (consentDecisions ?? 0) > 0,
+      done: (consents.count ?? 0) > 0,
       label: "Review your privacy choices",
       href: "/settings/privacy",
     },
   ];
-  const remaining = checklist.filter((c) => !c.done).length;
+  const remaining = checklist.filter((c) => !c.done);
+  const dateLine = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: tz,
+  }).format(new Date());
+
+  const agenda = [
+    ...events.map((o) => ({
+      key: o.key,
+      title: o.title,
+      meta: o.allDay ? "All day" : timeIn(o.start!, tz, locale),
+      kind: "Event",
+    })),
+    ...overdue.map((t) => ({ key: t.id, title: t.title, meta: "Overdue", kind: "Task" })),
+    ...dueToday.map((t) => ({
+      key: t.id,
+      title: t.title,
+      meta: t.due_time ? t.due_time.slice(0, 5) : "Today",
+      kind: "Task",
+    })),
+  ].slice(0, 6);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {params.password_reset ? (
         <Alert tone="success" title="Password updated">
           You&apos;ve been signed out of every other device.
         </Alert>
       ) : null}
 
-      <PageHeader
-        eyebrow="Overview"
-        title={`${greeting(preferences.time_zone)}, ${name}.`}
-        description="This is your home in AVEN. As each module launches, its summary will appear here — built only from information you add."
-      />
+      <header className="flex flex-col gap-1">
+        <p className="text-ink-subtle text-sm">{dateLine}</p>
+        <h1 className="type-page text-ink">
+          {greeting(tz)}, {name}
+        </h1>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <Card>
-          <CardHeader
-            title="Set up your foundation"
-            description="Every module uses these settings, so it's worth getting them right first."
-            action={
-              remaining === 0 ? (
-                <Badge tone="success">Done</Badge>
-              ) : (
-                <Badge tone="info">{remaining} to go</Badge>
-              )
-            }
-          />
-          <CardBody>
-            <ul className="flex flex-col gap-2">
-              {checklist.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="border-line hover:bg-surface-muted flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={
-                        item.done
-                          ? "bg-success flex size-5 items-center justify-center rounded-full text-[0.65rem] text-white"
-                          : "border-line-strong size-5 rounded-full border-2"
-                      }
-                    >
-                      {item.done ? "✓" : null}
-                    </span>
-                    <span
-                      className={
-                        item.done
-                          ? "text-ink-muted decoration-line-strong line-through"
-                          : "text-ink font-medium"
-                      }
-                    >
-                      {item.label}
-                    </span>
-                    <span className="sr-only">{item.done ? "(done)" : "(to do)"}</span>
-                    <span aria-hidden="true" className="text-ink-subtle ml-auto">
-                      →
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title="Your regional settings" />
-          <CardBody>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
-              <dt className="text-ink-muted">Currency</dt>
-              <dd className="text-ink font-medium">
-                {currency.code} · {currency.name}
-              </dd>
-              <dt className="text-ink-muted">Time zone</dt>
-              <dd className="text-ink font-medium">{preferences.time_zone}</dd>
-              <dt className="text-ink-muted">Formats</dt>
-              <dd className="text-ink font-medium">{preferences.locale}</dd>
-              <dt className="text-ink-muted">AI features</dt>
-              <dd className="text-ink font-medium">{preferences.ai_enabled ? "On" : "Off"}</dd>
-            </dl>
-            <ButtonLink href="/settings/regional" variant="secondary" size="sm" className="mt-5">
-              Change
+      {remaining.length > 0 ? (
+        <section
+          aria-label="Finish setting up"
+          className="border-line bg-surface flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4"
+        >
+          <p className="text-ink mr-auto text-sm font-medium">
+            {remaining.length} quick step{remaining.length === 1 ? "" : "s"} left to set up AVEN
+          </p>
+          {remaining.map((c) => (
+            <ButtonLink key={c.label} href={c.href} size="sm" variant="secondary">
+              {c.label}
             </ButtonLink>
-          </CardBody>
-        </Card>
+          ))}
+        </section>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="At a glance">
+        <StatTile
+          label="Balance"
+          href="/money"
+          value={main ? formatMinor(main.totalMinor, main.currency, locale) : "—"}
+          note={
+            main
+              ? `${main.count} account${main.count === 1 ? "" : "s"}${totals.length > 1 ? ` · +${totals.length - 1} other currenc${totals.length === 2 ? "y" : "ies"}` : ""}`
+              : "Add an account to start"
+          }
+        />
+        <StatTile
+          label="Spent this month"
+          href="/money/transactions"
+          value={formatMinor(spentNow.toString(), mainCurrency, locale)}
+          chip={
+            spentChange === null
+              ? undefined
+              : {
+                  text: `${spentChange > 0 ? "+" : ""}${spentChange}%`,
+                  tone: spentChange > 0 ? "down" : spentChange < 0 ? "up" : "neutral",
+                }
+          }
+          note={
+            spentChange === null
+              ? `Income ${formatMinor(incomeNow.toString(), mainCurrency, locale)}`
+              : "vs all of last month"
+          }
+        />
+        <StatTile
+          label="Today's plan"
+          href="/planning"
+          value={`${dueToday.length + events.length}`}
+          chip={overdue.length ? { text: `${overdue.length} overdue`, tone: "down" } : undefined}
+          note={`${dueToday.length} task${dueToday.length === 1 ? "" : "s"} · ${events.length} event${events.length === 1 ? "" : "s"}`}
+        />
+        <StatTile
+          label="Habits today"
+          href="/planning/habits"
+          value={habitsToday.length ? `${habitsDone}/${habitsToday.length}` : "—"}
+          chip={
+            habitsToday.length && habitsDone === habitsToday.length
+              ? { text: "All done", tone: "up" }
+              : undefined
+          }
+          note={
+            habitsToday.length
+              ? `${habitsToday.length - habitsDone} left`
+              : activeHabits.length
+                ? "Rest day"
+                : "No habits yet"
+          }
+        />
       </div>
 
       <Card>
         <CardHeader
-          title="Money"
-          description="Confirmed balances from the accounts you track, grouped by currency."
+          title="Cash flow"
+          description={hasFlow ? `Income and spending, last 6 months · ${mainCurrency}` : undefined}
           action={
-            <Link href="/money" className="text-accent text-sm font-medium hover:underline">
-              Open Money
+            <Link href="/money" className="text-ink-muted hover:text-ink text-sm transition-colors">
+              Open Money →
             </Link>
           }
         />
         <CardBody>
-          {moneyTotals.length === 0 ? (
+          {hasFlow ? (
+            <>
+              <div className="text-ink-muted mb-4 flex gap-5 text-xs">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="bg-accent h-0.5 w-4 rounded" /> Income
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="bg-ink-muted h-0.5 w-4 rounded" /> Spending
+                </span>
+              </div>
+              <CashflowArea
+                data={points}
+                caption={`Monthly income and spending in ${mainCurrency}`}
+              />
+            </>
+          ) : (
             <EmptyState
-              title="No accounts yet"
-              description="Add your cash, bank accounts, cards or wallets to start tracking income and spending."
+              title="Your trend starts with your first transaction"
+              description="Record income or spending and this chart fills in month by month."
               action={
-                <ButtonLink href="/money/accounts?new=1" size="sm">
-                  Add an account
+                <ButtonLink href="/money/transactions" size="sm">
+                  Add a transaction
                 </ButtonLink>
               }
             />
-          ) : (
-            <div className="flex flex-wrap gap-x-10 gap-y-4">
-              {moneyTotals.map((t) => (
-                <div key={t.currency}>
-                  <p className="text-ink-muted text-xs">
-                    {t.currency} · {t.count} account{t.count === 1 ? "" : "s"}
-                  </p>
-                  <p className="mt-1 text-2xl">
-                    <MoneyAmount
-                      minor={t.totalMinor}
-                      currency={t.currency}
-                      locale={preferences.locale}
-                    />
-                  </p>
-                </div>
-              ))}
-            </div>
           )}
         </CardBody>
       </Card>
 
-      <section aria-labelledby="coming-heading">
-        <h2 id="coming-heading" className="type-section">
-          Coming to your overview
-        </h2>
-        <p className="text-ink-muted mt-1 text-sm">
-          These modules aren&apos;t available yet. Nothing here is a placeholder balance or sample
-          data.
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {UPCOMING.map((m) => (
-            <div
-              key={m.title}
-              className="border-line-strong flex gap-4 rounded-2xl border border-dashed p-5"
-            >
-              <span className="bg-surface-muted text-ink-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                <NavIcon name={m.icon} />
-              </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-ink text-sm font-semibold">{m.title}</h3>
-                  <Badge>Stage {m.stage}</Badge>
-                </div>
-                <p className="text-ink-muted mt-1 text-sm">{m.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader
+            title="Today"
+            action={
+              <Link
+                href="/planning"
+                className="text-ink-muted hover:text-ink text-sm transition-colors"
+              >
+                Planning →
+              </Link>
+            }
+          />
+          <CardBody>
+            {agenda.length === 0 ? (
+              <p className="text-ink-muted text-sm">
+                Nothing scheduled. Add a task or event in{" "}
+                <Link href="/planning" className="text-ink underline">
+                  Planning
+                </Link>
+                .
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {agenda.map((a) => (
+                  <li
+                    key={a.key}
+                    className="hover:bg-surface-muted flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={
+                        a.meta === "Overdue"
+                          ? "bg-danger size-2 rounded-full"
+                          : a.kind === "Event"
+                            ? "bg-info size-2 rounded-full"
+                            : "bg-accent size-2 rounded-full"
+                      }
+                    />
+                    <span className="text-ink min-w-0 flex-1 truncate text-sm">{a.title}</span>
+                    <span
+                      className={
+                        a.meta === "Overdue"
+                          ? "text-danger text-xs"
+                          : "text-ink-subtle text-xs tabular-nums"
+                      }
+                    >
+                      {a.meta}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
 
-      <Card>
-        <CardHeader
-          title="Recent account activity"
-          action={
-            <Link
-              href="/settings/security"
-              className="text-accent text-sm font-medium hover:underline"
-            >
-              View all
-            </Link>
+        <Card>
+          <CardHeader
+            title="Nudges"
+            description={unread ? `${unread} unread` : undefined}
+            action={
+              <Link
+                href="/nudges"
+                className="text-ink-muted hover:text-ink text-sm transition-colors"
+              >
+                Inbox →
+              </Link>
+            }
+          />
+          <CardBody>
+            {(nudges.data ?? []).length === 0 ? (
+              <p className="text-ink-muted text-sm">You&apos;re all caught up.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {(nudges.data ?? []).map((n) => (
+                  <li key={n.id}>
+                    <Link
+                      href={n.action_url ?? "/nudges"}
+                      className="hover:bg-surface-muted flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={
+                          n.read_at
+                            ? "bg-line-strong mt-1.5 size-2 shrink-0 rounded-full"
+                            : "bg-accent mt-1.5 size-2 shrink-0 rounded-full"
+                        }
+                      />
+                      <span className="min-w-0">
+                        <span className="text-ink block truncate text-sm">{n.title}</span>
+                        <span className="text-ink-subtle text-xs">
+                          {CATEGORY_LABEL[n.category]}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <QuickLink
+          href="/wellbeing"
+          icon="wellbeing"
+          title="Wellbeing"
+          text={
+            water !== null
+              ? `${formatWater(water, wellbeing.prefs.water_unit)} of water today`
+              : "Sleep, water, meals, activity and mood"
           }
         />
-        <CardBody>
-          {activity && activity.length > 0 ? (
-            <ul className="divide-line divide-y">
-              {activity.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="flex items-center justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0"
-                >
-                  <span className="text-ink">{auditLabel(entry.action, entry.metadata)}</span>
-                  <time dateTime={entry.created_at} className="text-ink-muted shrink-0">
-                    {formatDateTime(new Date(entry.created_at), regional)}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              title="No activity yet"
-              description="Sign-ins and privacy changes will be listed here."
-            />
-          )}
-        </CardBody>
-      </Card>
+        <QuickLink
+          href="/nudges/pulse"
+          icon="nudges"
+          title="Pulse Check"
+          text="A private 30-second check-in"
+        />
+        <QuickLink
+          href="/intelligence"
+          icon="intelligence"
+          title="Intelligence"
+          text="Explained suggestions from your own data"
+        />
+      </div>
     </div>
+  );
+}
+
+function QuickLink({
+  href,
+  icon,
+  title,
+  text,
+}: {
+  href: string;
+  icon: "wellbeing" | "nudges" | "intelligence";
+  title: string;
+  text: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-reveal
+      className="border-line bg-surface lift group flex items-center gap-4 rounded-2xl border p-4"
+    >
+      <span className="bg-surface-muted text-ink-muted group-hover:text-accent flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors">
+        <NavIcon name={icon} />
+      </span>
+      <span className="min-w-0">
+        <span className="text-ink block text-sm font-medium">{title}</span>
+        <span className="text-ink-subtle block truncate text-xs">{text}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className="text-ink-subtle ml-auto transition-transform group-hover:translate-x-1"
+      >
+        →
+      </span>
+    </Link>
   );
 }

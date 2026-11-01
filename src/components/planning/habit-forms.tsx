@@ -234,7 +234,7 @@ export function HabitCheck({
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
         size === "md" ? "size-8" : "size-6",
-        done ? "border-accent bg-accent text-white" : "border-line-strong hover:border-accent",
+        done ? "border-accent bg-accent text-accent-fg" : "border-line-strong hover:border-accent",
         optimistic !== null && "opacity-70",
       )}
     >

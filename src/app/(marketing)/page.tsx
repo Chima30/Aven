@@ -11,34 +11,34 @@ export const metadata: Metadata = {
 const CONNECTIONS = [
   {
     title: "Money that knows your goals",
-    body: "Accounts, budgets and savings goals that inform each other — so a savings target can shape what AVEN suggests about spending.",
+    body: "Accounts, budgets and savings goals that inform each other, in any currency — logged offline, synced when you're back.",
   },
   {
-    title: "Shared bills, settled fairly",
-    body: "Split costs with housemates and family, see who owes whom, and mark settlements complete only when everyone confirms.",
+    title: "Intelligence you can question",
+    body: "Spending and savings suggestions that show their working, and learn from what you accept or decline.",
   },
   {
-    title: "Subscriptions in the open",
-    body: "Every recurring cost, its next renewal and its real monthly and yearly impact on your budget.",
+    title: "Plans that keep up",
+    body: "Calendar, tasks, habits and weekly reviews — with streaks that never shame you for a missed day.",
   },
   {
-    title: "Wellbeing and routines",
-    body: "Sleep, water, meals, movement and habits — private to you, and never treated as medical advice.",
+    title: "Wellbeing, privately",
+    body: "Sleep, water, meals, movement and mood. Yours alone, and never treated as medical advice.",
   },
   {
-    title: "Days that plan themselves",
-    body: "Tasks, reminders and weekly reviews that take your routines and commitments into account.",
+    title: "Nudges, not noise",
+    body: "Reminders and a daily summary that respect your quiet hours — in the app, or by email if you want it.",
   },
   {
-    title: "A calm daily Pulse Check",
-    body: "Instead of a stream of alerts, the things that matter are bundled into one update — on your schedule, never in your quiet hours.",
+    title: "Memory you control",
+    body: "Patterns AVEN remembers live encrypted on Walrus, category by category, only when you allow it.",
   },
 ];
 
 const PRINCIPLES = [
   {
     title: "You decide what AVEN remembers",
-    body: "Memory is switched off by default and controlled category by category. You'll be able to see, correct and delete what it keeps.",
+    body: "Memory is off by default and switched on per category. See, correct or forget what it keeps.",
   },
   {
     title: "Nothing invented",
@@ -50,29 +50,18 @@ const PRINCIPLES = [
   },
   {
     title: "Works on a shaky connection",
-    body: "AVEN is being built offline-first, so logging an expense on a slow network never means losing it.",
+    body: "Offline-first: logging an expense, a habit or a glass of water on a slow network never means losing it.",
   },
 ];
 
-const ROADMAP: Array<{ stage: string; title: string; status: "live" | "next" | "planned" }> = [
-  { stage: "1", title: "Secure accounts, settings, privacy and consent controls", status: "live" },
-  {
-    stage: "2",
-    title: "Accounts, transactions, budgets and savings goals — offline too",
-    status: "live",
-  },
-  {
-    stage: "3",
-    title: "Walrus Memory (Mainnet) and read-only Sui wallets via Tatum",
-    status: "live",
-  },
-  {
-    stage: "4",
-    title: "Spending, budget and savings intelligence that learns from your decisions",
-    status: "live",
-  },
-  { stage: "5", title: "Subscriptions, planning and the Nudge Center", status: "planned" },
-  { stage: "6", title: "Shared expenses and wellbeing", status: "planned" },
+const FEATURES: Array<{ title: string; ready: boolean }> = [
+  { title: "Accounts, transactions, budgets and savings goals", ready: true },
+  { title: "Spending and savings intelligence that learns from you", ready: true },
+  { title: "Walrus Memory and read-only Sui wallets", ready: true },
+  { title: "Calendar, tasks, habits and reviews", ready: true },
+  { title: "Nudge Center, Pulse Check and email summaries", ready: true },
+  { title: "Sleep, water, meals, activity and mood", ready: true },
+  { title: "Shared expenses and subscriptions", ready: false },
 ];
 
 export default async function LandingPage({
@@ -85,31 +74,33 @@ export default async function LandingPage({
     <>
       {params.account_deleted === "1" ? <AccountDeletedNotice /> : null}
 
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-14 pb-20 sm:px-8 md:pt-20 lg:grid-cols-[1.05fr_1fr]">
-        <div>
+      <section
+        data-no-reveal
+        className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-14 pb-20 sm:px-8 md:pt-20 lg:grid-cols-[1.05fr_1fr]"
+      >
+        <div className="animate-fade-up">
           <Badge tone="accent">Early access · Walrus Memory + Sui</Badge>
           <h1 className="type-display text-ink mt-5">
             Your money, wellbeing and plans —{" "}
             <span className="text-accent">finally talking to each other.</span>
           </h1>
           <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed">
-            AVEN is a personal operating system for everyday life. It connects your finances, shared
-            bills, subscriptions, routines and goals, with a personal assistant that only knows what
-            you allow it to.
+            AVEN connects your finances, plans, routines and wellbeing in one calm place — and only
+            remembers what you allow it to.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href="/sign-up" size="lg">
               Create your account
             </ButtonLink>
             <ButtonLink href="#roadmap" size="lg" variant="secondary">
-              See what&apos;s ready
+              What&apos;s inside
             </ButtonLink>
           </div>
           <p className="text-ink-subtle mt-5 text-sm">
             Free while in early access. Works with any currency, from NGN to USD, EUR, JPY and KWD.
           </p>
         </div>
-        <div className="flex justify-center lg:justify-end">
+        <div className="animate-fade-up flex justify-center [animation-delay:150ms] lg:justify-end">
           <ConnectionsIllustration />
         </div>
       </section>
@@ -122,7 +113,7 @@ export default async function LandingPage({
           </h2>
           <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {CONNECTIONS.map((item) => (
-              <div key={item.title}>
+              <div key={item.title} data-reveal>
                 <div className="bg-accent mb-4 h-px w-10" />
                 <h3 className="type-section">{item.title}</h3>
                 <p className="text-ink-muted mt-2 text-sm leading-relaxed">{item.body}</p>
@@ -144,7 +135,7 @@ export default async function LandingPage({
           </div>
           <dl className="border-line bg-line grid gap-px overflow-hidden rounded-2xl border sm:grid-cols-2">
             {PRINCIPLES.map((p) => (
-              <div key={p.title} className="bg-surface p-6">
+              <div key={p.title} className="bg-surface p-6" data-reveal>
                 <dt className="text-ink font-semibold">{p.title}</dt>
                 <dd className="text-ink-muted mt-2 text-sm leading-relaxed">{p.body}</dd>
               </div>
@@ -155,35 +146,27 @@ export default async function LandingPage({
 
       <section id="roadmap" className="border-line bg-surface scroll-mt-20 border-t">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-          <p className="type-eyebrow text-accent">Honest roadmap</p>
+          <p className="type-eyebrow text-accent">What&apos;s inside</p>
           <h2 className="type-page mt-3 text-[2rem]">What works today, and what comes next.</h2>
-          <p className="text-ink-muted mt-3 max-w-2xl">
-            AVEN is built in stages. Each one is finished and tested before the next begins, and
-            features that aren&apos;t ready are labelled — never faked.
-          </p>
-          <ol className="divide-line border-line mt-10 divide-y rounded-2xl border">
-            {ROADMAP.map((r) => (
-              <li key={r.stage} className="flex items-center gap-4 px-5 py-4 sm:px-6">
-                <span className="type-figure text-ink-subtle w-16 shrink-0 text-sm">
-                  Stage {r.stage}
-                </span>
-                <span className="text-ink flex-1 text-sm font-medium">{r.title}</span>
-                {r.status === "live" ? (
-                  <Badge tone="success">Available</Badge>
-                ) : r.status === "next" ? (
-                  <Badge tone="info">Next</Badge>
-                ) : (
-                  <Badge>Planned</Badge>
-                )}
+          <ul className="divide-line border-line mt-10 divide-y rounded-2xl border">
+            {FEATURES.map((f) => (
+              <li key={f.title} className="flex items-center gap-4 px-5 py-4 sm:px-6" data-reveal>
+                <span
+                  aria-hidden="true"
+                  className={
+                    f.ready ? "bg-accent size-2 rounded-full" : "bg-line-strong size-2 rounded-full"
+                  }
+                />
+                <span className="text-ink flex-1 text-sm font-medium">{f.title}</span>
+                {f.ready ? <Badge tone="success">Available</Badge> : <Badge>Next</Badge>}
               </li>
             ))}
-          </ol>
+          </ul>
           <div className="bg-primary text-primary-fg mt-12 flex flex-col items-start justify-between gap-6 rounded-2xl px-6 py-8 sm:flex-row sm:items-center sm:px-10">
             <div>
-              <h3 className="text-xl font-semibold">Set up your foundation today.</h3>
+              <h3 className="text-xl font-semibold">Start with what matters today.</h3>
               <p className="mt-1 text-sm opacity-80">
-                Choose your currency, time zone and privacy choices now, and every new module will
-                use them.
+                Set your currency and time zone, add an account, and AVEN takes it from there.
               </p>
             </div>
             <ButtonLink href="/sign-up" variant="accent" size="lg">

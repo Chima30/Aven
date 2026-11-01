@@ -28,7 +28,7 @@ export function CashflowChart({
   return (
     <figure>
       <div className="flex h-[168px] items-end gap-2 sm:gap-3" aria-hidden="true">
-        {data.map((d) => {
+        {data.map((d, idx) => {
           const ih =
             max > 0n ? Math.max(2, (percentOf(BigInt(d.incomeMinor), max) / 100) * height) : 2;
           const eh =
@@ -36,10 +36,13 @@ export function CashflowChart({
           return (
             <div key={d.month} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
               <div className="flex h-[140px] w-full items-end justify-center gap-1">
-                <div className="bg-accent w-1/2 max-w-4 rounded-t-sm" style={{ height: ih }} />
                 <div
-                  className="bg-ink-subtle/60 w-1/2 max-w-4 rounded-t-sm"
-                  style={{ height: eh }}
+                  className="grow-bar bg-accent w-1/2 max-w-4 rounded-t-sm"
+                  style={{ height: ih, "--i": idx } as React.CSSProperties}
+                />
+                <div
+                  className="grow-bar bg-ink-subtle/60 w-1/2 max-w-4 rounded-t-sm"
+                  style={{ height: eh, "--i": idx } as React.CSSProperties}
                 />
               </div>
               <span className="text-ink-subtle text-[0.6875rem]">{monthLabel(d.month)}</span>

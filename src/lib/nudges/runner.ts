@@ -4,6 +4,7 @@ import { expandEvents } from "@/lib/planning/recurrence";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, NotificationCategory } from "@/lib/supabase/database.types";
 import { addDays, localDate, startOfWeek, zonedToInstant } from "@/lib/time/zoned";
+import { sendNudgeEmails } from "./email";
 import { runScheduler, type SchedulerInput, type WeeklyWellbeing } from "./scheduler";
 import type { NudgeSettings } from "./types";
 
@@ -411,6 +412,19 @@ export async function processUser(admin: Admin, userId: string, now: Date): Prom
       .update({ processed_at: processedAt })
       .eq("user_id", userId)
       .in("id", out.processedLifeEvents);
+  }
+  // 3. Email, only for users who turned it on (never blocks in-app delivery).
+  if (notif.email_enabled) {
+    try {
+      await sendNudgeEmails(
+        admin,
+        userId,
+        { email_enabled: true, email_mode: notif.email_mode === "all" ? "all" : "summaries" },
+        now,
+      );
+    } catch (error) {
+      console.error("[nudges] email step failed:", error instanceof Error ? error.name : "error");
+    }
   }
   return created;
 }

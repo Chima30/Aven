@@ -11,8 +11,8 @@ const OPTIONS: Array<{ value: ThemePreference; label: string; description: strin
     label: "Match my device",
     description: "Switches automatically with your system setting.",
   },
-  { value: "light", label: "Light", description: "Warm off-white with deep navy." },
-  { value: "dark", label: "Dark", description: "Deep navy, easy on the eyes at night." },
+  { value: "light", label: "Light", description: "Clean and bright, for daytime." },
+  { value: "dark", label: "Dark", description: "AVEN's signature charcoal. The default." },
 ];
 
 export function AppearanceForm({ theme }: { theme: ThemePreference }) {
@@ -39,7 +39,7 @@ export function AppearanceForm({ theme }: { theme: ThemePreference }) {
                   data-theme={o.value === "system" ? undefined : o.value}
                   className={cn(
                     "border-line flex h-16 overflow-hidden rounded-lg border",
-                    o.value === "system" && "bg-[linear-gradient(90deg,#f6f4ef_50%,#0a1220_50%)]",
+                    o.value === "system" && "bg-[linear-gradient(90deg,#f3f3f1_50%,#09090a_50%)]",
                   )}
                 >
                   {o.value !== "system" ? (

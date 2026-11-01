@@ -6,12 +6,12 @@ import { getAppContext } from "@/lib/auth/session";
  * server, in addition to the optimistic redirect in proxy.ts).
  */
 export default async function SignedInLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile } = await getAppContext();
+  const { user, profile, preferences } = await getAppContext();
   return (
     <AppShell
       userId={user.id}
       displayName={profile.display_name ?? user.email?.split("@")[0] ?? "You"}
-      email={user.email ?? ""}
+      theme={preferences.theme}
     >
       {children}
     </AppShell>

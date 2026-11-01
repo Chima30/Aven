@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql
 -- =============================================================================
 
 begin;
@@ -3527,5 +3527,34 @@ alter table public.memory_records add constraint memory_records_kind_check check
     'wellbeing_goal', 'review_reflection', 'correction'
   )
 );
+
+-- >>> 20261105000100_email_and_theme.sql
+-- =============================================================================
+-- Stage 6 · Opt-in email notifications and the new default look
+-- =============================================================================
+
+-- Email is OFF by default (existing column). Users choose whether to turn it on
+-- and what to receive: only summaries and important nudges, or everything that
+-- reaches their Nudge Center inbox.
+alter table public.notification_preferences
+  add column email_mode text not null default 'summaries'
+    check (email_mode in ('summaries', 'all'));
+
+grant update (email_enabled, email_mode) on table public.notification_preferences to authenticated;
+
+-- Server-side bookkeeping so every notification is emailed at most once.
+-- Users still can only change read_at / dismissed_at (see the column grant).
+alter table public.notifications
+  add column emailed_at timestamptz,
+  add column email_attempts smallint not null default 0 check (email_attempts between 0 and 10);
+
+create index notifications_email_pending_idx
+  on public.notifications (user_id, created_at)
+  where emailed_at is null and status = 'delivered';
+
+-- AVEN's default look is now the dark theme. "system" was only ever the
+-- default (never an explicit choice in the old UI's first run), so it moves too.
+alter table public.user_preferences alter column theme set default 'dark';
+update public.user_preferences set theme = 'dark' where theme = 'system';
 
 commit;
