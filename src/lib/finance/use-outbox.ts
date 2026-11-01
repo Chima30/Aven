@@ -5,8 +5,14 @@ import { OUTBOX_EVENT, listEntries } from "@/lib/offline/controller";
 import type { OutboxEntry } from "@/lib/offline/types";
 import type { TransactionPayload } from "./schemas";
 
-/** Live list of this user's unsynced transaction changes from IndexedDB. */
-export function useTransactionOutbox(userId: string): OutboxEntry<TransactionPayload>[] {
+/**
+ * Live list of this user's unsynced changes from IndexedDB: transactions only
+ * by default, or every queued change (planning and wellbeing too) with `all`.
+ */
+export function useTransactionOutbox(
+  userId: string,
+  scope: "transactions" | "all" = "transactions",
+): OutboxEntry<TransactionPayload>[] {
   const [entries, setEntries] = useState<OutboxEntry<TransactionPayload>[]>([]);
   useEffect(() => {
     if (!("indexedDB" in window)) return;
@@ -17,7 +23,7 @@ export function useTransactionOutbox(userId: string): OutboxEntry<TransactionPay
           if (cancelled) return;
           setEntries(
             all.filter(
-              (e) => e.entity === "transaction" && e.status !== "synced",
+              (e) => (scope === "all" || e.entity === "transaction") && e.status !== "synced",
             ) as OutboxEntry<TransactionPayload>[],
           );
         })
@@ -28,6 +34,6 @@ export function useTransactionOutbox(userId: string): OutboxEntry<TransactionPay
       cancelled = true;
       window.removeEventListener(OUTBOX_EVENT, refresh);
     };
-  }, [userId]);
+  }, [userId, scope]);
   return entries;
 }

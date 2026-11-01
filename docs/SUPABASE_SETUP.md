@@ -18,30 +18,37 @@ closest match.
 
 **Which file?**
 
-| Your situation                                          | Run this file, once                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Brand-new, empty Supabase project                       | `supabase/setup_all_in_one.sql` (all stages)                                 |
-| You already ran the Stage 1 SQL on this project         | `stage2.sql`, then `stage3.sql`, then `stage4.sql` (in `supabase/upgrades/`) |
-| You already have Stage 2 (you can see `transactions`)   | `supabase/upgrades/stage3.sql`, then `supabase/upgrades/stage4.sql`          |
-| You already have Stage 3 (you can see `memory_records`) | `supabase/upgrades/stage4.sql` only                                          |
+| Your situation                                           | Run this file, once                                                                   |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Brand-new, empty Supabase project                        | `supabase/setup_all_in_one.sql` (all stages)                                          |
+| You already ran the Stage 1 SQL on this project          | `stage2.sql`, `stage3.sql`, `stage4.sql`, then `stage5.sql` (in `supabase/upgrades/`) |
+| You already have Stage 2 (you can see `transactions`)    | `stage3.sql`, `stage4.sql`, then `stage5.sql`                                         |
+| You already have Stage 3 (you can see `memory_records`)  | `stage4.sql`, then `stage5.sql`                                                       |
+| You already have Stage 4 (you can see `recommendations`) | `supabase/upgrades/stage5.sql` only                                                   |
 
 Not sure? Open **Table Editor**:
 no tables → full setup · `profiles` but no `transactions` → from stage 2 ·
-`transactions` but no `memory_records` → stage 3 then 4 · `memory_records` but no
-`recommendations` → stage 4 only · `recommendations` present → nothing to do.
+`transactions` but no `memory_records` → stage 3, 4, 5 · `memory_records` but no
+`recommendations` → stage 4 then 5 · `recommendations` but no `tasks` → stage 5 only ·
+`tasks` present → nothing to do.
 
 What the new upgrades add: **Stage 3** — `memory_records` (Walrus bookkeeping), `sui_wallets`,
 `chain_imports`, `import_chain_transaction()`, and makes _Remember financial context_
 available with policy version `2026-11-02`. **Stage 4** — `recommendations` and
-`respond_to_recommendation()`. Existing users and data are kept.
+`respond_to_recommendation()`. **Stage 5** — Planning, Wellbeing and the Nudge Center: 17
+tables (tasks, calendar, habits, reviews, sleep/water/meal/activity/mood logs, notifications…),
+`apply_life_mutation()`, `scheduler_status()`, and makes _Store wellbeing information_,
+_Remember planning preferences_ and _Remember wellbeing routines_ available. Existing users and
+data are kept.
 
 1. In the left sidebar, open **SQL Editor** → **New query**.
 2. Open the right file from the AVEN files. On GitHub, open the file and click **Copy raw file**.
 3. Paste everything into the editor and click **Run**.
 4. You should see **"Success. No rows returned."** If you see an error, copy the error message
    and share it with me. The whole script runs as one unit, so a failure changes nothing.
-5. Check: open **Table Editor**. You should see 27 tables, including `profiles`,
-   `transactions`, `memory_records`, `sui_wallets` and `recommendations`, each with an
+5. Check: open **Table Editor**. You should see 44 tables, including `profiles`,
+   `transactions`, `memory_records`, `recommendations`, `tasks`, `habits`, `sleep_logs` and
+   `notifications`, each with an
    **RLS enabled** label.
 
 > Run each file **once**. Running one again fails with "already exists", which is harmless

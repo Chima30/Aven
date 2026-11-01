@@ -9,6 +9,7 @@ import { formatMinor } from "@/lib/finance/format";
 import { resolveKeepMine, resolveUseServer, retryFailed } from "@/lib/finance/queue";
 import type { TransactionPayload } from "@/lib/finance/schemas";
 import { useTransactionOutbox } from "@/lib/finance/use-outbox";
+import { describeLifeEntry } from "@/lib/life/queue";
 import { requestSync } from "@/lib/offline/controller";
 import type { OutboxEntry } from "@/lib/offline/types";
 
@@ -38,7 +39,7 @@ export function SyncCenter({
     () => navigator.onLine,
     () => true,
   );
-  const entries = useTransactionOutbox(userId);
+  const entries = useTransactionOutbox(userId, "all");
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const waiting = entries.filter((e) => e.status === "pending" || e.status === "syncing");
@@ -62,10 +63,12 @@ export function SyncCenter({
       );
   }
 
-  const describe = (tx?: Tx) =>
+  const describeTx = (tx?: Tx) =>
     tx
       ? `${tx.occurred_on ?? ""} · ${tx.description || tx.kind || "Transaction"} · ${tx.amount_minor !== undefined && tx.currency_code ? formatMinor(tx.amount_minor, tx.currency_code, locale) : ""} · ${name(tx.account_id)}`
       : "—";
+
+  const describe = describeTx;
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,7 +105,7 @@ export function SyncCenter({
       {entries.length === 0 ? (
         <EmptyState
           title="Everything is synced"
-          description="All transactions saved on this device have reached your account."
+          description="Everything saved on this device has reached your account."
         />
       ) : null}
 
@@ -124,7 +127,13 @@ export function SyncCenter({
                   className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0"
                 >
                   <span className="min-w-0 truncate">
-                    {describe(e.operation === "delete" ? (e.snapshot as Tx) : e.payload)}
+                    {e.entity === "transaction"
+                      ? describe(e.operation === "delete" ? (e.snapshot as Tx) : e.payload)
+                      : describeLifeEntry(
+                          e.entity,
+                          e.operation,
+                          e.payload as unknown as Record<string, unknown>,
+                        )}
                   </span>
                   <span className="flex items-center gap-2">
                     <Badge>{e.operation}</Badge>
@@ -172,6 +181,11 @@ function FailedEntry({
   const kind = entry.lastError?.kind;
   const server = entry.conflictRecord as Tx | null | undefined;
   const mine = (entry.operation === "delete" ? entry.snapshot : entry.payload) as Tx;
+  const isLife = entry.entity !== "transaction";
+  const label = (tx?: Tx) =>
+    isLife
+      ? describeLifeEntry(entry.entity, entry.operation, tx as unknown as Record<string, unknown>)
+      : describe(tx);
 
   const act = async (fn: () => Promise<void>, message: string) => {
     await fn();
@@ -195,14 +209,14 @@ function FailedEntry({
         <div className="bg-surface-muted/60 rounded-lg p-3">
           <dt className="text-ink-muted text-xs font-semibold">Your change (this device)</dt>
           <dd className="mt-1 break-words">
-            {entry.operation === "delete" ? `Delete: ${describe(mine)}` : describe(mine)}
+            {entry.operation === "delete" && !isLife ? `Delete: ${label(mine)}` : label(mine)}
           </dd>
         </div>
         {kind === "conflict" ? (
           <div className="bg-surface-muted/60 rounded-lg p-3">
             <dt className="text-ink-muted text-xs font-semibold">Server copy now</dt>
             <dd className="mt-1 break-words">
-              {server ? `${describe(server)} · version ${server.version}` : "Deleted on the server"}
+              {server ? `${label(server)} · version ${server.version}` : "Deleted on the server"}
             </dd>
           </div>
         ) : null}

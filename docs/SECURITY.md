@@ -62,6 +62,23 @@
 | Secret scanner knows MemWal/Sui/Tatum key shapes                                                                              | `scripts/check-secrets.mjs`                   | CI                                |
 | Account deletion records external state honestly (Walrus retained-unreachable, counts only)                                   | `describeExternalCleanup`                     | code review                       |
 
+## Planning, Wellbeing and Nudge Center controls
+
+| Control                                                                                                                                                   | Where                       | Tested                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------ |
+| RLS on all 17 new tables; two-user isolation for every user-owned one                                                                                     | migrations                  | DB (`rls.test.ts`) + e2e |
+| No direct writes: users have SELECT only; every write via `apply_life_mutation()` (column whitelist, version check, idempotent receipts)                  | `20261104000200`            | DB (`life.test.ts`)      |
+| Ownership guards: a task can't use another user's category; check-ins/exceptions only on your own habit/event; `user_id` immutable                        | triggers                    | DB                       |
+| Wellbeing records require `wellbeing_data` consent **in the database**; deleting always allowed                                                           | `apply_life_mutation()`     | DB + e2e                 |
+| Zod validation of every payload (Server Actions and `/api/sync`); offline task edits are status-only                                                      | `src/lib/life/schemas.ts`   | unit + DB                |
+| Notifications: users can change only `read_at` / `dismissed_at`; action links must be internal paths                                                      | column grant + CHECK        | DB + e2e                 |
+| Scheduler endpoint requires `CRON_SECRET` (≥ 32 chars, constant-time compare); 503 when unset                                                             | `/api/cron/nudges`          | unit                     |
+| `scheduler_runs` closed to users; `scheduler_status()` reveals only the last run time and success                                                         | migration                   | DB                       |
+| Memory: planning/wellbeing summaries only, banded, per-category consent, existing policy gate and sensitive-content guard; never logs, notes or meal text | `src/lib/life/memory*.ts`   | unit                     |
+| Memory correction = forget original (irreversible) + store user's statement through the same gate                                                         | `correctMemoryAction`       | code review              |
+| Rate limits: `life_write` and `notification_update` (120/min)                                                                                             | `RATE_LIMITS`               | code review              |
+| Secret scanner knows `CRON_SECRET` assignments                                                                                                            | `scripts/check-secrets.mjs` | CI                       |
+
 ## Secrets handling
 
 - Never put real values in the repo. `.env*` files are git-ignored; `.env.example` has names only.
@@ -72,6 +89,8 @@
   update `MEMWAL_PRIVATE_KEY`. **Do not** change `MEMWAL_NAMESPACE_SECRET` unless you accept
   that existing memories become unreachable.
 - **Tatum key leaked:** delete it in the Tatum dashboard, create a new one, update Vercel.
+- **`CRON_SECRET` leaked:** pick a new one and update it in both Vercel and the GitHub
+  repository secret. The worst a leaked value allows is running the (idempotent) scheduler early.
 
 ## Stage 2 review findings (fixed)
 

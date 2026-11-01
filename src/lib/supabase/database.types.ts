@@ -39,7 +39,8 @@ export type NotificationCategory =
   | "routines"
   | "wellbeing"
   | "planning"
-  | "account_security";
+  | "account_security"
+  | "suggestions";
 export type NotificationFrequency = "immediate" | "daily_digest" | "weekly_digest" | "off";
 export type SecurityEventAction =
   | "auth.signed_in"
@@ -370,7 +371,19 @@ export type MemoryRecordKind =
   | "subscription"
   | "recommendation"
   | "recommendation_outcome"
-  | "preference";
+  | "preference"
+  | "habit_pattern"
+  | "routine_preference"
+  | "scheduling_preference"
+  | "notification_preference"
+  | "sleep_pattern"
+  | "activity_routine"
+  | "water_pattern"
+  | "meal_routine"
+  | "mood_pattern"
+  | "wellbeing_goal"
+  | "review_reflection"
+  | "correction";
 export type MemoryRecordStatus = "queued" | "submitted" | "stored" | "failed" | "suppressed";
 export type MemoryJobStatus = "pending" | "running" | "uploaded" | "done" | "failed" | "not_found";
 
@@ -468,6 +481,297 @@ export type RecommendationRow = {
   created_at: Timestamp;
 };
 
+/* ------------------------------------------------------------------ Stage 5 */
+
+export type TaskStatus = "not_started" | "in_progress" | "completed" | "cancelled";
+export type TaskPriority = "low" | "medium" | "high";
+export type EventCategory =
+  "personal" | "work" | "health" | "finance" | "social" | "learning" | "other";
+export type Recurrence = "daily" | "weekly" | "monthly" | "yearly";
+export type HabitCategory =
+  | "health"
+  | "fitness"
+  | "mind"
+  | "learning"
+  | "finance"
+  | "sleep"
+  | "hydration"
+  | "routine"
+  | "other";
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type ActivityType =
+  "walking" | "running" | "cycling" | "gym" | "swimming" | "sports" | "home_workout" | "other";
+export type Intensity = "light" | "moderate" | "vigorous";
+export type LifeEntity =
+  | "task_category"
+  | "task"
+  | "calendar_event"
+  | "calendar_event_exception"
+  | "habit"
+  | "habit_check_in"
+  | "review"
+  | "sleep_log"
+  | "water_log"
+  | "meal_log"
+  | "activity_log"
+  | "mood_log";
+
+export type TaskCategoryRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  name: string;
+  archived_at: Timestamp | null;
+};
+
+export type TaskRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  category_id: string | null;
+  due_on: string | null;
+  due_time: string | null;
+  remind_at: Timestamp | null;
+  completed_at: Timestamp | null;
+};
+
+export type CalendarEventRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: EventCategory;
+  all_day: boolean;
+  starts_at: Timestamp | null;
+  ends_at: Timestamp | null;
+  start_date: string | null;
+  end_date: string | null;
+  time_zone: string;
+  recurrence: Recurrence | null;
+  recurrence_interval: number;
+  recurrence_weekdays: number[] | null;
+  recurrence_until: string | null;
+  reminder_minutes: number | null;
+};
+
+export type CalendarEventExceptionRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  event_id: string;
+  occurrence_date: string;
+  cancelled: boolean;
+  starts_at: Timestamp | null;
+  ends_at: Timestamp | null;
+  title: string | null;
+};
+
+export type HabitRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  category: HabitCategory;
+  frequency: "daily" | "specific_days";
+  weekdays: number[] | null;
+  start_on: string;
+  end_on: string | null;
+  reminder_time: string | null;
+  time_zone: string;
+  archived_at: Timestamp | null;
+};
+
+export type HabitCheckInRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  habit_id: string;
+  on_date: string;
+  status: "done" | "skipped";
+  note: string | null;
+};
+
+export type ReviewRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  kind: "daily" | "weekly";
+  period_start: string;
+  highlights: string | null;
+  missed: string | null;
+  next_focus: string | null;
+  notes: string | null;
+  rating: number | null;
+};
+
+export type PlanningPreferencesRow = {
+  user_id: string;
+  daily_review_enabled: boolean;
+  daily_review_time: string;
+  weekly_review_enabled: boolean;
+  weekly_review_day: number;
+  weekly_review_time: string;
+  weekly_finance_review: boolean;
+  updated_at: Timestamp;
+};
+
+export type WellbeingPreferencesRow = {
+  user_id: string;
+  water_unit: "ml" | "l" | "fl_oz";
+  water_target_ml: number;
+  distance_unit: "km" | "mi";
+  sleep_target_minutes: number;
+  updated_at: Timestamp;
+};
+
+export type SleepLogRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  slept_at: Timestamp;
+  woke_at: Timestamp;
+  wake_date: string;
+  duration_minutes: number;
+  quality: number | null;
+  note: string | null;
+};
+
+export type WaterLogRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  amount_ml: number;
+  logged_at: Timestamp;
+  local_date: string;
+};
+
+export type MealLogRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  meal_type: MealType;
+  description: string;
+  eaten_at: Timestamp;
+  local_date: string;
+  note: string | null;
+};
+
+export type ActivityLogRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  activity_type: ActivityType;
+  duration_minutes: number;
+  distance_m: number | null;
+  intensity: Intensity | null;
+  on_date: string;
+  note: string | null;
+};
+
+export type MoodLogRow = {
+  version: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  id: string;
+  user_id: string;
+  logged_at: Timestamp;
+  local_date: string;
+  mood: number | null;
+  energy: number | null;
+  stress: number | null;
+  sleep_rating: number | null;
+  day_rating: number | null;
+  note: string | null;
+  source: "wellbeing" | "pulse_check";
+};
+
+export type LifeEventRow = {
+  id: number;
+  user_id: string;
+  kind:
+    "task_completed" | "habit_checked_in" | "review_saved" | "wellbeing_logged" | "event_scheduled";
+  dedupe_key: string;
+  payload: Record<string, unknown>;
+  occurred_at: Timestamp;
+  processed_at: Timestamp | null;
+};
+
+export type NotificationKind =
+  | "task_reminder"
+  | "task_due"
+  | "event_reminder"
+  | "habit_reminder"
+  | "habit_missed"
+  | "habit_streak"
+  | "review_due"
+  | "daily_summary"
+  | "weekly_summary"
+  | "budget_threshold"
+  | "budget_exceeded"
+  | "savings_milestone"
+  | "suggestion";
+
+export type NotificationRow = {
+  id: string;
+  user_id: string;
+  category: NotificationCategory;
+  kind: NotificationKind;
+  priority: "low" | "normal" | "high";
+  title: string;
+  body: string | null;
+  action_url: string | null;
+  related_type: string | null;
+  related_id: string | null;
+  dedupe_key: string;
+  status: "delivered" | "scheduled" | "bundled" | "suppressed";
+  decision_reason: string | null;
+  digest: "daily" | "weekly" | null;
+  scheduled_for: Timestamp | null;
+  delivered_at: Timestamp | null;
+  read_at: Timestamp | null;
+  dismissed_at: Timestamp | null;
+  expires_at: Timestamp | null;
+  created_at: Timestamp;
+};
+
+export type SchedulerRunRow = {
+  id: number;
+  trigger_source: "cron" | "github_actions" | "vercel_cron" | "manual" | "catch_up";
+  started_at: Timestamp;
+  finished_at: Timestamp | null;
+  users_processed: number;
+  notifications_created: number;
+  error: string | null;
+};
+
 export type CurrencyRow = {
   code: string;
   minor_units: number;
@@ -525,7 +829,8 @@ export type Database = {
       budgets: Table<BudgetRow>;
       savings_goals: Table<SavingsGoalRow>;
       savings_goal_entries: Table<SavingsGoalEntryRow>;
-      finance_events: Table<FinanceEventRow>;
+      // processed_at is set only by the server scheduler (admin).
+      finance_events: Table<FinanceEventRow, never, Partial<Pick<FinanceEventRow, "processed_at">>>;
       // Written only by the AVEN server (admin client) after talking to MemWal.
       memory_records: Table<
         MemoryRecordRow,
@@ -554,6 +859,43 @@ export type Database = {
           >,
         // Only the server (admin) links the outcome memory; responses use the RPC.
         Partial<Pick<RecommendationRow, "outcome_memory_id">>
+      >;
+      task_categories: Table<TaskCategoryRow>;
+      tasks: Table<TaskRow>;
+      calendar_events: Table<CalendarEventRow>;
+      calendar_event_exceptions: Table<CalendarEventExceptionRow>;
+      habits: Table<HabitRow>;
+      habit_check_ins: Table<HabitCheckInRow>;
+      reviews: Table<ReviewRow>;
+      planning_preferences: Table<
+        PlanningPreferencesRow,
+        Pick<PlanningPreferencesRow, "user_id"> &
+          Partial<Omit<PlanningPreferencesRow, "updated_at">>,
+        Partial<Omit<PlanningPreferencesRow, "user_id" | "updated_at">>
+      >;
+      wellbeing_preferences: Table<
+        WellbeingPreferencesRow,
+        Pick<WellbeingPreferencesRow, "user_id"> &
+          Partial<Omit<WellbeingPreferencesRow, "updated_at">>,
+        Partial<Omit<WellbeingPreferencesRow, "user_id" | "updated_at">>
+      >;
+      sleep_logs: Table<SleepLogRow>;
+      water_logs: Table<WaterLogRow>;
+      meal_logs: Table<MealLogRow>;
+      activity_logs: Table<ActivityLogRow>;
+      mood_logs: Table<MoodLogRow>;
+      life_events: Table<LifeEventRow, never, Partial<Pick<LifeEventRow, "processed_at">>>;
+      // Written by the server scheduler; users may only set read_at / dismissed_at.
+      notifications: Table<
+        NotificationRow,
+        Omit<NotificationRow, "id" | "created_at" | "read_at" | "dismissed_at"> &
+          Partial<Pick<NotificationRow, "id">>,
+        Partial<NotificationRow>
+      >;
+      scheduler_runs: Table<
+        SchedulerRunRow,
+        Pick<SchedulerRunRow, "trigger_source">,
+        Partial<SchedulerRunRow>
       >;
       account_deletion_log: Table<
         AccountDeletionLogRow,
@@ -677,6 +1019,22 @@ export type Database = {
           p_note?: string | null;
         };
         Returns: RecommendationRow;
+      };
+      apply_life_mutation: {
+        Args: {
+          p_mutation_id: string;
+          p_entity: LifeEntity;
+          p_operation: "create" | "update" | "delete";
+          p_record_id: string;
+          p_payload: Record<string, unknown>;
+          p_base_version?: number | null;
+          p_device_id?: string | null;
+        };
+        Returns: MutationResult;
+      };
+      scheduler_status: {
+        Args: Record<string, never>;
+        Returns: Array<{ last_run_at: string; last_run_ok: boolean }>;
       };
       record_ai_usage: {
         Args: { p_user_id: string; p_input_tokens: number; p_output_tokens: number };

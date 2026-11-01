@@ -20,6 +20,26 @@ AVEN's real migrations, as the `authenticated` role with the user's JWT claims, 
 and every database function behave as in production. It does **not** test real Supabase
 Auth (sign-up emails, password checks, token refresh) or PostgREST itself.
 
+## Results — Planning, Nudge Center & Wellbeing phase, executed 1 Nov 2026 on branch `stage-life`
+
+| Check                                   | Result                                                                                                                                                                                                                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project structure guard / secret scan   | ✅ OK / ✅ no secrets                                                                                                                                                                                                                                                        |
+| TypeScript (strict) · ESLint · Prettier | ✅ 0 errors · ✅ 0 errors, 0 warnings · ✅ formatted                                                                                                                                                                                                                         |
+| Unit tests                              | ✅ 241 / 241 (new: time zones and DST, recurrence + exceptions, streaks, units, scheduler rules and summaries, memory candidates, memory-based suggestions, Nudge labels, nav, cron endpoint auth)                                                                           |
+| Database tests (PostgreSQL 16)          | ✅ 194 / 194 (new: `apply_life_mutation` for every entity, ownership guards, wellbeing consent in the DB, notifications read/dismiss only, `scheduler_status()`, RLS + two-user isolation for all 16 new user-owned tables, stage 4 → 5 upgrade bundle, 44-table full setup) |
+| Production build                        | ✅ succeeded                                                                                                                                                                                                                                                                 |
+| End-to-end (desktop + Pixel 7)          | ✅ 84 / 84 (new: nav without LATER labels; create + complete a task through the outbox; wellbeing consent gate, water in fl oz stored as ml, Pulse Check; Nudge inbox read/dismiss and history reasons; cross-user isolation in the UI)                                      |
+| `npm audit --omit=dev`                  | ✅ 0 vulnerabilities                                                                                                                                                                                                                                                         |
+
+In e2e the fake Supabase has no service role, so the per-user catch-up scheduler logs
+"JWT required" and does nothing; notifications for the Nudge Center test are inserted the way
+the scheduler would. The scheduler's rules are covered by unit tests and its writes by DB tests.
+
+**Not verified here:** the GitHub Actions schedule and Vercel Cron calling your deployed site
+(needs your `CRON_SECRET`), and planning/wellbeing memories on Walrus Mainnet (needs your MemWal
+credentials and the new consents).
+
 ## Results, actually executed 31 Oct 2026 on branch `stage3` (hackathon build)
 
 | Check                                                | Result                                                                                                                                                                                                                                           |

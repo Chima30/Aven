@@ -48,6 +48,22 @@ const USER_OWNED_TABLES: Array<[table: string, ownerColumn: string]> = [
   ["recommendations", "user_id"],
   ["sui_wallets", "user_id"],
   ["chain_imports", "user_id"],
+  ["task_categories", "user_id"],
+  ["tasks", "user_id"],
+  ["calendar_events", "user_id"],
+  ["calendar_event_exceptions", "user_id"],
+  ["habits", "user_id"],
+  ["habit_check_ins", "user_id"],
+  ["reviews", "user_id"],
+  ["planning_preferences", "user_id"],
+  ["wellbeing_preferences", "user_id"],
+  ["sleep_logs", "user_id"],
+  ["water_logs", "user_id"],
+  ["meal_logs", "user_id"],
+  ["activity_logs", "user_id"],
+  ["mood_logs", "user_id"],
+  ["life_events", "user_id"],
+  ["notifications", "user_id"],
 ];
 
 beforeAll(async () => {
@@ -55,7 +71,94 @@ beforeAll(async () => {
   alice = await createUser(db, "alice@example.com", { display_name: "Alice" });
   bob = await createUser(db, "bob@example.com", { display_name: "Bob" });
   for (const uid of [alice, bob]) await seedFinance(uid);
+  for (const uid of [alice, bob]) await seedLife(uid);
 });
+
+/** One of everything in Planning, Wellbeing and the Nudge Center, through the real write paths. */
+async function seedLife(uid: string) {
+  const event = randomUUID();
+  const habit = randomUUID();
+  const task = randomUUID();
+  const calls: Array<[string, string, Record<string, unknown>]> = [
+    ["task_category", randomUUID(), { name: "Home" }],
+    ["task", task, { title: "Seed task" }],
+    [
+      "calendar_event",
+      event,
+      {
+        title: "Weekly sync",
+        all_day: true,
+        start_date: "2026-11-02",
+        end_date: "2026-11-02",
+        time_zone: "UTC",
+        recurrence: "weekly",
+        recurrence_weekdays: [1],
+      },
+    ],
+    ["calendar_event_exception", randomUUID(), { event_id: event, occurrence_date: "2026-11-09" }],
+    [
+      "habit",
+      habit,
+      { name: "Read", frequency: "daily", start_on: "2026-10-01", time_zone: "UTC" },
+    ],
+    ["habit_check_in", randomUUID(), { habit_id: habit, on_date: "2026-10-30", status: "done" }],
+    ["review", randomUUID(), { kind: "daily", period_start: "2026-10-30", next_focus: "Rest" }],
+    [
+      "sleep_log",
+      randomUUID(),
+      {
+        slept_at: "2026-10-29T23:00:00Z",
+        woke_at: "2026-10-30T07:00:00Z",
+        wake_date: "2026-10-30",
+      },
+    ],
+    [
+      "water_log",
+      randomUUID(),
+      { amount_ml: 250, logged_at: "2026-10-30T09:00:00Z", local_date: "2026-10-30" },
+    ],
+    [
+      "meal_log",
+      randomUUID(),
+      {
+        meal_type: "lunch",
+        description: "Soup",
+        eaten_at: "2026-10-30T12:00:00Z",
+        local_date: "2026-10-30",
+      },
+    ],
+    [
+      "activity_log",
+      randomUUID(),
+      { activity_type: "walking", duration_minutes: 30, on_date: "2026-10-30" },
+    ],
+    [
+      "mood_log",
+      randomUUID(),
+      { logged_at: "2026-10-30T18:00:00Z", local_date: "2026-10-30", mood: 4 },
+    ],
+  ];
+  await asUser(db, uid, async (c) => {
+    await c.query("select set_consent('wellbeing_data', true, 'settings')");
+    for (const [entity, id, payload] of calls) {
+      const { rows } = await c.query<{ r: { status: string } }>(
+        "select apply_life_mutation($1, $2, 'create', $3, $4, null, null) as r",
+        [randomUUID(), entity, id, JSON.stringify(payload)],
+      );
+      if (rows[0]?.r.status !== "applied")
+        throw new Error(`life seed failed: ${entity} ${JSON.stringify(rows[0])}`);
+    }
+    await c.query("insert into planning_preferences (user_id) values ($1)", [uid]);
+    await c.query("insert into wellbeing_preferences (user_id) values ($1)", [uid]);
+  });
+  await asService(db, (c) =>
+    c.query(
+      `insert into notifications (user_id, category, kind, title, dedupe_key, status, delivered_at)
+       values ($1, 'planning', 'task_reminder', 'Seed', 'seed', 'delivered', now())`,
+      [uid],
+    ),
+  );
+}
 
 /** Give a user one of everything in finance, through the only allowed write path. */
 async function seedFinance(uid: string) {
@@ -205,8 +308,13 @@ describe("new user bootstrap", () => {
       { currency_code: "USD", ai_enabled: false, memory_paused: false },
     ]);
     expect(result.consents).toHaveLength(7);
-    expect(result.consents.every((r) => r.granted === false)).toBe(true);
-    expect(result.categories).toHaveLength(8);
+    // seedLife() granted wellbeing_data for the tests; everything else starts off.
+    expect(
+      result.consents
+        .filter((r) => r.category !== "wellbeing_data")
+        .every((r) => r.granted === false),
+    ).toBe(true);
+    expect(result.categories).toHaveLength(9);
   });
 
   it("does not block sign-up when the display name is too long", async () => {

@@ -1,0 +1,39 @@
+# Runs AVEN's Nudge Center scheduler about every 15 minutes, so reminders and
+# daily summaries arrive on time without anyone keeping the app open.
+#
+# Needs two repository secrets (GitHub → Settings → Secrets and variables →
+# Actions → New repository secret):
+#   AVEN_URL     your site address, e.g. https://aven-ashy.vercel.app
+#   CRON_SECRET  the same value as CRON_SECRET in Vercel
+# Without them this workflow does nothing (it doesn't fail).
+#
+# GitHub may delay scheduled runs by a few minutes at busy times, and pauses
+# schedules in repositories with no activity for 60 days.
+name: Nudge scheduler
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the scheduler
+        env:
+          AVEN_URL: ${{ secrets.AVEN_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$AVEN_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "AVEN_URL or CRON_SECRET is not set; skipping."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST "${AVEN_URL%/}/api/cron/nudges" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "x-aven-trigger: github_actions" \
+            --max-time 90

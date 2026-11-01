@@ -19,6 +19,8 @@ import {
 } from "@/lib/memory/service";
 import { memoryRuntimeFor } from "@/lib/memory/runtime";
 import { canRecall } from "@/lib/memory/policy";
+import type { MemoryCategory } from "@/lib/memory/types";
+import { correctionCandidate } from "@/lib/life/memory-candidates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrency, isCurrencyCode, type CurrencyCode } from "@/lib/money/currencies";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
@@ -116,27 +118,115 @@ export async function loadWalrusContentsAction(): Promise<WalrusContentsState> {
   }
   const runtime = await memoryRuntimeFor(ctx.supabase, ctx.user.id);
   if (!runtime.available) return { status: "error", message: "Walrus Memory isn't configured." };
-  if (!canRecall("memory_financial", runtime.ctx)) {
+  const categories = (["memory_financial", "memory_planning", "memory_wellbeing"] as const).filter(
+    (c) => canRecall(c, runtime.ctx),
+  );
+  if (categories.length === 0) {
     return {
       status: "error",
       message: "Memory is paused or not allowed, so AVEN won't read from Walrus.",
     };
   }
+  const QUERIES: Record<(typeof categories)[number], string> = {
+    memory_financial: "AVEN memory financial summary recommendation savings budget income",
+    memory_planning: "AVEN memory planning habit routine review focus reminder preference",
+    memory_wellbeing: "AVEN memory wellbeing sleep water activity meals mood routine",
+  };
   try {
-    const memories = await recallMemories(
-      runtime.deps,
-      ctx.user.id,
-      "AVEN memory financial summary recommendation savings budget income",
-      runtime.ctx,
-      { limit: 50 },
+    const batches = await Promise.all(
+      categories.map((c) =>
+        recallMemories(runtime.deps, ctx.user.id, QUERIES[c], runtime.ctx, {
+          limit: 50,
+          categories: [c],
+        }),
+      ),
     );
-    return {
-      status: "success",
-      items: memories.map((m) => ({ blobId: m.blobId, text: m.summary })),
-    };
+    const seen = new Set<string>();
+    const items: Array<{ blobId: string; text: string }> = [];
+    for (const m of batches.flat()) {
+      if (seen.has(m.blobId)) continue;
+      seen.add(m.blobId);
+      items.push({ blobId: m.blobId, text: m.summary });
+    }
+    return { status: "success", items };
   } catch {
     return { status: "error", message: "Walrus Memory couldn't be reached. Try again shortly." };
   }
+}
+
+const correctionSchema = z.object({
+  id: z.uuid(),
+  statement: z
+    .string()
+    .trim()
+    .min(3, "Say what's right instead.")
+    .max(260, "Keep it under 260 characters."),
+});
+
+/**
+ * Correct a memory: the inaccurate one is forgotten (never recalled again) and
+ * the user's own statement is stored as a "correction" memory in its place.
+ */
+export async function correctMemoryAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const ctx = await session();
+  if (!ctx) return SESSION_EXPIRED;
+  const parsed = correctionSchema.safeParse({
+    id: formValue(formData, "id"),
+    statement: formValue(formData, "statement"),
+  });
+  if (!parsed.success) {
+    return {
+      status: "error",
+      fieldErrors: { statement: parsed.error.issues[0]?.message ?? "Check the correction." },
+    };
+  }
+  if (!(await consumeRateLimit(ctx.supabase, "memory_write"))) return RATE_LIMITED;
+  const runtime = await memoryRuntimeFor(ctx.supabase, ctx.user.id);
+  if (!runtime.available)
+    return { status: "error", message: "Walrus Memory isn't configured on this server." };
+  const { data: record } = await ctx.supabase
+    .from("memory_records")
+    .select("id, category, label")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!record) return { status: "error", message: "That memory wasn't found." };
+  const { data: prefs } = await ctx.supabase
+    .from("user_preferences")
+    .select("time_zone")
+    .maybeSingle();
+  const forgotten = await forgetMemory(runtime.deps, ctx.user.id, record.id);
+  if (forgotten === "not_found") return { status: "error", message: "That memory wasn't found." };
+  const outcome = await rememberCandidate(
+    runtime.deps,
+    ctx.user.id,
+    correctionCandidate(
+      record.category as MemoryCategory,
+      record.label,
+      parsed.data.statement,
+      localToday(prefs?.time_zone ?? "UTC"),
+    ),
+    runtime.ctx,
+  );
+  after(() =>
+    refreshMemoryJobs(runtime.deps, ctx.user.id, { deadlineMs: 20_000 }).then(() => undefined),
+  );
+  revalidatePath("/intelligence/memory");
+  if (outcome.status === "skipped") {
+    return {
+      status: "success",
+      message:
+        outcome.reason === "unsafe_content"
+          ? "The old memory was forgotten. Your correction wasn't stored because it looked like it contained sensitive details."
+          : "The old memory was forgotten. Your correction couldn't be stored right now (check consent and pause settings).",
+    };
+  }
+  return {
+    status: "success",
+    message: "Corrected. The old memory is forgotten and your correction is being saved to Walrus.",
+  };
 }
 
 const targetSchema = z.coerce.number().int().min(1).max(90);

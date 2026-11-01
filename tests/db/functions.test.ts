@@ -49,7 +49,7 @@ describe("consent", () => {
     expect(r.audit).toEqual(["consent.granted", "consent.withdrawn"]);
   });
 
-  it("allows financial memory consent (new policy version) but keeps other memory categories locked", async () => {
+  it("allows financial memory consent (new policy version) but keeps unbuilt memory categories locked", async () => {
     const state = await asUser(db, alice, async (c) => {
       await c.query("select set_consent('memory_financial', true, 'settings')");
       return (
@@ -63,7 +63,9 @@ describe("consent", () => {
       c.query("select set_consent('memory_financial', false, 'settings')"),
     );
     const code = await pgErrorCode(
-      asUser(db, alice, (c) => c.query("select set_consent('memory_wellbeing', true, 'settings')")),
+      asUser(db, alice, (c) =>
+        c.query("select set_consent('memory_interactions', true, 'settings')"),
+      ),
     );
     expect(code).toBe("55000");
   });

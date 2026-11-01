@@ -1,0 +1,10 @@
+import { WellbeingNav } from "@/components/wellbeing/wellbeing-nav";
+
+export default function WellbeingLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-8">
+      <WellbeingNav />
+      {children}
+    </div>
+  );
+}

@@ -16,6 +16,8 @@ export const RATE_LIMITS = {
   chain_import: { max: 30, windowSeconds: 60 * 60 },
   wallet_change: { max: 20, windowSeconds: 60 * 60 },
   recommendations: { max: 30, windowSeconds: 60 * 60 },
+  life_write: { max: 120, windowSeconds: 60 },
+  notification_update: { max: 120, windowSeconds: 60 },
 } as const;
 
 export type RateLimitedAction = keyof typeof RATE_LIMITS;

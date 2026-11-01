@@ -10,6 +10,7 @@
  *
  * Env: TEST_DATABASE_URL (admin connection), FAKE_SUPABASE_PORT (default 54400).
  * Test helpers: POST /__test/users { email } → { id, cookieName, cookieValue }
+ *               POST /__test/service-sql { sql, params } → rows (service role)
  */
 import http from "node:http";
 import crypto from "node:crypto";
@@ -173,6 +174,13 @@ const server = http.createServer(async (req, res) => {
         cookieName: "sb-127-auth-token",
         cookieValue: `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`,
       });
+    }
+    // Test-only: run SQL as the service role (e.g. to create notifications the
+    // way the background scheduler would). This stand-in never runs in production.
+    if (url.pathname === "/__test/service-sql" && req.method === "POST") {
+      const { sql, params } = await readBody(req);
+      const result = await pool.query(sql, params ?? []);
+      return send(res, 200, result.rows);
     }
     if (url.pathname === "/__test/sql" && req.method === "POST") {
       const { userId, sql, params } = await readBody(req);

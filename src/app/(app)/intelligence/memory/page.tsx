@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ForgetAllForm,
+  CorrectMemoryButton,
   ForgetMemoryButton,
   RefreshMemoryButton,
   WalrusContents,
@@ -64,7 +65,9 @@ export default async function MemoryPage() {
     numberFormat: preferences.number_format,
   };
   const config = memwalConfig();
-  const allowed = canRecall("memory_financial", runtime.ctx);
+  const allowed = (["memory_financial", "memory_planning", "memory_wellbeing"] as const).some((c) =>
+    canRecall(c, runtime.ctx),
+  );
   const labels = Object.fromEntries(
     rows.filter((r) => r.blob_id).map((r) => [r.blob_id!, r.label]),
   );
@@ -74,7 +77,7 @@ export default async function MemoryPage() {
       <PageHeader
         eyebrow="Intelligence"
         title="Walrus Memory"
-        description="Everything AVEN has remembered about your finances. The text of each memory lives on Walrus (Mainnet), encrypted; AVEN's database keeps only the label, status and Walrus blob id shown here."
+        description="Everything AVEN has remembered — finances, planning and wellbeing patterns, each only with its own consent. The text of each memory lives on Walrus (Mainnet), encrypted; AVEN's database keeps only the label, status and Walrus blob id shown here."
         action={runtime.available ? <RefreshMemoryButton /> : undefined}
       />
 
@@ -156,7 +159,12 @@ export default async function MemoryPage() {
                     ) : null}
                   </div>
                   {r.status !== "suppressed" && runtime.available ? (
-                    <ForgetMemoryButton id={r.id} label={r.label} />
+                    <div className="flex flex-wrap items-start justify-end gap-1">
+                      {r.status === "stored" ? (
+                        <CorrectMemoryButton id={r.id} label={r.label} />
+                      ) : null}
+                      <ForgetMemoryButton id={r.id} label={r.label} />
+                    </div>
                   ) : null}
                 </li>
               ))}

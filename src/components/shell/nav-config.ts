@@ -18,23 +18,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Overview", icon: "overview", href: "/overview" },
   { label: "Money", icon: "money", href: "/money" },
   { label: "Intelligence", icon: "intelligence", href: "/intelligence" },
-  {
-    label: "Planning",
-    icon: "planning",
-    comingLater: true,
-    children: ["Calendar", "Tasks", "Reminders", "Reviews"],
-  },
-  {
-    label: "Nudge Center",
-    icon: "nudges",
-    comingLater: true,
-    children: ["Pulse Check", "Notifications"],
-  },
-  {
-    label: "Wellbeing",
-    icon: "wellbeing",
-    comingLater: true,
-    children: ["Sleep", "Water", "Meals", "Exercise", "Habits", "Routines"],
-  },
+  { label: "Planning", icon: "planning", href: "/planning" },
+  { label: "Nudge Center", icon: "nudges", href: "/nudges" },
+  { label: "Wellbeing", icon: "wellbeing", href: "/wellbeing" },
   { label: "Settings", icon: "settings", href: "/settings" },
 ];

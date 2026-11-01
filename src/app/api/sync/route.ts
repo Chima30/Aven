@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { applyMutation } from "@/lib/finance/mutate";
+import { applyLifeMutation } from "@/lib/life/mutate";
+import { lifeSyncMutationSchema } from "@/lib/life/schemas";
 import { syncMutationSchema, syncRequestSchema } from "@/lib/finance/schemas";
 import { publicEnv } from "@/lib/env";
 import type { SyncResult } from "@/lib/offline/types";
@@ -8,9 +10,10 @@ import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Offline sync endpoint. Receives a batch of queued transaction changes from
- * the browser's IndexedDB outbox and applies them, in order, through
- * apply_finance_mutation() with the user's own session.
+ * Offline sync endpoint. Receives a batch of queued changes from the
+ * browser's IndexedDB outbox and applies them, in order, with the user's own
+ * session: transactions through apply_finance_mutation(), planning and
+ * wellbeing quick entries through apply_life_mutation().
  *
  * Responses:
  *   200 { results: SyncResult[] }  — one result per mutation, same order
@@ -41,7 +44,13 @@ export async function POST(request: NextRequest) {
   for (const raw of mutations) {
     // Each change is validated on its own: an invalid one is rejected (and kept on
     // the device for the user to fix) without blocking the others.
-    const check = syncMutationSchema.safeParse(raw);
+    const isLife =
+      typeof raw === "object" &&
+      raw !== null &&
+      (raw as { entity?: unknown }).entity !== "transaction";
+    const check = isLife
+      ? lifeSyncMutationSchema.safeParse(raw)
+      : syncMutationSchema.safeParse(raw);
     if (!check.success) {
       const issue = check.error.issues[0];
       results.push({
@@ -52,15 +61,18 @@ export async function POST(request: NextRequest) {
     }
     const m = check.data;
     try {
-      const r = await applyMutation(supabase, {
+      const input = {
         mutationId: m.mutationId,
-        entity: m.entity,
         operation: m.operation,
         recordId: m.recordId,
-        payload: m.payload,
+        payload: m.payload as Record<string, unknown>,
         baseVersion: m.baseVersion,
         deviceId,
-      });
+      };
+      const r =
+        m.entity === "transaction"
+          ? await applyMutation(supabase, { ...input, entity: m.entity })
+          : await applyLifeMutation(supabase, { ...input, entity: m.entity });
       if (r.status === "applied") {
         results.push({ status: "applied", serverVersion: r.server_version ?? null });
         appliedOffline += 1;
