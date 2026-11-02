@@ -63,9 +63,7 @@ export default async function TasksPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Planning"
         title="Tasks"
-        description="Everything you need to do, with due dates and reminders in your time zone. Ticking a task works offline too."
         action={
           <TaskDialog
             categories={activeCategories}
@@ -210,7 +208,7 @@ export default async function TasksPage({
       </Card>
 
       <Card>
-        <CardHeader title="Categories" description="Group tasks however suits you." />
+        <CardHeader title="Categories" description="Group tasks however suits you" />
         <CardBody className="flex flex-col gap-4">
           {activeCategories.length > 0 ? (
             <ul className="flex flex-wrap gap-2">

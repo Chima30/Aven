@@ -70,7 +70,7 @@ export default async function SecurityPage({
       <Card>
         <CardHeader
           title="Security activity"
-          description="The last 30 security and privacy events on your account."
+          description="The last 30 security and privacy events on your account"
         />
         <CardBody>
           {events && events.length > 0 ? (
@@ -88,10 +88,7 @@ export default async function SecurityPage({
               ))}
             </ul>
           ) : (
-            <EmptyState
-              title="No activity yet"
-              description="Security events will be listed here."
-            />
+            <EmptyState title="No activity yet" description="Security events will be listed here" />
           )}
         </CardBody>
       </Card>

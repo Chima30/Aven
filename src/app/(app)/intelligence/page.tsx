@@ -71,8 +71,7 @@ function MemoryBanner({ memory }: { memory: MemoryState }) {
     case "not_configured":
       return (
         <Alert tone="warning" title="Walrus Memory isn't configured">
-          Suggestions work, but won&apos;t learn from your answers until the site owner configures
-          Walrus Memory (docs/WALRUS_SETUP.md).
+          Suggestions work, but won&apos;t learn from your answers until it&apos;s set up.
         </Alert>
       );
   }
@@ -92,9 +91,8 @@ export default async function IntelligencePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Intelligence"
         title="Insights & recommendations"
-        description={`Calculated from your own ${snapshot.currency} records — no AI model and no outside data. Each suggestion explains its numbers; answer it and AVEN remembers.`}
+        description={`From your own ${snapshot.currency} records, with the working shown`}
       />
       <MemoryBanner memory={result.memory} />
 
@@ -117,7 +115,7 @@ export default async function IntelligencePage() {
             {result.current.length === 0 ? (
               <EmptyState
                 title="Nothing to suggest right now"
-                description="You're within your usual patterns. New suggestions appear as your month develops."
+                description="You're within your usual patterns"
               />
             ) : (
               <ul className="grid gap-4 lg:grid-cols-2">
@@ -147,7 +145,7 @@ export default async function IntelligencePage() {
               <Card>
                 <CardHeader
                   title="Not suggested because of your history"
-                  description="These were withheld based on what AVEN recalled from Walrus Memory."
+                  description="These were withheld based on what AVEN recalled from Walrus Memory"
                 />
                 <CardBody>
                   <ul className="flex flex-col gap-2 text-sm">
@@ -220,10 +218,7 @@ export default async function IntelligencePage() {
             </Card>
 
             <Card>
-              <CardHeader
-                title="Savings"
-                description="Income minus spending, per complete month."
-              />
+              <CardHeader title="Savings" description="Income minus spending, per complete month" />
               <CardBody className="flex flex-col gap-4">
                 <ul className="flex flex-col gap-1.5 text-sm">
                   {snapshot.savings.months.slice(-3).map((m) => (
@@ -248,7 +243,7 @@ export default async function IntelligencePage() {
                   <p className="text-ink-muted mb-3 text-sm">
                     {signals.savingsTarget
                       ? `Your target recalled from Walrus: ${signals.savingsTarget.pct}% of income.`
-                      : "No savings target in memory yet — AVEN assumes 10%."}{" "}
+                      : "No savings target set, so AVEN assumes 10%."}{" "}
                     The target is stored only in Walrus Memory.
                   </p>
                   <SavingsTargetForm current={signals.savingsTarget?.pct ?? null} />
@@ -257,7 +252,7 @@ export default async function IntelligencePage() {
             </Card>
 
             <Card>
-              <CardHeader title="Patterns" description="Detected from completed months only." />
+              <CardHeader title="Patterns" description="Detected from completed months only" />
               <CardBody className="flex flex-col gap-3 text-sm">
                 <p className="text-ink">
                   <span className="text-ink-muted">Income: </span>
@@ -302,7 +297,7 @@ export default async function IntelligencePage() {
             <Card>
               <CardHeader
                 title="Your recent answers"
-                description="What you decided, and what AVEN remembers."
+                description="What you decided, and what AVEN remembers"
               />
               <CardBody>
                 {result.answered.length === 0 ? (

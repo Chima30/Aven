@@ -43,7 +43,7 @@ export default async function PulseCheckPage() {
     <>
       <PageHeader
         title="Pulse Check"
-        description="An optional, private check-in — a few taps on how you're doing. Skip any question. It's never required and nothing is shared."
+        description="A few private taps on how you're doing. Skip anything"
       />
       {!consented ? <WellbeingConsentNotice /> : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -59,7 +59,7 @@ export default async function PulseCheckPage() {
         <Card>
           <CardHeader
             title="Your patterns"
-            description="Last 7 days compared with the 3 weeks before. Averages of your own answers (1–5)."
+            description="Last 7 days vs the 3 weeks before, on a 1–5 scale"
           />
           <CardBody>
             {patterns.length === 0 ? (

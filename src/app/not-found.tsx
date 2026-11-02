@@ -11,7 +11,7 @@ export default function NotFound() {
       <Link href="/" aria-label="AVEN home">
         <Logo />
       </Link>
-      <p className="type-eyebrow text-accent mt-10">404</p>
+      <p className="type-eyebrow text-ink-subtle mt-10">404</p>
       <h1 className="type-page mt-2">This page doesn&apos;t exist</h1>
       <p className="text-ink-muted mt-3 text-sm">
         It may have moved, or it may belong to a part of AVEN that hasn&apos;t been built yet.

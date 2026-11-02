@@ -29,7 +29,7 @@ export function NotificationItem({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           {unread ? <span className="bg-accent size-2 rounded-full" aria-label="Unread" /> : null}
-          <p className={cn("text-ink text-sm", unread && "font-semibold")}>{n.title}</p>
+          <p className={cn("text-ink text-sm", unread && "font-medium")}>{n.title}</p>
           <Badge tone={n.priority === "high" ? "warning" : "neutral"}>
             {CATEGORY_LABEL[n.category]}
           </Badge>

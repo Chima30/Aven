@@ -241,7 +241,7 @@ export function TaskCheck({
             { status: next },
             { recordId: task.id, baseVersion: task.version, snapshot: task },
           );
-          toast(done ? "Marked not done." : "Done — nice work.", "success");
+          toast(done ? "Marked not done." : "Done.", "success");
         } catch {
           setOptimistic(null);
           toast("That couldn't be saved on this device.", "error");

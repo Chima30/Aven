@@ -33,7 +33,7 @@ export function ConsentToggle({
       <input type="hidden" name="granted" value={granted ? "false" : "true"} />
       {needsAck ? (
         <div className="border-line bg-surface-muted/50 w-full rounded-lg border p-3 text-left">
-          <p className="text-ink text-xs font-semibold">Before you allow this</p>
+          <p className="text-ink text-xs font-medium">Before you allow this</p>
           <ul className="text-ink-muted mt-2 list-disc space-y-1 pl-4 text-xs">
             {disclosures.map((d) => (
               <li key={d}>{d}</li>

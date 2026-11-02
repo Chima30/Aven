@@ -10,9 +10,8 @@ export default async function SyncPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Sync"
-        description="Transactions are saved on this device first and then sent to your account. Here you can see what has reached the server — and decide what to do if something couldn't."
+        description="What's on this device and what has reached your account"
       />
       <SyncCenter
         userId={user.id}

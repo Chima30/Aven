@@ -55,10 +55,7 @@ export default async function PrivacyPage() {
       <PrivacyForm aiEnabled={preferences.ai_enabled} memoryPaused={preferences.memory_paused} />
 
       <Card>
-        <CardHeader
-          title="Permissions"
-          description="Every permission starts off. You can withdraw any of them at any time, and each change is recorded in your consent history."
-        />
+        <CardHeader title="Permissions" description="Everything starts off. Withdraw any time" />
         <CardBody className="flex flex-col gap-8">
           {groups.map((group) => (
             <section key={group.key} aria-labelledby={`consent-${group.key}`}>
@@ -120,7 +117,7 @@ export default async function PrivacyPage() {
       <Card>
         <CardHeader
           title="Walrus Memory"
-          description="How AVEN's long-term memory works, including its limits."
+          description="How AVEN's long-term memory works, including its limits"
           action={
             memoryConfigured ? (
               <Badge tone="success">Configured</Badge>
@@ -154,7 +151,7 @@ export default async function PrivacyPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Consent history" description="The last 20 changes you made." />
+        <CardHeader title="Consent history" description="The last 20 changes you made" />
         <CardBody>
           {history && history.length > 0 ? (
             <ul className="divide-line divide-y text-sm">

@@ -66,13 +66,12 @@ export default async function MoneyPage({
     return (
       <div className="flex flex-col gap-8">
         <PageHeader
-          eyebrow="Money"
-          title="Your money, in one place"
-          description="Start by adding the accounts you use: cash, bank accounts, cards or wallets."
+          title="Money"
+          description="Add the accounts you use: cash, bank, cards or wallets"
         />
         <EmptyState
           title="No accounts yet"
-          description="AVEN never connects to your bank or invents balances. Add an account with its current balance, then record income and expenses as they happen — even offline."
+          description="Add an account with today's balance, then record income and spending as it happens, even offline"
           action={<ButtonLink href="/money/accounts?new=1">Add your first account</ButtonLink>}
         />
       </div>
@@ -82,9 +81,7 @@ export default async function MoneyPage({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="Money"
         title="Overview"
-        description="Every figure here comes from records you've added. Different currencies are never added together."
         action={
           <AddTransaction
             userId={user.id}
@@ -124,14 +121,14 @@ export default async function MoneyPage({
       {summaryRows.length === 0 ? (
         <EmptyState
           title="No income or expenses in this period"
-          description="Transfers between your own accounts aren't counted as income or spending."
+          description="Transfers between your own accounts aren't counted as income or spending"
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {summaryRows.map((s) => (
             <Card key={s.currency_code} className="p-5">
               <div className="flex items-center justify-between">
-                <p className="text-ink text-sm font-semibold">{s.currency_code}</p>
+                <p className="text-ink text-sm font-medium">{s.currency_code}</p>
                 <Badge>{s.transaction_count} transactions</Badge>
               </div>
               <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
@@ -177,7 +174,7 @@ export default async function MoneyPage({
         <Card>
           <CardHeader
             title="Monthly trend"
-            description={`Income and expenses over the last ${months} months.`}
+            description={`Income and expenses over the last ${months} months`}
           />
           <CardBody className="flex flex-col gap-8">
             {currenciesWithFlow.length === 0 ? (
@@ -188,7 +185,7 @@ export default async function MoneyPage({
               currenciesWithFlow.slice(0, 3).map((currency) => (
                 <div key={currency}>
                   {currenciesWithFlow.length > 1 ? (
-                    <p className="mb-3 text-sm font-semibold">{currency}</p>
+                    <p className="mb-3 text-sm font-medium">{currency}</p>
                   ) : null}
                   <CashflowChart
                     currency={currency}
@@ -215,7 +212,7 @@ export default async function MoneyPage({
             ) : (
               [...new Set((byCategory.data ?? []).map((r) => r.currency_code))].map((currency) => (
                 <div key={currency}>
-                  <p className="mb-3 text-sm font-semibold">{currency}</p>
+                  <p className="mb-3 text-sm font-medium">{currency}</p>
                   <CategoryBreakdown
                     currency={currency}
                     locale={regional.locale}
@@ -247,7 +244,7 @@ export default async function MoneyPage({
             {(budgets.data ?? []).length === 0 ? (
               <EmptyState
                 title="No budgets yet"
-                description="Set a monthly limit for all spending or for one category."
+                description="Set a monthly limit for all spending or for one category"
                 action={
                   <ButtonLink href="/money/budgets?new=1" variant="secondary" size="sm">
                     Create a budget
@@ -311,7 +308,7 @@ export default async function MoneyPage({
             {(goals.data ?? []).length === 0 ? (
               <EmptyState
                 title="No savings goals yet"
-                description="Track progress towards something you're saving for."
+                description="Track progress towards something you're saving for"
                 action={
                   <ButtonLink href="/money/goals?new=1" variant="secondary" size="sm">
                     Create a goal

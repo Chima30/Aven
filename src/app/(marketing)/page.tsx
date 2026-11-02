@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { ConnectionsIllustration } from "@/components/marketing/connections-illustration";
+import { AppPreview } from "@/components/marketing/app-preview";
 import { ButtonLink } from "@/components/ui/button";
-import { Badge } from "@/components/ui/feedback";
 import { AccountDeletedNotice } from "./account-deleted-notice";
 
 export const metadata: Metadata = {
-  title: { absolute: "AVEN — money, wellbeing and plans in one calm place" },
+  title: { absolute: "AVEN · money, plans and wellbeing" },
 };
 
 const CONNECTIONS = [
@@ -74,19 +73,12 @@ export default async function LandingPage({
     <>
       {params.account_deleted === "1" ? <AccountDeletedNotice /> : null}
 
-      <section
-        data-no-reveal
-        className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-14 pb-20 sm:px-8 md:pt-20 lg:grid-cols-[1.05fr_1fr]"
-      >
-        <div className="animate-fade-up">
-          <Badge tone="accent">Early access · Walrus Memory + Sui</Badge>
-          <h1 className="type-display text-ink mt-5">
-            Your money, wellbeing and plans —{" "}
-            <span className="text-accent">finally talking to each other.</span>
-          </h1>
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-16 pb-24 sm:px-8 md:pt-24 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <h1 className="type-display text-ink">Money, plans and habits, kept together</h1>
           <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed">
-            AVEN connects your finances, plans, routines and wellbeing in one calm place — and only
-            remembers what you allow it to.
+            Track your accounts and budgets, plan your days, and log sleep, water and mood. AVEN
+            connects them, and remembers only what you allow.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href="/sign-up" size="lg">
@@ -96,25 +88,18 @@ export default async function LandingPage({
               What&apos;s inside
             </ButtonLink>
           </div>
-          <p className="text-ink-subtle mt-5 text-sm">
-            Free while in early access. Works with any currency, from NGN to USD, EUR, JPY and KWD.
-          </p>
+          <p className="text-ink-subtle mt-5 text-sm">Works in any currency, from NGN to USD</p>
         </div>
-        <div className="animate-fade-up flex justify-center [animation-delay:150ms] lg:justify-end">
-          <ConnectionsIllustration />
-        </div>
+        <AppPreview />
       </section>
 
       <section className="border-line bg-surface border-y">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-          <p className="type-eyebrow text-accent">One connected system</p>
-          <h2 className="type-page mt-3 max-w-2xl text-[2rem]">
-            Not six apps in one dashboard. One picture of your life.
-          </h2>
+          <h2 className="type-page max-w-2xl text-[2rem]">What AVEN does</h2>
           <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {CONNECTIONS.map((item) => (
-              <div key={item.title} data-reveal>
-                <div className="bg-accent mb-4 h-px w-10" />
+              <div key={item.title}>
+                <div className="bg-line-strong mb-4 h-px w-10" />
                 <h3 className="type-section">{item.title}</h3>
                 <p className="text-ink-muted mt-2 text-sm leading-relaxed">{item.body}</p>
               </div>
@@ -126,8 +111,7 @@ export default async function LandingPage({
       <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
           <div>
-            <p className="type-eyebrow text-accent">Built on trust</p>
-            <h2 className="type-page mt-3 text-[2rem]">Private by design, not by promise.</h2>
+            <h2 className="type-page text-[2rem]">What AVEN will and won&apos;t do</h2>
             <p className="text-ink-muted mt-4">
               Your data is protected by row-level security, so only your account can read it. AVEN
               never asks for bank passwords, PINs or one-time codes, and it never moves money.
@@ -135,8 +119,8 @@ export default async function LandingPage({
           </div>
           <dl className="border-line bg-line grid gap-px overflow-hidden rounded-2xl border sm:grid-cols-2">
             {PRINCIPLES.map((p) => (
-              <div key={p.title} className="bg-surface p-6" data-reveal>
-                <dt className="text-ink font-semibold">{p.title}</dt>
+              <div key={p.title} className="bg-surface p-6">
+                <dt className="text-ink font-medium">{p.title}</dt>
                 <dd className="text-ink-muted mt-2 text-sm leading-relaxed">{p.body}</dd>
               </div>
             ))}
@@ -146,30 +130,29 @@ export default async function LandingPage({
 
       <section id="roadmap" className="border-line bg-surface scroll-mt-20 border-t">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-          <p className="type-eyebrow text-accent">What&apos;s inside</p>
-          <h2 className="type-page mt-3 text-[2rem]">What works today, and what comes next.</h2>
+          <h2 className="type-page text-[2rem]">What works today, and what comes next</h2>
           <ul className="divide-line border-line mt-10 divide-y rounded-2xl border">
             {FEATURES.map((f) => (
-              <li key={f.title} className="flex items-center gap-4 px-5 py-4 sm:px-6" data-reveal>
+              <li key={f.title} className="flex items-center gap-4 px-5 py-4 sm:px-6">
                 <span
                   aria-hidden="true"
                   className={
                     f.ready ? "bg-accent size-2 rounded-full" : "bg-line-strong size-2 rounded-full"
                   }
                 />
-                <span className="text-ink flex-1 text-sm font-medium">{f.title}</span>
-                {f.ready ? <Badge tone="success">Available</Badge> : <Badge>Next</Badge>}
+                <span className="text-ink flex-1 text-sm">{f.title}</span>
+                <span className="text-ink-subtle text-xs">{f.ready ? "Available" : "Next"}</span>
               </li>
             ))}
           </ul>
-          <div className="bg-primary text-primary-fg mt-12 flex flex-col items-start justify-between gap-6 rounded-2xl px-6 py-8 sm:flex-row sm:items-center sm:px-10">
+          <div className="border-line bg-panel mt-12 flex flex-col items-start justify-between gap-6 rounded-2xl border px-6 py-8 sm:flex-row sm:items-center sm:px-10">
             <div>
-              <h3 className="text-xl font-semibold">Start with what matters today.</h3>
-              <p className="mt-1 text-sm opacity-80">
-                Set your currency and time zone, add an account, and AVEN takes it from there.
+              <h3 className="text-ink text-xl font-medium">Set up in a few minutes</h3>
+              <p className="text-ink-muted mt-1 text-sm">
+                Choose your currency and time zone, add an account, and start logging
               </p>
             </div>
-            <ButtonLink href="/sign-up" variant="accent" size="lg">
+            <ButtonLink href="/sign-up" size="lg">
               Create your account
             </ButtonLink>
           </div>

@@ -97,9 +97,7 @@ export default async function NudgeInbox({
   return (
     <>
       <PageHeader
-        eyebrow="Nudge Center"
-        title="Your nudges"
-        description="Reminders, alerts and summaries from your own tasks, events, habits, budgets and goals — decided by fixed rules and your preferences."
+        title="Nudge Center"
         action={
           unreadCount > 0 ? (
             <InlineAction
@@ -123,7 +121,7 @@ export default async function NudgeInbox({
 
       {summary ? (
         <Card data-testid="daily-summary">
-          <CardHeader title={summary.title} description="Built only from your real records." />
+          <CardHeader title={summary.title} />
           <CardBody>
             <p className="text-ink-muted text-sm whitespace-pre-line">{summary.body}</p>
           </CardBody>
@@ -148,7 +146,7 @@ export default async function NudgeInbox({
       {list.length === 0 ? (
         <EmptyState
           title={category || unreadOnly ? "Nothing matches this filter" : "You're all caught up"}
-          description="AVEN only nudges you about things you've set up — task reminders, events, habits, budgets and goals. Held-back nudges are in History."
+          description="Nudges come from your tasks, events, habits, budgets and goals. Held-back ones are in History"
         />
       ) : (
         <ul className="divide-line divide-y" aria-label="Notifications">
@@ -158,24 +156,12 @@ export default async function NudgeInbox({
         </ul>
       )}
 
-      <Card>
-        <CardHeader title="How delivery works" />
-        <CardBody className="text-ink-muted flex flex-col gap-1.5 text-sm">
-          <p>
-            Reminders are checked on a server schedule, not by this browser tab, so they&apos;re
-            created even while AVEN is closed. You see them here next time you open AVEN — push
-            notifications to your phone aren&apos;t available yet.
-          </p>
-          <p data-testid="scheduler-status">
-            {lastRun
-              ? `Last scheduled check: ${when(lastRun.last_run_at)}${lastRun.last_run_ok ? "" : " (it reported a problem; it will retry)"}.`
-              : "The background schedule hasn't run yet. Reminders are still checked whenever you open AVEN."}
-            {waiting
-              ? ` ${waiting} nudge${waiting === 1 ? " is" : "s are"} waiting for your quiet hours to end.`
-              : ""}
-          </p>
-        </CardBody>
-      </Card>
+      <p className="text-ink-subtle text-xs" data-testid="scheduler-status">
+        {lastRun
+          ? `Last checked ${when(lastRun.last_run_at)}${lastRun.last_run_ok ? "" : " (will retry)"}`
+          : "Checked each time you open AVEN"}
+        {waiting ? ` · ${waiting} waiting for quiet hours to end` : ""}
+      </p>
     </>
   );
 }

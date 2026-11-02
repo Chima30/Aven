@@ -18,7 +18,7 @@ export default async function SignInPage({
   return (
     <AuthCard
       title="Welcome back"
-      description="Sign in to your AVEN account."
+      description="Sign in to your AVEN account"
       footer={
         <>
           New to AVEN?{" "}

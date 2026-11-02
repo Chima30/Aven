@@ -43,7 +43,7 @@ export default async function DataPage({
       <Card>
         <CardHeader
           title="Export your data"
-          description="Download everything AVEN stores about you as a JSON file. It's generated on demand and never stored on our servers."
+          description="Everything AVEN stores about you, as a JSON file"
         />
         <CardBody>
           <ExportButton />

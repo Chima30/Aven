@@ -77,19 +77,19 @@ export function SyncCenter({
           <dl className="grid grid-cols-3 gap-6 text-sm" aria-live="polite">
             <div>
               <dt className="text-ink-muted">Connection</dt>
-              <dd className="mt-1 font-semibold">{online ? "Online" : "Offline"}</dd>
+              <dd className="mt-1 font-medium">{online ? "Online" : "Offline"}</dd>
             </div>
             <div>
               <dt className="text-ink-muted">Pending</dt>
-              <dd className="type-figure mt-1 font-semibold">{waiting.length}</dd>
+              <dd className="type-figure mt-1 font-medium">{waiting.length}</dd>
             </div>
             <div>
               <dt className="text-ink-muted">Failed</dt>
               <dd
                 className={
                   failed.length
-                    ? "type-figure text-danger mt-1 font-semibold"
-                    : "type-figure mt-1 font-semibold"
+                    ? "type-figure text-danger mt-1 font-medium"
+                    : "type-figure mt-1 font-medium"
                 }
               >
                 {failed.length}
@@ -105,7 +105,7 @@ export function SyncCenter({
       {entries.length === 0 ? (
         <EmptyState
           title="Everything is synced"
-          description="Everything saved on this device has reached your account."
+          description="Everything saved on this device has reached your account"
         />
       ) : null}
 
@@ -207,14 +207,14 @@ function FailedEntry({
       <p className="text-ink mt-2 text-sm">{entry.lastError?.message}</p>
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <div className="bg-surface-muted/60 rounded-lg p-3">
-          <dt className="text-ink-muted text-xs font-semibold">Your change (this device)</dt>
+          <dt className="text-ink-muted text-xs font-medium">Your change (this device)</dt>
           <dd className="mt-1 break-words">
             {entry.operation === "delete" && !isLife ? `Delete: ${label(mine)}` : label(mine)}
           </dd>
         </div>
         {kind === "conflict" ? (
           <div className="bg-surface-muted/60 rounded-lg p-3">
-            <dt className="text-ink-muted text-xs font-semibold">Server copy now</dt>
+            <dt className="text-ink-muted text-xs font-medium">Server copy now</dt>
             <dd className="mt-1 break-words">
               {server ? `${label(server)} · version ${server.version}` : "Deleted on the server"}
             </dd>

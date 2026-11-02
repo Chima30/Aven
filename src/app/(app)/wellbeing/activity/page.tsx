@@ -30,10 +30,7 @@ export default async function ActivityPage() {
   const weekDistance = week.reduce((s, a) => s + (a.distance_m ?? 0), 0);
   return (
     <>
-      <PageHeader
-        title="Activity"
-        description="Walks, workouts and sport you log yourself. Distances are stored in metres and shown in your unit."
-      />
+      <PageHeader title="Activity" />
       {!consented ? <WellbeingConsentNotice /> : null}
       <section className="grid grid-cols-3 gap-3">
         <Stat

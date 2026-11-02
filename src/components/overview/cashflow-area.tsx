@@ -50,7 +50,7 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
   const a = active !== null ? data[active] : null;
 
   return (
-    <figure className="relative">
+    <figure className="fade-area relative">
       <div className="relative" onMouseLeave={() => setActive(null)}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -80,16 +80,14 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          <path d={area(expensePath)} fill={`url(#exp-${gid})`} className="fade-area" />
-          <path d={area(incomePath)} fill={`url(#inc-${gid})`} className="fade-area" />
+          <path d={area(expensePath)} fill={`url(#exp-${gid})`} />
+          <path d={area(incomePath)} fill={`url(#inc-${gid})`} />
           <path
             d={expensePath}
             fill="none"
             stroke="var(--ink-muted)"
             strokeWidth="1.75"
             vectorEffect="non-scaling-stroke"
-            pathLength={2000}
-            className="draw-line"
           />
           <path
             d={incomePath}
@@ -97,8 +95,6 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
             stroke="var(--accent)"
             strokeWidth="2.25"
             vectorEffect="non-scaling-stroke"
-            pathLength={2000}
-            className="draw-line"
           />
           {a !== null && active !== null ? (
             <line

@@ -37,11 +37,11 @@ export function CashflowChart({
             <div key={d.month} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
               <div className="flex h-[140px] w-full items-end justify-center gap-1">
                 <div
-                  className="grow-bar bg-accent w-1/2 max-w-4 rounded-t-sm"
+                  className="bg-accent w-1/2 max-w-4 rounded-t-sm"
                   style={{ height: ih, "--i": idx } as React.CSSProperties}
                 />
                 <div
-                  className="grow-bar bg-ink-subtle/60 w-1/2 max-w-4 rounded-t-sm"
+                  className="bg-ink-subtle/60 w-1/2 max-w-4 rounded-t-sm"
                   style={{ height: eh, "--i": idx } as React.CSSProperties}
                 />
               </div>

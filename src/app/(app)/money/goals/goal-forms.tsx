@@ -239,7 +239,7 @@ export function DeleteGoalEntryButton({ id, goalId }: { id: string; goalId: stri
       variant="ghost"
       size="sm"
       title="Remove this entry?"
-      description="The goal's saved amount will be recalculated."
+      description="The goal's saved amount will be recalculated"
     >
       {(close) => (
         <ActionForm

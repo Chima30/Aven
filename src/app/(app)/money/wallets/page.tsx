@@ -85,9 +85,8 @@ export default async function WalletsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Sui wallets"
-        description="Read-only view of public Sui Mainnet addresses, via Tatum. On-chain data is shown separately from your AVEN records and only becomes an AVEN transaction when you record it."
+        description="Read-only Sui Mainnet balances. Nothing is recorded until you choose to"
         action={
           chain?.checkpoint ? (
             <Badge tone="success">
@@ -104,7 +103,7 @@ export default async function WalletsPage() {
         >
           {runtime.reason === "invalid_config"
             ? `The server's Tatum settings are invalid: ${runtime.issues?.join(" · ")}`
-            : "The site owner needs to add a Tatum API key (docs/TATUM_SETUP.md). You can still save addresses now."}
+            : "Balances appear once it's set up. You can save addresses now"}
         </Alert>
       ) : runtime.available && (wallets?.length ?? 0) > 0 && !allowed ? (
         <Alert tone="warning" title="Slow down a little">
@@ -126,7 +125,7 @@ export default async function WalletsPage() {
       {(wallets ?? []).length === 0 ? (
         <EmptyState
           title="No wallets yet"
-          description="Add a public Sui address to see its balances and activity here."
+          description="Add a public Sui address to see its balances and activity here"
         />
       ) : (
         (wallets ?? []).map((w) => {

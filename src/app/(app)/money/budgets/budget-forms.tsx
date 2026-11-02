@@ -22,7 +22,7 @@ export function NewBudgetButton({
     <FormDialog
       label="Create budget"
       title="New monthly budget"
-      description="Only expenses count towards a budget — never income or transfers between your accounts."
+      description="Only expenses count, never income or transfers"
       defaultOpen={defaultOpen}
     >
       {(close) => (

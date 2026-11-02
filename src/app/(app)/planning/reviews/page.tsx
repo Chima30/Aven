@@ -80,11 +80,7 @@ export default async function ReviewsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        eyebrow="Planning"
-        title="Reviews"
-        description="A few private minutes to look back and plan ahead. Only you can read your reviews."
-      />
+      <PageHeader title="Reviews" description="Private to you" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1" role="navigation" aria-label="Review type">
@@ -129,13 +125,10 @@ export default async function ReviewsPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
         <Card>
-          <CardHeader
-            title="From your records"
-            description="Pulled from what you actually logged — nothing is guessed."
-          />
+          <CardHeader title="From your records" description="From what you logged" />
           <CardBody className="flex flex-col gap-4 text-sm">
             <section>
-              <h3 className="text-ink-muted mb-1 text-xs font-semibold">
+              <h3 className="text-ink-muted mb-1 text-xs font-medium">
                 Completed tasks ({completed.length})
               </h3>
               {completed.length === 0 ? (
@@ -149,7 +142,7 @@ export default async function ReviewsPage({
               )}
             </section>
             <section>
-              <h3 className="text-ink-muted mb-1 text-xs font-semibold">Habits</h3>
+              <h3 className="text-ink-muted mb-1 text-xs font-medium">Habits</h3>
               {habitLines.length === 0 ? (
                 <p className="text-ink-subtle">No scheduled habits.</p>
               ) : (
@@ -163,7 +156,7 @@ export default async function ReviewsPage({
               )}
             </section>
             <section>
-              <h3 className="text-ink-muted mb-1 text-xs font-semibold">
+              <h3 className="text-ink-muted mb-1 text-xs font-medium">
                 {kind === "daily" ? "Tomorrow" : "Coming up next week"}
               </h3>
               {commitments.length === 0 && dueNext.length === 0 ? (
@@ -243,7 +236,7 @@ export default async function ReviewsPage({
         <Card>
           <CardHeader
             title="Review schedule"
-            description="The Nudge Center reminds you at these times (in your time zone)."
+            description="The Nudge Center reminds you at these times (in your time zone)"
           />
           <CardBody>
             <ReviewScheduleForm prefs={prefs} />

@@ -18,7 +18,7 @@ export function ProfileForm({
   return (
     <SettingsForm
       title="Profile"
-      description="How AVEN addresses you, and where you're based."
+      description="How AVEN addresses you, and where you're based"
       action={updateProfileAction}
     >
       {(state) => (

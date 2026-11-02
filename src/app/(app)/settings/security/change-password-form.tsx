@@ -23,7 +23,7 @@ export function ChangePasswordForm() {
       <form ref={formRef} action={action} noValidate>
         <CardHeader
           title="Change password"
-          description="We'll check your current password first, then sign out your other devices."
+          description="We'll check your current password first, then sign out your other devices"
         />
         <CardBody className="flex flex-col gap-5">
           {state.status === "error" ? <FormMessage state={state} /> : null}

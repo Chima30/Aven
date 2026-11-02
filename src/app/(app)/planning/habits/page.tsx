@@ -45,16 +45,15 @@ export default async function HabitsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Planning"
         title="Habits"
-        description="Small routines, tracked kindly. Missing a day never resets your history, and rest days don't break a streak."
+        description="Rest days never break a streak"
         action={<HabitDialog today={userToday} />}
       />
 
       {active.length === 0 ? (
         <EmptyState
           title="No habits yet"
-          description="Start with one small thing you'd like to do regularly — reading, a walk, reviewing your spending."
+          description="Start with one small thing, like a short walk or reading"
         />
       ) : (
         <ul className="flex flex-col gap-4" data-testid="habit-list">
@@ -88,7 +87,7 @@ export default async function HabitsPage() {
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-ink text-base font-semibold">{h.name}</h3>
+                          <h3 className="text-ink text-base font-medium">{h.name}</h3>
                           <Badge>{HABIT_CATEGORY_LABEL[h.category]}</Badge>
                           {!stats.scheduledToday ? <Badge tone="neutral">Rest day</Badge> : null}
                         </div>
@@ -107,7 +106,7 @@ export default async function HabitsPage() {
                       <div className="bg-surface-muted/60 rounded-lg px-3 py-2">
                         <dt className="text-ink-muted text-xs">Current streak</dt>
                         <dd
-                          className="type-figure text-ink mt-0.5 font-semibold"
+                          className="type-figure text-ink mt-0.5 font-medium"
                           data-testid="streak"
                         >
                           {stats.currentStreak}
@@ -115,13 +114,13 @@ export default async function HabitsPage() {
                       </div>
                       <div className="bg-surface-muted/60 rounded-lg px-3 py-2">
                         <dt className="text-ink-muted text-xs">Longest</dt>
-                        <dd className="type-figure text-ink mt-0.5 font-semibold">
+                        <dd className="type-figure text-ink mt-0.5 font-medium">
                           {stats.longestStreak}
                         </dd>
                       </div>
                       <div className="bg-surface-muted/60 rounded-lg px-3 py-2">
                         <dt className="text-ink-muted text-xs">Last 30 days</dt>
-                        <dd className="type-figure text-ink mt-0.5 font-semibold">
+                        <dd className="type-figure text-ink mt-0.5 font-medium">
                           {stats.consistencyPct === null ? "—" : `${stats.consistencyPct}%`}
                           <span className="text-ink-subtle ml-1 text-xs font-normal">
                             ({stats.doneDays}/{stats.scheduledDays})
@@ -131,14 +130,14 @@ export default async function HabitsPage() {
                     </dl>
 
                     <div>
-                      <p className="text-ink-muted mb-2 text-xs font-semibold">This week</p>
+                      <p className="text-ink-muted mb-2 text-xs font-medium">This week</p>
                       <ol className="grid grid-cols-7 gap-1 text-center">
                         {week.map((d) => (
                           <li key={d} className="flex flex-col items-center gap-1">
                             <span
                               className={cn(
                                 "text-[0.6875rem]",
-                                d === today ? "text-accent font-semibold" : "text-ink-subtle",
+                                d === today ? "text-accent font-medium" : "text-ink-subtle",
                               )}
                             >
                               {dayLabel(d, locale, { weekday: "narrow" })}
@@ -192,7 +191,7 @@ export default async function HabitsPage() {
 
       {archived.length > 0 ? (
         <Card>
-          <CardHeader title="Archived" description="Paused habits keep their history." />
+          <CardHeader title="Archived" description="Paused habits keep their history" />
           <CardBody>
             <ul className="divide-line divide-y text-sm">
               {archived.map((h) => (

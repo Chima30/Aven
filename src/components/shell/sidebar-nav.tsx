@@ -20,24 +20,15 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200",
+                "relative flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors duration-150",
                 active
-                  ? "bg-surface-muted text-ink"
+                  ? "bg-surface-muted text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
                   : "text-ink-muted hover:bg-surface-muted/60 hover:text-ink",
               )}
             >
-              {active ? (
-                <span
-                  aria-hidden="true"
-                  className="bg-accent absolute top-2.5 -left-3 h-5 w-1 rounded-r-full"
-                />
-              ) : null}
               <NavIcon
                 name={item.icon}
-                className={cn(
-                  "size-[18px] transition-transform duration-200 group-hover:scale-110",
-                  active && "text-accent",
-                )}
+                className={cn("size-4", active ? "text-ink" : "text-ink-subtle")}
               />
               {item.label}
             </Link>
@@ -52,7 +43,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           >
             <NavIcon name={item.icon} className="size-[18px] opacity-70" />
             <span className="flex-1">{item.label}</span>
-            <span className="border-line rounded-md border px-1.5 py-px text-[0.625rem] font-semibold tracking-wide">
+            <span className="border-line rounded-md border px-1.5 py-px text-[0.625rem] font-medium tracking-wide">
               LATER
             </span>
             <span className="sr-only">(not available yet)</span>

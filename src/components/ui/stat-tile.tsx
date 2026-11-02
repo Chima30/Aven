@@ -51,8 +51,8 @@ export function StatTile({
       </div>
       <p
         className={cn(
-          "type-figure text-ink mt-3 leading-tight break-words",
-          typeof value === "string" && value.length > 12 ? "text-xl sm:text-2xl" : "text-[1.75rem]",
+          "type-figure text-ink mt-3 leading-tight whitespace-nowrap",
+          typeof value === "string" && value.length > 12 ? "text-lg 2xl:text-xl" : "text-[1.75rem]",
         )}
       >
         {value}
@@ -63,12 +63,10 @@ export function StatTile({
   const cls =
     "border-line bg-surface lift block rounded-2xl border p-5 focus-visible:outline-2 focus-visible:outline-offset-2";
   return href ? (
-    <Link href={href} className={cls} data-reveal>
+    <Link href={href} className={cls}>
       {body}
     </Link>
   ) : (
-    <div className={cls} data-reveal>
-      {body}
-    </div>
+    <div className={cls}>{body}</div>
   );
 }

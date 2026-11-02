@@ -157,7 +157,7 @@ export default async function GoalPage({
           {(entries ?? []).length === 0 ? (
             <EmptyState
               title="Nothing recorded yet"
-              description="Record a contribution whenever you put money aside for this goal."
+              description="Record a contribution whenever you put money aside for this goal"
             />
           ) : (
             <ul className="divide-line divide-y">

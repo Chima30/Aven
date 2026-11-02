@@ -13,7 +13,7 @@ export default async function WellbeingSettingsPage() {
     <>
       <PageHeader
         title="Wellbeing settings"
-        description="Units and targets. Your logs are always stored in standard units, so changing these never changes your records."
+        description="Changing units never changes your records"
       />
       <Card className="max-w-xl">
         <CardHeader title="Units and targets" />

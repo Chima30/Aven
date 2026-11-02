@@ -50,14 +50,16 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader
           title="Walrus Memory (Mainnet)"
-          description="Long-term memory through the official MemWal SDK and the hosted MemWal relayer."
+          description="Encrypted long-term memory"
           action={<StatusBadge result={walrus} />}
         />
         <CardBody className="flex flex-col gap-4">
           {walrus.status === "not_configured" ? (
             <Alert tone="warning">
-              MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID and MEMWAL_NAMESPACE_SECRET are not set on the
-              server. See docs/WALRUS_SETUP.md.
+              <p>Not set up yet.</p>
+              <p className="text-ink-subtle mt-1 font-mono text-xs">
+                Owner setup: MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID, MEMWAL_NAMESPACE_SECRET
+              </p>
             </Alert>
           ) : walrus.status === "invalid" ? (
             <Alert tone="danger">{walrus.issues.join(" · ")}</Alert>
@@ -96,13 +98,14 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader
           title="Sui Mainnet via Tatum"
-          description="Read-only balances and activity for wallets you add. Uses Tatum's gRPC gateway (Sui JSON-RPC is deprecated)."
+          description="Read-only wallet balances, via Tatum"
           action={<StatusBadge result={sui} />}
         />
         <CardBody>
           {sui.status === "not_configured" ? (
             <Alert tone="warning">
-              TATUM_API_KEY is not set on the server. See docs/TATUM_SETUP.md.
+              <p>Not set up yet.</p>
+              <p className="text-ink-subtle mt-1 font-mono text-xs">Owner setup: TATUM_API_KEY</p>
             </Alert>
           ) : sui.status === "invalid" ? (
             <Alert tone="danger">{sui.issues.join(" · ")}</Alert>
@@ -125,7 +128,7 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader
           title="Email (SMTP)"
-          description="Optional email copies of nudges, for users who turn email on."
+          description="Email copies of nudges, for people who turn it on"
           action={
             email.status === "configured" ? (
               <Badge tone="success">Configured</Badge>
@@ -146,7 +149,10 @@ export default async function IntegrationsPage() {
             <Alert tone="danger">{email.issues.join(" · ")}</Alert>
           ) : (
             <Alert tone="warning">
-              SMTP_HOST, SMTP_USER, SMTP_PASSWORD and EMAIL_FROM are not set. See docs/EMAIL.md.
+              <p>Not set up yet.</p>
+              <p className="text-ink-subtle mt-1 font-mono text-xs">
+                Owner setup: SMTP_HOST, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM
+              </p>
             </Alert>
           )}
         </CardBody>
@@ -155,7 +161,7 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader
           title="Background scheduler"
-          description="Creates reminders and summaries on a schedule, even when nobody has AVEN open."
+          description="Reminders and summaries, even when AVEN is closed"
           action={
             scheduler ? (
               <Badge tone="success">Configured</Badge>
@@ -166,13 +172,11 @@ export default async function IntegrationsPage() {
         />
         <CardBody>
           {scheduler ? (
-            <p className="text-ink-muted text-sm">
-              CRON_SECRET is set. The schedule runs from GitHub Actions and Vercel Cron.
-            </p>
+            <p className="text-ink-muted text-sm">Running every 15 minutes, plus a daily check.</p>
           ) : (
             <Alert tone="warning">
-              CRON_SECRET is not set, so reminders are only checked when someone opens AVEN. See
-              docs/SCHEDULER.md.
+              <p>Not set up yet. Reminders are checked when someone opens AVEN.</p>
+              <p className="text-ink-subtle mt-1 font-mono text-xs">Owner setup: CRON_SECRET</p>
             </Alert>
           )}
         </CardBody>

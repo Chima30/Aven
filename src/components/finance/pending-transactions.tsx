@@ -84,7 +84,7 @@ export function PendingTransactions({
       className="border-warning/40 bg-warning-soft/40 rounded-2xl border p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="pending-heading" className="text-ink text-sm font-semibold">
+        <h2 id="pending-heading" className="text-ink text-sm font-medium">
           On this device · not yet synced ({entries.length})
         </h2>
         <Link href="/money/sync" className="text-accent text-sm font-medium hover:underline">
