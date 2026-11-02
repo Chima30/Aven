@@ -18,7 +18,8 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 **Repository:** https://github.com/Chima30/Aven
 
-![AVEN overview: balance, monthly spending, today's plan, habits and a six-month cash-flow chart](docs/images/overview.png)
+<img width="1359" height="629" alt="image" src="https://github.com/user-attachments/assets/1fa3d37a-1be1-45ec-96ef-32fe70c1b19d" />
+
 
 ---
 
@@ -26,11 +27,15 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 The deployed app stores and recalls real memories on Walrus Mainnet through the MemWal relayer, and reads Sui Mainnet through Tatum's gRPC gateway. Screenshots from the live site, 2 November 2026:
 
-![Walrus Memory page listing 15 memories stored on Walrus, each with its Walrus blob id](docs/images/walrus-memory.png)
+<img width="1365" height="629" alt="image" src="https://github.com/user-attachments/assets/56309e10-7168-4844-a828-27f05448b810" />
+
+
 
 _15 memories stored on Walrus (budgeting style, goal progress, savings target and more), each with its blob id, plus Correct and Forget controls._
 
-![Integrations page: Walrus Memory relayer connected in production mode, and Sui Mainnet via Tatum connected over gRPC](docs/images/integrations-live.png)
+<img width="1359" height="629" alt="image" src="https://github.com/user-attachments/assets/9d135076-9752-46ce-8c51-3e2b77f16fef" />
+
+
 
 _Walrus relayer connected in production mode and accepting writes; Sui Mainnet connected via Tatum gRPC with the latest checkpoint and epoch._
 
