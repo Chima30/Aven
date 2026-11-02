@@ -297,7 +297,7 @@ export function MealLogForm({ userId, timeZone }: Common) {
       <Field
         id="description"
         label="What did you have?"
-        hint="Just a description — AVEN doesn't estimate calories or nutrition."
+        hint="A short description. No calorie counting"
         error={errors.description}
       >
         {(a) => (
@@ -600,9 +600,7 @@ export function PendingLogs({
               e.operation,
               e.payload as unknown as Record<string, unknown>,
             )}
-            {e.status !== "pending" && e.status !== "syncing"
-              ? " — needs attention in the Sync center"
-              : ""}
+            {e.status !== "pending" && e.status !== "syncing" ? " · needs attention in Sync" : ""}
           </li>
         ))}
       </ul>

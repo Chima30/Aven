@@ -104,9 +104,7 @@ export default async function PlanningDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Planning"
         title={`Today · ${dayLabel(today, locale, { weekday: "long", day: "numeric", month: "long" })}`}
-        description="Your schedule, tasks and habits in one place."
         action={
           <div className="flex flex-wrap gap-2">
             <TaskDialog
@@ -166,7 +164,7 @@ export default async function PlanningDashboard() {
             )}
             {laterEvents.length > 0 ? (
               <>
-                <h3 className="text-ink-muted mt-4 mb-1 text-xs font-semibold">Upcoming</h3>
+                <h3 className="text-ink-muted mt-4 mb-1 text-xs font-medium">Upcoming</h3>
                 <ul className="text-sm">
                   {laterEvents.map((o) => (
                     <li key={o.key} className="text-ink-muted py-0.5">
@@ -229,7 +227,7 @@ export default async function PlanningDashboard() {
           <CardBody>
             {habitsToday.length === 0 ? (
               <p className="text-ink-subtle text-sm">
-                {activeHabits.length ? "No habits scheduled today — a rest day." : "No habits yet."}
+                {activeHabits.length ? "Rest day" : "No habits yet"}
               </p>
             ) : (
               <ul className="flex flex-col gap-2" data-testid="today-habits">
@@ -294,7 +292,7 @@ export default async function PlanningDashboard() {
               </ul>
             )}
             <div className="border-line mt-4 border-t pt-3">
-              <h3 className="text-ink-muted mb-1 text-xs font-semibold">Recent reviews</h3>
+              <h3 className="text-ink-muted mb-1 text-xs font-medium">Recent reviews</h3>
               {reviews.length === 0 ? (
                 <Link href="/planning/reviews" className="text-accent text-sm">
                   Write your first review

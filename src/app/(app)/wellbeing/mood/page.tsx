@@ -32,7 +32,7 @@ export default async function MoodPage() {
     <>
       <PageHeader
         title="Mood, energy and stress"
-        description="Quick private check-ins. Pulse Checks from the Nudge Center appear here too."
+        description="Includes your Pulse Checks"
         action={
           <Link href="/nudges/pulse" className="text-accent text-sm underline">
             Take a Pulse Check
@@ -43,10 +43,7 @@ export default async function MoodPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         {consented ? (
           <Card>
-            <CardHeader
-              title="Check in"
-              description="Answer any or all — skip whatever you like."
-            />
+            <CardHeader title="Check in" description="Skip anything" />
             <CardBody className="flex flex-col gap-3">
               <MoodLogForm userId={user.id} timeZone={timeZone} />
               <PendingLogs userId={user.id} entities={["mood_log"]} />
@@ -54,10 +51,7 @@ export default async function MoodPage() {
           </Card>
         ) : null}
         <Card>
-          <CardHeader
-            title="Last 14 days"
-            description="Daily averages on a 1–5 scale. Days without a check-in stay empty."
-          />
+          <CardHeader title="Last 14 days" description="Daily averages, 1–5" />
           <CardBody className="grid gap-5">
             <TrendBars
               caption="Mood (higher is better)."

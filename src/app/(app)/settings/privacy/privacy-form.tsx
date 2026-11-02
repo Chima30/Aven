@@ -30,7 +30,7 @@ export function PrivacyForm({
           <Switch
             id="memoryPaused"
             label="Pause memory"
-            description="When on, AVEN will not create any new long-term memories or recall existing ones, whatever your memory permissions say."
+            description="When on, AVEN will not create any new long-term memories or recall existing ones, whatever your memory permissions say"
             defaultChecked={memoryPaused}
           />
         </div>

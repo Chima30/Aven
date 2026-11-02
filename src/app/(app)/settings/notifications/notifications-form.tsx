@@ -38,7 +38,7 @@ export function NotificationsForm({
   return (
     <SettingsForm
       title="Nudges"
-      description="Calm summaries instead of constant alerts. Fixed rules decide what you get — AI can't override them."
+      description="Fixed rules decide what you get. AI can't override them"
       action={updateNotificationsAction}
     >
       {(state) => (
@@ -48,7 +48,7 @@ export function NotificationsForm({
             <Switch
               id="inAppEnabled"
               label="In-app notifications"
-              description="Shown inside AVEN."
+              description="Shown inside AVEN"
               defaultChecked={prefs.in_app_enabled}
             />
             <Switch
@@ -57,9 +57,8 @@ export function NotificationsForm({
               description={
                 emailReady
                   ? "Off unless you turn it on. Sent to the address you sign in with. Quiet hours and your limits still apply."
-                  : "The site owner hasn't set up an email server yet (see docs/EMAIL.md)."
+                  : "Not available yet on this site"
               }
-              badge={emailReady ? null : <Badge>Not set up</Badge>}
               disabled={!emailReady}
               defaultChecked={emailReady && prefs.email_enabled}
             />
@@ -90,7 +89,7 @@ export function NotificationsForm({
               <Switch
                 id="dailyDigestEnabled"
                 label="Daily summary"
-                description="“Your day in AVEN”: one briefing built from your real tasks, events, habits and reviews."
+                description="“Your day in AVEN”: one briefing built from your real tasks, events, habits and reviews"
                 defaultChecked={prefs.daily_digest_enabled}
               />
               <Field id="dailyDigestTime" label="Time" error={state.fieldErrors?.dailyDigestTime}>
@@ -108,7 +107,7 @@ export function NotificationsForm({
               <Switch
                 id="weeklyDigestEnabled"
                 label="Weekly summary"
-                description="A look back at your week and what's ahead."
+                description="A look back at your week and what's ahead"
                 defaultChecked={prefs.weekly_digest_enabled}
               />
               <Field id="weeklyDigestDay" label="Day" error={state.fieldErrors?.weeklyDigestDay}>
@@ -148,7 +147,7 @@ export function NotificationsForm({
             <Switch
               id="pauseNonessential"
               label="Pause non-essential nudges"
-              description="Stops everything except account security notices until you switch this off."
+              description="Stops everything except account security notices until you switch this off"
               defaultChecked={prefs.pause_nonessential}
             />
             <Field

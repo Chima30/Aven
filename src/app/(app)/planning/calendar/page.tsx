@@ -152,9 +152,8 @@ export default async function CalendarPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Planning"
         title="Calendar"
-        description={`Your events in ${timeZone}. Repeating events are calculated, never copied, so they can't duplicate.`}
+        description={`Times in ${timeZone}`}
         action={<EventDialog defaultDate={date} timeZone={timeZone} />}
       />
 
@@ -206,7 +205,7 @@ export default async function CalendarPage({
           <CardBody className="p-2 sm:p-4">
             <div className="grid grid-cols-7 gap-px text-center">
               {Array.from({ length: 7 }, (_, i) => (
-                <div key={i} className="text-ink-subtle py-1 text-xs font-semibold">
+                <div key={i} className="text-ink-subtle py-1 text-xs font-medium">
                   {WEEKDAY_SHORT[(weekStart + i) % 7]}
                 </div>
               ))}
@@ -228,7 +227,7 @@ export default async function CalendarPage({
                     <span
                       className={cn(
                         "type-figure inline-flex size-6 items-center justify-center rounded-full text-xs",
-                        d === today && "bg-accent text-accent-fg font-semibold",
+                        d === today && "bg-accent text-accent-fg font-medium",
                       )}
                     >
                       {Number(d.slice(8))}
@@ -271,7 +270,7 @@ export default async function CalendarPage({
                   <div className="mb-2 flex items-center justify-between">
                     <h3
                       className={cn(
-                        "text-sm font-semibold",
+                        "text-sm font-medium",
                         d === today ? "text-accent" : "text-ink",
                       )}
                     >
@@ -302,7 +301,7 @@ export default async function CalendarPage({
         <CardBody>
           <h3 className="type-section text-ink mb-3">Coming up</h3>
           {upcoming.length === 0 ? (
-            <EmptyState title="Nothing coming up" description="Add an event to see it here." />
+            <EmptyState title="Nothing coming up" description="Add an event to see it here" />
           ) : (
             <ul className="divide-line divide-y">
               {upcoming.map((o) => occurrenceLine(o, false))}

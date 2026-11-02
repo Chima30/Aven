@@ -26,10 +26,7 @@ export default async function WaterPage() {
   const unit = prefs.water_unit;
   return (
     <>
-      <PageHeader
-        title="Water"
-        description="Stored in millilitres, shown in your unit. Change units and the daily target in Wellbeing settings."
-      />
+      <PageHeader title="Water" />
       {!consented ? <WellbeingConsentNotice /> : null}
       <section className="grid grid-cols-3 gap-3">
         <Stat

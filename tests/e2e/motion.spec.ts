@@ -1,8 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 /**
- * Scroll animations must never leave content hidden: anything on screen is
- * fully visible, on long pages and after moving between tabs.
+ * Motion must never leave content hidden: anything on screen is fully
+ * visible, on long pages and after moving between tabs.
  */
 
 const FAKE = "http://127.0.0.1:54400";
@@ -84,18 +84,4 @@ test("a very tall section is visible as soon as it's on screen", async ({ page, 
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#tall")!).opacity))
     .toBe("1");
-});
-
-test("scroll animation is actually active (and only as content enters)", async ({
-  page,
-  context,
-}) => {
-  await signIn(context);
-  await page.goto("/overview");
-  const supported = await page.evaluate(() => CSS.supports("animation-timeline: view()"));
-  test.skip(!supported, "This browser has no scroll-driven animations (content is simply static)");
-  const name = await page.evaluate(
-    () => getComputedStyle(document.querySelector("#main section")!).animationName,
-  );
-  expect(name).toBe("reveal-up");
 });

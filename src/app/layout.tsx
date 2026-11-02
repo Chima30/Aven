@@ -8,7 +8,7 @@ import { THEME_COOKIE, parseTheme } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "AVEN — money, wellbeing and plans in one calm place", template: "%s · AVEN" },
+  title: { default: "AVEN · money, plans and wellbeing", template: "%s · AVEN" },
   description:
     "AVEN brings your finances, shared bills, subscriptions, wellbeing and daily plans together, with a personal assistant you control.",
   applicationName: "AVEN",

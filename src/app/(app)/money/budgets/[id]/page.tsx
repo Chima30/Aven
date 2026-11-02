@@ -102,7 +102,7 @@ export default async function BudgetPage({
         </CardBody>
       </Card>
       <Card>
-        <CardHeader title="History" description="Spending against the limit, month by month." />
+        <CardHeader title="History" description="Spending against the limit, month by month" />
         <CardBody>
           <table className="w-full text-sm">
             <thead>

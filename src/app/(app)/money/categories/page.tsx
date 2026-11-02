@@ -16,9 +16,8 @@ export default async function CategoriesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Categories"
-        description="Your categories are private to you. Rename or archive any of them, including the defaults."
+        description="Rename or archive any category, including the defaults"
         action={<NewCategoryButton />}
       />
       <div className="grid gap-6 lg:grid-cols-2">

@@ -137,7 +137,7 @@ export default async function AccountPage({
           {(rows ?? []).length === 0 ? (
             <EmptyState
               title="No transactions yet"
-              description="Income, expenses and transfers for this account will appear here."
+              description="Income, expenses and transfers for this account will appear here"
             />
           ) : (
             <ul className="divide-line divide-y">

@@ -2,101 +2,98 @@
 
 /*
  * AVEN design tokens.
- * Default look: near-black charcoal with a single green accent (dark), plus a
- * neutral light theme. Every colour comes from these variables.
+ * Graphite neutrals (hairline borders, three text roles) with one green
+ * accent for money and progress. Dark by default, plus a light theme.
  * Contrast pairs (ink on canvas, primary-fg on primary, etc.) meet WCAG AA.
  */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #09090a;
-  --panel: #0e0e10;
-  --surface: #151517;
-  --surface-muted: #1c1c1f;
-  --line: #232326;
-  --line-strong: #313136;
-  --ink: #f4f4f5;
-  --ink-muted: #a1a1aa;
-  --ink-subtle: #85858e;
-  --primary: #f4f4f5;
+  --canvas: #0f0f10;
+  --panel: #141415;
+  --surface: #19191b;
+  --surface-muted: #232325;
+  --line: rgb(237 237 237 / 0.08);
+  --line-strong: rgb(237 237 237 / 0.14);
+  --ink: #ededed;
+  --ink-muted: #a1a1a6;
+  --ink-subtle: #85858b;
+  --primary: #ededed;
   --primary-hover: #ffffff;
-  --primary-fg: #09090a;
-  --accent: #4ade80;
-  --accent-fg: #052e16;
-  --accent-soft: #11261a;
-  --success: #4ade80;
-  --success-soft: #11261a;
-  --warning: #fbbf24;
-  --warning-soft: #2a210b;
-  --danger: #f87171;
-  --danger-soft: #2c1416;
-  --info: #93c5fd;
-  --info-soft: #14213a;
-  --ring: #4ade80;
-  --glow: 74 222 128;
+  --primary-fg: #0f0f10;
+  --accent: #4cc38a;
+  --accent-fg: #06261a;
+  --accent-soft: #16291f;
+  --success: #4cc38a;
+  --success-soft: #16291f;
+  --warning: #e2a336;
+  --warning-soft: #2b2312;
+  --danger: #ec5d61;
+  --danger-soft: #2e1617;
+  --info: #8fb0e8;
+  --info-soft: #18202f;
+  --ring: #4cc38a;
   --shadow: 0 0 0;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --canvas: #f3f3f1;
-  --panel: #fafaf9;
+  --canvas: #f4f4f5;
+  --panel: #fafafa;
   --surface: #ffffff;
-  --surface-muted: #f0f0ed;
-  --line: #e5e5e1;
-  --line-strong: #d2d2cd;
-  --ink: #111113;
-  --ink-muted: #54545b;
-  --ink-subtle: #6b6b73;
-  --primary: #111113;
+  --surface-muted: #f4f4f5;
+  --line: rgb(23 23 23 / 0.08);
+  --line-strong: rgb(23 23 23 / 0.16);
+  --ink: #171717;
+  --ink-muted: #525252;
+  --ink-subtle: #6b6b6b;
+  --primary: #171717;
   --primary-hover: #000000;
-  --primary-fg: #fafaf9;
+  --primary-fg: #fafafa;
   --accent: #15803d;
   --accent-fg: #ffffff;
-  --accent-soft: #e5f4ea;
+  --accent-soft: #e6f4ea;
   --success: #15803d;
-  --success-soft: #e5f4ea;
-  --warning: #92600a;
-  --warning-soft: #f9eed6;
-  --danger: #b42318;
-  --danger-soft: #fbe6e3;
+  --success-soft: #e6f4ea;
+  --warning: #8a5a00;
+  --warning-soft: #f8eed8;
+  --danger: #c4262b;
+  --danger-soft: #fbe7e7;
   --info: #1d5fa8;
-  --info-soft: #e3edf9;
+  --info-soft: #e5edf8;
   --ring: #15803d;
-  --glow: 21 128 61;
-  --shadow: 17 17 19;
+  --shadow: 0 0 0;
 }
 
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     color-scheme: light;
-    --canvas: #f3f3f1;
-    --panel: #fafaf9;
+    --canvas: #f4f4f5;
+    --panel: #fafafa;
     --surface: #ffffff;
-    --surface-muted: #f0f0ed;
-    --line: #e5e5e1;
-    --line-strong: #d2d2cd;
-    --ink: #111113;
-    --ink-muted: #54545b;
-    --ink-subtle: #6b6b73;
-    --primary: #111113;
+    --surface-muted: #f4f4f5;
+    --line: rgb(23 23 23 / 0.08);
+    --line-strong: rgb(23 23 23 / 0.16);
+    --ink: #171717;
+    --ink-muted: #525252;
+    --ink-subtle: #6b6b6b;
+    --primary: #171717;
     --primary-hover: #000000;
-    --primary-fg: #fafaf9;
+    --primary-fg: #fafafa;
     --accent: #15803d;
     --accent-fg: #ffffff;
-    --accent-soft: #e5f4ea;
+    --accent-soft: #e6f4ea;
     --success: #15803d;
-    --success-soft: #e5f4ea;
-    --warning: #92600a;
-    --warning-soft: #f9eed6;
-    --danger: #b42318;
-    --danger-soft: #fbe6e3;
+    --success-soft: #e6f4ea;
+    --warning: #8a5a00;
+    --warning-soft: #f8eed8;
+    --danger: #c4262b;
+    --danger-soft: #fbe7e7;
     --info: #1d5fa8;
-    --info-soft: #e3edf9;
+    --info-soft: #e5edf8;
     --ring: #15803d;
-    --glow: 21 128 61;
-    --shadow: 17 17 19;
+    --shadow: 0 0 0;
   }
 }
 
@@ -152,20 +149,19 @@
   .type-display {
     font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.75rem);
     line-height: 1.05;
-    letter-spacing: -0.035em;
-    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-weight: 500;
   }
   .type-page {
-    font-size: 1.625rem;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    font-weight: 600;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    font-weight: 500;
   }
   .type-section {
-    font-size: 1.0625rem;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 500;
   }
   .type-label {
     font-size: 0.8125rem;
@@ -173,205 +169,80 @@
     font-weight: 500;
   }
   .type-eyebrow {
-    font-size: 0.75rem;
-    line-height: 1.2;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    font-weight: 500;
   }
-  /* Financial figures: tabular so columns of numbers line up. */
+  /* Figures are set like a ledger: mono, tabular, with the currency code. */
   .type-figure {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-weight: 500;
   }
 }
 
 /* ------------------------------------------------------------- Motion */
+/*
+ * One easing curve, a few durations. One entrance per page (the content
+ * fades and rises 8px on arrival), the main chart fades in once, and
+ * hovers are quick colour/surface changes. Nothing loops, nothing glows.
+ */
 
 @theme {
-  --animate-page-in: page-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  --animate-menu-in: menu-in 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-page-in: page-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-menu-in: menu-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes page-in {
   from {
     opacity: 0;
+    translate: 0 8px;
   }
   to {
     opacity: 1;
+    translate: none;
   }
 }
 @keyframes menu-in {
   from {
     opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes grow-y {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-@keyframes grow-x {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-@keyframes draw-line {
-  from {
-    stroke-dashoffset: var(--path-length, 2000);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-/* Landing illustration: slow, ambient movement. */
-@keyframes illo-dash {
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-@keyframes illo-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-@keyframes illo-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes illo-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-.illo-flow {
-  animation: illo-dash 6s linear infinite;
-}
-.illo-pulse {
-  animation: illo-pulse 2.8s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
-}
-.illo-spin {
-  animation: illo-spin 80s linear infinite;
-}
-.illo-float {
-  animation: illo-float 6s ease-in-out infinite;
-}
-
-/*
- * Scroll reveal — pure CSS, driven by scroll position (no JavaScript state).
- * A block fades up while it enters the bottom of the screen and is fully
- * shown once it is all on screen or 200px in, whichever comes first. So
- * anything you can see is visible; browsers without scroll-driven
- * animations (and reduced-motion users) simply get no animation.
- * Uses `translate`/`scale` so hover effects on `transform` still work.
- */
-@keyframes reveal-up {
-  from {
-    opacity: 0;
-    translate: 0 24px;
-    scale: 0.985;
+    translate: 0 -6px;
   }
   to {
     opacity: 1;
     translate: none;
-    scale: none;
   }
 }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    #main [data-reveal],
-    #main
-      section:not(section section):not(dialog section):not(:has([data-reveal])):not(
-        [data-no-reveal]
-      ) {
-      animation: reveal-up linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry min(100%, 200px);
-    }
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-/* Charts draw themselves once, when the page loads. */
 @media (prefers-reduced-motion: no-preference) {
-  .grow-bar {
-    transform-origin: bottom;
-    animation: grow-y 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-    animation-delay: calc(150ms + var(--i, 0) * 45ms);
-  }
-  .grow-x {
-    transform-origin: left;
-    animation: grow-x 1s cubic-bezier(0.2, 0.7, 0.2, 1) 200ms both;
-  }
-  .draw-line {
-    stroke-dasharray: var(--path-length, 2000);
-    animation: draw-line 1.4s cubic-bezier(0.4, 0, 0.2, 1) 200ms both;
-  }
+  /* The main chart settles in just after the page. */
   .fade-area {
-    animation: page-in 1.2s ease 0.6s both;
+    animation: fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
   }
 }
 
-/* Interactive lift for tiles and links-as-cards. */
+/* Tiles and links-as-cards: a quiet surface step on hover. */
 .lift {
   transition:
-    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
-    border-color 0.25s ease,
-    background-color 0.25s ease;
+    background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .lift:hover {
-  transform: translateY(-2px);
+  background-color: var(--surface-muted);
   border-color: var(--line-strong);
 }
-
-/* Soft ambient glow behind the app canvas. */
-.ambient {
-  position: relative;
-  isolation: isolate;
-}
-.ambient::before {
-  content: "";
-  position: absolute;
-  inset: -20% -10% auto auto;
-  width: 60vw;
-  height: 60vw;
-  max-width: 900px;
-  max-height: 900px;
-  background: radial-gradient(closest-side, rgb(var(--glow) / 0.07), transparent 70%);
-  z-index: -1;
-  pointer-events: none;
+.lift:active {
+  scale: 0.99;
 }
 
 @media (prefers-reduced-motion: reduce) {

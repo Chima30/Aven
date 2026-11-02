@@ -40,9 +40,8 @@ export default async function BudgetsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Budgets"
-        description={`Spending against your monthly limits for ${monthName}. Expenses only; transfers and income never count.`}
+        description={`${monthName} · expenses only`}
         action={
           <NewBudgetButton
             categories={categories.filter((c) => c.kind === "expense" && !c.archived)}
@@ -75,7 +74,7 @@ export default async function BudgetsPage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-ink font-semibold">{b.name}</p>
+                      <p className="text-ink font-medium">{b.name}</p>
                       <p className="text-ink-muted text-xs">
                         {b.category_name ?? "All spending"} · {b.currency_code}
                       </p>

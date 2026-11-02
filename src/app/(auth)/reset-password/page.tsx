@@ -44,7 +44,7 @@ export default async function ResetPasswordPage() {
   return (
     <AuthCard
       title="Choose a new password"
-      description="After saving, you'll be signed out of every other device."
+      description="After saving, you'll be signed out of every other device"
       footer={
         <Link href="/overview" className="text-accent font-medium hover:underline">
           Cancel

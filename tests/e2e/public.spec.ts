@@ -8,14 +8,15 @@ import { expect, test } from "@playwright/test";
 test.describe("public pages", () => {
   test("landing page explains AVEN honestly", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "finally talking to each other",
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Money, plans and habits");
     await expect(page.getByRole("link", { name: "Create your account" }).first()).toBeVisible();
-    await expect(page.getByText("What works today, and what comes next.")).toBeVisible();
-    // No invented money figures anywhere on the page.
+    await expect(page.getByText("What works today, and what comes next")).toBeVisible();
+    // The only figures on the page are in the preview, which is labelled as example data.
+    const preview = page.getByRole("figure", { name: /Example of the AVEN overview/ });
+    await expect(preview.getByText("Example data")).toBeVisible();
     const text = await page.locator("main").innerText();
     expect(text).not.toMatch(/[$₦€£¥]\s?\d/);
+    expect(text).not.toMatch(/free/i);
   });
 
   test("legal drafts are reachable and marked as drafts", async ({ page }) => {

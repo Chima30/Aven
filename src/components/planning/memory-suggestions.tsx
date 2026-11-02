@@ -41,7 +41,7 @@ export function MemorySuggestions({
     <Card>
       <CardHeader
         title="Suggestions from your patterns"
-        description="Based on summaries AVEN keeps in Walrus Memory. Nothing changes unless you choose to."
+        description="From your patterns in Walrus Memory. Nothing changes unless you choose"
         action={<Badge tone="info">From memory</Badge>}
       />
       <CardBody>

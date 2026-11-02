@@ -19,7 +19,7 @@ export function AppearanceForm({ theme }: { theme: ThemePreference }) {
   return (
     <SettingsForm
       title="Appearance"
-      description="Choose how AVEN looks on this and your other devices."
+      description="Choose how AVEN looks on this and your other devices"
       action={updateAppearanceAction}
     >
       {() => (

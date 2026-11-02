@@ -25,10 +25,7 @@ export default async function SleepPage() {
   const onTarget = week.filter((s) => s.duration_minutes >= prefs.sleep_target_minutes).length;
   return (
     <>
-      <PageHeader
-        title="Sleep"
-        description="Log when you fell asleep and woke up. Overnight sleep and clock changes are handled exactly."
-      />
+      <PageHeader title="Sleep" />
       {!consented ? <WellbeingConsentNotice /> : null}
       <section className="grid grid-cols-3 gap-3">
         <Stat

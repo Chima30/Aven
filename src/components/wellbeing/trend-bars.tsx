@@ -45,10 +45,7 @@ export function TrendBars({
                 <div className="bg-surface-muted h-0.5 rounded" />
               ) : (
                 <div
-                  className={cn(
-                    "grow-bar rounded-t",
-                    target && v >= target ? "bg-accent" : "bg-accent/50",
-                  )}
+                  className={cn("rounded-t", target && v >= target ? "bg-accent" : "bg-accent/50")}
                   style={
                     {
                       height: `${Math.max(2, (v / max) * 100)}%`,
@@ -86,10 +83,10 @@ export function TrendBars({
 
 export function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-surface-muted/60 rounded-xl px-3 py-2.5">
-      <p className="text-ink-subtle text-xs">{label}</p>
-      <p className="text-ink mt-0.5 text-lg font-semibold tabular-nums">{value}</p>
-      {sub ? <p className="text-ink-muted text-xs">{sub}</p> : null}
+    <div className="border-line bg-surface rounded-2xl border p-5">
+      <p className="text-ink-muted text-sm">{label}</p>
+      <p className="type-figure text-ink mt-3 text-2xl leading-tight">{value}</p>
+      {sub ? <p className="text-ink-subtle mt-2 text-xs">{sub}</p> : null}
     </div>
   );
 }

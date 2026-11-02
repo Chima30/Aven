@@ -56,9 +56,8 @@ export default async function AccountsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Accounts"
-        description="Balances are calculated from each account's opening balance plus every recorded transaction."
+        description="Opening balance plus every recorded transaction"
         action={
           <NewAccountButton
             currencies={CURRENCIES.map((c) => ({ code: c.code, name: c.name }))}
@@ -89,7 +88,7 @@ export default async function AccountsPage({
       {active.length === 0 ? (
         <EmptyState
           title="No active accounts"
-          description="Add the places your money lives — cash, bank accounts, savings, cards or digital wallets — with today's balance."
+          description="Add cash, bank accounts, cards or wallets with today's balance"
         />
       ) : (
         <Card>

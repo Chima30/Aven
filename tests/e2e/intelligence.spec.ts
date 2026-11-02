@@ -174,7 +174,7 @@ test.describe("intelligence", () => {
     await page.goto("/settings/integrations");
     // Walrus, Sui, email and the scheduler.
     await expect(page.getByText("Not configured")).toHaveCount(4);
-    await expect(page.getByText(/TATUM_API_KEY is not set/)).toBeVisible();
+    await expect(page.getByText(/Owner setup: TATUM_API_KEY/)).toBeVisible();
   });
 });
 

@@ -8,7 +8,7 @@ export default function AuthErrorPage() {
   return (
     <AuthCard
       title="That link didn't work"
-      description="It may have expired, already been used, or been opened in a different browser from the one you signed up in."
+      description="It may have expired, already been used, or been opened in a different browser from the one you signed up in"
     >
       <div className="flex flex-col gap-3">
         <ButtonLink href="/sign-in" size="lg">

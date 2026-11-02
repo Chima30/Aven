@@ -33,10 +33,7 @@ export function ProgressBar({
       aria-valuetext={`${Math.round(percent)}%`}
       className={cn("bg-surface-muted h-2 w-full overflow-hidden rounded-full", className)}
     >
-      <div
-        className={cn("grow-x h-full rounded-full transition-[width]", color)}
-        style={{ width: `${clamped}%` }}
-      />
+      <div className={cn("h-full rounded-full", color)} style={{ width: `${clamped}%` }} />
     </div>
   );
 }

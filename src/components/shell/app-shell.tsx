@@ -33,10 +33,10 @@ export function AppShell({
 
   // Only the username is shown — the sign-in email stays private on screen.
   const account = (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+    <div className="flex items-center gap-3 px-3 py-2">
       <span
         aria-hidden="true"
-        className="from-accent to-accent/55 text-accent-fg flex size-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-sm font-semibold"
+        className="bg-surface-muted text-ink-muted border-line flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-medium"
       >
         {initials}
       </span>
@@ -55,11 +55,14 @@ export function AppShell({
       <ThemeSync theme={theme} />
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col px-3 py-5 lg:flex">
-        <Link href="/overview" className="mb-7 rounded-lg px-3" aria-label="AVEN overview">
+      <aside className="sticky top-0 hidden h-dvh flex-col px-3 py-4 lg:flex">
+        <Link
+          href="/overview"
+          className="mb-6 flex h-10 items-center rounded-lg px-3"
+          aria-label="AVEN overview"
+        >
           <Logo />
         </Link>
-        <p className="type-eyebrow text-ink-subtle mb-2 px-3 text-[0.6875rem]">Workspace</p>
         <SidebarNav />
         <div className="border-line mt-auto flex flex-col gap-1 border-t pt-3">
           {account}
@@ -111,13 +114,13 @@ export function AppShell({
 
       {/* Content panel */}
       <div className="min-w-0 lg:py-2.5 lg:pr-2.5">
-        <div className="lg:border-line lg:bg-panel ambient min-h-[calc(100dvh-20px)] overflow-x-clip lg:rounded-2xl lg:border">
-          <div className="border-line hidden h-14 items-center justify-end border-b px-8 lg:flex">
+        <div className="lg:border-line lg:bg-panel min-h-[calc(100dvh-20px)] overflow-x-clip lg:rounded-2xl lg:border">
+          <div className="hidden h-14 items-center justify-end px-8 lg:flex">
             <SyncStatus userId={userId} />
           </div>
           <main
             id="main"
-            className="animate-page-in mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10"
+            className="animate-page-in mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-8 lg:pt-2"
           >
             {children}
           </main>

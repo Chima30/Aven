@@ -23,18 +23,6 @@ import { loadWellbeingBasics } from "@/lib/wellbeing/queries";
 
 export const metadata: Metadata = { title: "Overview" };
 
-function greeting(timeZone: string): string {
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(
-      new Date(),
-    ),
-  );
-  if (hour < 5) return "Good evening";
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
-
 /** Minor units → a plain number for chart geometry only (labels use exact formatting). */
 function toNumber(minor: string, currency: string): number {
   const units = isCurrencyCode(currency) ? getCurrency(currency).minorUnits : 2;
@@ -151,7 +139,6 @@ export default async function OverviewPage({
     water = (data ?? []).reduce((s, r) => s + r.amount_ml, 0);
   }
 
-  const name = profile.display_name ?? user.email?.split("@")[0] ?? "there";
   const checklist = [
     { done: Boolean(profile.country_code), label: "Add your country", href: "/settings" },
     { done: tz !== "UTC", label: "Set your time zone and currency", href: "/settings/regional" },
@@ -193,11 +180,9 @@ export default async function OverviewPage({
         </Alert>
       ) : null}
 
-      <header className="flex flex-col gap-1">
+      <header className="flex items-end justify-between gap-4">
+        <h1 className="type-page text-ink">Overview</h1>
         <p className="text-ink-subtle text-sm">{dateLine}</p>
-        <h1 className="type-page text-ink">
-          {greeting(tz)}, {name}
-        </h1>
       </header>
 
       {remaining.length > 0 ? (
@@ -206,7 +191,7 @@ export default async function OverviewPage({
           className="border-line bg-surface flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4"
         >
           <p className="text-ink mr-auto text-sm font-medium">
-            {remaining.length} quick step{remaining.length === 1 ? "" : "s"} left to set up AVEN
+            {remaining.length} step{remaining.length === 1 ? "" : "s"} left to finish setting up
           </p>
           {remaining.map((c) => (
             <ButtonLink key={c.label} href={c.href} size="sm" variant="secondary">
@@ -299,8 +284,8 @@ export default async function OverviewPage({
             </>
           ) : (
             <EmptyState
-              title="Your trend starts with your first transaction"
-              description="Record income or spending and this chart fills in month by month."
+              title="No transactions yet"
+              description="Record income or spending and this chart fills in month by month"
               action={
                 <ButtonLink href="/money/transactions" size="sm">
                   Add a transaction
@@ -326,13 +311,7 @@ export default async function OverviewPage({
           />
           <CardBody>
             {agenda.length === 0 ? (
-              <p className="text-ink-muted text-sm">
-                Nothing scheduled. Add a task or event in{" "}
-                <Link href="/planning" className="text-ink underline">
-                  Planning
-                </Link>
-                .
-              </p>
+              <p className="text-ink-muted text-sm">Nothing scheduled today</p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {agenda.map((a) => (
@@ -382,7 +361,7 @@ export default async function OverviewPage({
           />
           <CardBody>
             {(nudges.data ?? []).length === 0 ? (
-              <p className="text-ink-muted text-sm">You&apos;re all caught up.</p>
+              <p className="text-ink-muted text-sm">All caught up</p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {(nudges.data ?? []).map((n) => (
@@ -429,13 +408,13 @@ export default async function OverviewPage({
           href="/nudges/pulse"
           icon="nudges"
           title="Pulse Check"
-          text="A private 30-second check-in"
+          text="A short private check-in"
         />
         <QuickLink
           href="/intelligence"
           icon="intelligence"
           title="Intelligence"
-          text="Explained suggestions from your own data"
+          text="Suggestions with the working shown"
         />
       </div>
     </div>
@@ -456,7 +435,6 @@ function QuickLink({
   return (
     <Link
       href={href}
-      data-reveal
       className="border-line bg-surface lift group flex items-center gap-4 rounded-2xl border p-4"
     >
       <span className="bg-surface-muted text-ink-muted group-hover:text-accent flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors">

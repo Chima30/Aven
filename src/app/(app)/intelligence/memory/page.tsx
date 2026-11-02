@@ -75,16 +75,14 @@ export default async function MemoryPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Intelligence"
         title="Walrus Memory"
-        description="Everything AVEN has remembered — finances, planning and wellbeing patterns, each only with its own consent. The text of each memory lives on Walrus (Mainnet), encrypted; AVEN's database keeps only the label, status and Walrus blob id shown here."
+        description="Stored encrypted on Walrus Mainnet. AVEN keeps only the label, status and blob id"
         action={runtime.available ? <RefreshMemoryButton /> : undefined}
       />
 
       {config.status === "not_configured" ? (
         <Alert tone="warning" title="Walrus Memory isn't configured on this server">
-          The site owner needs to add the MemWal settings described in docs/WALRUS_SETUP.md. Until
-          then AVEN works normally but doesn&apos;t remember anything.
+          AVEN works normally, but won&apos;t remember anything until it&apos;s set up.
         </Alert>
       ) : config.status === "invalid" ? (
         <Alert tone="danger" title="Walrus Memory settings are invalid">
@@ -120,15 +118,12 @@ export default async function MemoryPage() {
       </div>
 
       <Card>
-        <CardHeader
-          title="Your memories"
-          description="Newest first. “Forget” makes AVEN stop using a memory permanently."
-        />
+        <CardHeader title="Your memories" description="Newest first. Forgetting is permanent" />
         <CardBody>
           {rows.length === 0 ? (
             <EmptyState
               title="No memories yet"
-              description="Once memory is on, AVEN remembers patterns from completed months and your answers to its recommendations."
+              description="Once memory is on, AVEN remembers patterns from completed months and your answers to its recommendations"
             />
           ) : (
             <ul className="divide-line divide-y" data-testid="memory-list">
@@ -177,7 +172,7 @@ export default async function MemoryPage() {
         <Card>
           <CardHeader
             title="Read back from Walrus"
-            description="Fetches your memories from the Walrus Memory relayer right now, decrypted for your namespace only. Forgotten memories are filtered out."
+            description="Read back live from Walrus, decrypted for you only"
           />
           <CardBody>
             <WalrusContents labels={labels} />

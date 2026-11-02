@@ -62,11 +62,7 @@ export default async function WellbeingDashboard() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Wellbeing"
-        title="How you're doing"
-        description="Your own logs of sleep, water, meals, activity and mood — private to you, and never filled in for you."
-      />
+      <PageHeader title="Wellbeing" description="Only what you log, private to you" />
       {!consented ? <WellbeingConsentNotice /> : null}
       <section aria-label="Today" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Stat
@@ -94,7 +90,7 @@ export default async function WellbeingDashboard() {
         <Card>
           <CardHeader
             title="Log water"
-            description={`Target: ${formatWater(prefs.water_target_ml, prefs.water_unit)} a day.`}
+            description={`Target: ${formatWater(prefs.water_target_ml, prefs.water_unit)} a day`}
           />
           <CardBody className="flex flex-col gap-3">
             <WaterQuickLog userId={user.id} timeZone={timeZone} unit={prefs.water_unit} />
@@ -149,10 +145,7 @@ export default async function WellbeingDashboard() {
           </TrendCard>
         </div>
       ) : (
-        <p className="text-ink-muted text-sm">
-          Nothing logged yet. Trends appear here once you start logging — AVEN never fills in
-          missing days.
-        </p>
+        <p className="text-ink-muted text-sm">Nothing logged yet. Trends appear once you start.</p>
       )}
       <NotMedicalNote />
     </>

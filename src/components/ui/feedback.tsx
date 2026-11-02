@@ -24,7 +24,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.6875rem] font-semibold whitespace-nowrap",
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-px text-xs whitespace-nowrap",
         badgeTones[tone],
         className,
       )}
@@ -35,7 +35,7 @@ export function Badge({
 }
 
 const alertTones: Record<Exclude<Tone, "neutral" | "accent">, string> = {
-  info: "border-info/25 bg-info-soft text-ink",
+  info: "border-line bg-surface text-ink",
   success: "border-success/25 bg-success-soft text-ink",
   warning: "border-warning/30 bg-warning-soft text-ink",
   danger: "border-danger/30 bg-danger-soft text-ink",
@@ -78,7 +78,7 @@ export function Alert({
         />
       </svg>
       <div className="min-w-0">
-        {title ? <p className="font-semibold">{title}</p> : null}
+        {title ? <p className="font-medium">{title}</p> : null}
         {children ? (
           <div className={cn(Boolean(title) && "mt-0.5", "text-ink-muted")}>{children}</div>
         ) : null}

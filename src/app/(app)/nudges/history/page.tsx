@@ -17,14 +17,11 @@ export default async function NudgeHistory() {
   const items = data ?? [];
   return (
     <>
-      <PageHeader
-        title="History"
-        description="Everything the rules produced in the last while — including nudges held for quiet hours, bundled into a summary, or not shown because of your settings, with the reason."
-      />
+      <PageHeader title="History" description="Including nudges held back, and why" />
       {items.length === 0 ? (
         <EmptyState
           title="No history yet"
-          description="Nudges appear once you add tasks with reminders, events, habits, budgets or goals."
+          description="Nudges appear once you add tasks with reminders, events, habits, budgets or goals"
         />
       ) : (
         <ul className="divide-line divide-y" aria-label="Notification history">

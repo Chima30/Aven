@@ -36,9 +36,8 @@ export default async function GoalsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Savings goals"
-        description="Track progress towards what you're saving for. Contributions are records — they don't move money."
+        description="Contributions are records here and never move money"
         action={
           <NewGoalButton
             currencies={CURRENCIES.map((c) => ({ code: c.code, name: c.name }))}
@@ -51,7 +50,7 @@ export default async function GoalsPage({
       {(goals ?? []).length === 0 ? (
         <EmptyState
           title="No savings goals yet"
-          description="Create a goal with a target amount and, if you like, a target date."
+          description="Create a goal with a target amount and, if you like, a target date"
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -70,7 +69,7 @@ export default async function GoalsPage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold">{g.name}</p>
+                      <p className="font-medium">{g.name}</p>
                       <p className="text-ink-muted text-xs">
                         {g.currency_code}
                         {g.target_date

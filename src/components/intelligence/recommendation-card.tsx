@@ -42,7 +42,7 @@ export function RecommendationCard({ rec }: { rec: RecommendationView }) {
         <Badge tone="accent">{rec.kindLabel}</Badge>
         {rec.memoryInfluence.length > 0 ? <Badge tone="info">Shaped by your memory</Badge> : null}
       </div>
-      <h3 className="text-ink mt-3 text-base font-semibold">{rec.title}</h3>
+      <h3 className="text-ink mt-3 text-base font-medium">{rec.title}</h3>
       <p className="text-ink-muted mt-1.5 text-sm leading-relaxed">{rec.explanation}</p>
 
       {rec.memoryInfluence.length > 0 ? (

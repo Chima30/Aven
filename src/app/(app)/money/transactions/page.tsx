@@ -133,9 +133,8 @@ export default async function TransactionsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Money"
         title="Transactions"
-        description="Income, expenses and transfers. Saved on this device first, then synced."
+        description="Works offline and syncs when you're back"
         action={
           accounts.length > 0 ? (
             <AddTransaction
@@ -281,7 +280,7 @@ export default async function TransactionsPage({
               key={s.currency_code}
               className="border-line bg-surface flex flex-wrap gap-x-5 gap-y-1 rounded-xl border px-4 py-3 text-sm"
             >
-              <span className="font-semibold">{s.currency_code}</span>
+              <span className="font-medium">{s.currency_code}</span>
               <span className="text-ink-muted">
                 In{" "}
                 <MoneyAmount
