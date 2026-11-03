@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql
 -- =============================================================================
 
 begin;
@@ -3574,5 +3574,27 @@ grant update (nudges_seen_at) on table public.notification_preferences to authen
 create index notifications_badge_idx
   on public.notifications (user_id, delivered_at)
   where status = 'delivered' and dismissed_at is null and read_at is null;
+
+-- >>> 20261107000100_goal_memory_cleanup.sql
+-- =============================================================================
+-- Stage 8 · Retire the old, noisy goal-progress memories
+-- =============================================================================
+
+-- Before the fix, AVEN wrote a new goal-progress memory every time a goal
+-- crossed another 10% (and even at 0%), labelled with last month but using
+-- today's balance. Those rows have labels without a month ("Goal progress ·
+-- Rent"); the corrected memories end in the month ("Goal progress · Rent ·
+-- 2026-10").
+--
+-- This marks the old ones as forgotten, exactly like pressing Forget: AVEN
+-- stops reading and recalling them, and the same text is never written again.
+-- (Walrus itself is permanent storage, so nothing is deleted there.)
+update public.memory_records
+set status = 'suppressed',
+    suppressed_at = now(),
+    pending_text = null
+where kind = 'goal_progress'
+  and status <> 'suppressed'
+  and label !~ ' · [0-9]{4}-[0-9]{2}$';
 
 commit;
