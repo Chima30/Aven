@@ -441,7 +441,7 @@ describe("pattern memories", () => {
       ]),
     );
     expect(candidates.filter((c) => c.kind !== "goal_progress").length).toBeLessThanOrEqual(8);
-    for (const c of candidates) {
+    for (const c of candidates.filter((c) => !c.label.startsWith("Goal milestone"))) {
       expect(c.durability).toBe("long_term");
       expect(c.observedOn).toBe("2026-10-01");
       expect(evaluate(c)).toEqual({ allowed: true });
@@ -452,7 +452,9 @@ describe("pattern memories", () => {
 
 describe("goal progress memories", () => {
   const goals = (input: FinanceInput) =>
-    snapshotMemoryCandidates(analyzeFinances(input)).filter((c) => c.kind === "goal_progress");
+    snapshotMemoryCandidates(analyzeFinances(input)).filter(
+      (c) => c.kind === "goal_progress" && !c.label.startsWith("Goal milestone"),
+    );
 
   it("use what was saved by the end of the finished month, not today", () => {
     const [memory] = goals(fixture());
@@ -502,6 +504,74 @@ describe("goal progress memories", () => {
     expect(summaries).toContain("By the end of 2026-10 the goal Goal 2 was at least 40% funded.");
     expect(summaries).toContain("By the end of 2026-10 the goal Goal 5 was fully funded.");
     expect(summaries.some((t) => t.includes("Empty"))).toBe(false);
+  });
+});
+
+describe("goal milestone memories", () => {
+  const milestones = (input: FinanceInput) =>
+    snapshotMemoryCandidates(analyzeFinances(input)).filter((c) =>
+      c.label.startsWith("Goal milestone"),
+    );
+  const goal = (entries: NonNullable<FinanceInput["goals"][number]["entries"]>) => ({
+    id: "goal-rent",
+    name: "Rent",
+    currency: "NGN",
+    targetMinor: NGN(100_000),
+    targetDate: null,
+    savedMinor: entries.reduce(
+      (t, e) => t + (e.kind === "contribution" ? e.amountMinor : -e.amountMinor),
+      0,
+    ),
+    status: "active" as const,
+    entries,
+  });
+
+  it("are written in the current month, as soon as savings reach them", () => {
+    const input = fixture();
+    input.goals = [
+      goal([
+        { kind: "contribution", amountMinor: NGN(30_000), occurredOn: "2026-11-02" },
+        { kind: "contribution", amountMinor: NGN(25_000), occurredOn: "2026-11-03" },
+      ]),
+    ];
+    const list = milestones(input);
+    expect(list.map((c) => c.summary)).toEqual([
+      "On 2026-11-03 the goal Rent reached 50% of its target.",
+      "On 2026-11-02 the goal Rent reached 25% of its target.",
+    ]);
+    for (const c of list) expect(evaluate(c)).toEqual({ allowed: true });
+  });
+
+  it("are stable: re-running, or a later withdrawal, never rewrites them", () => {
+    const input = fixture();
+    input.goals = [
+      goal([{ kind: "contribution", amountMinor: NGN(100_000), occurredOn: "2026-11-01" }]),
+    ];
+    const first = milestones(input);
+    expect(first.map((c) => c.summary)).toContain(
+      "On 2026-11-01 the goal Rent reached its full target.",
+    );
+    expect(first).toHaveLength(4);
+    input.goals = [
+      goal([
+        { kind: "contribution", amountMinor: NGN(100_000), occurredOn: "2026-11-01" },
+        { kind: "withdrawal", amountMinor: NGN(60_000), occurredOn: "2026-11-05" },
+      ]),
+    ];
+    expect(milestones(input)).toEqual(first);
+  });
+
+  it("are written even before AVEN has months of history", () => {
+    const input = fixture();
+    input.transactions = [];
+    input.goals = [
+      goal([{ kind: "contribution", amountMinor: NGN(80_000), occurredOn: "2026-11-03" }]),
+    ];
+    expect(milestones(input).map((c) => c.summary)).toEqual([
+      "On 2026-11-03 the goal Rent reached 75% of its target.",
+      "On 2026-11-03 the goal Rent reached 50% of its target.",
+      "On 2026-11-03 the goal Rent reached 25% of its target.",
+    ]);
   });
 });
 

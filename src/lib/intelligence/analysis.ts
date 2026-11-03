@@ -126,6 +126,15 @@ export interface GoalStat {
   monthEnd: GoalMonthEnd | null;
 }
 
+/** The first day a goal's savings reached a milestone (from dated entries). */
+export interface GoalMilestone {
+  goalId: string;
+  goalName: string;
+  pct: 25 | 50 | 75 | 100;
+  /** YYYY-MM-DD */
+  reachedOn: string;
+}
+
 export interface GoalMonthEnd {
   month: string;
   savedMinor: number;
@@ -148,6 +157,8 @@ export interface FinancialSnapshot {
   savings: { months: SavingsMonth[]; avgRatePct: number | null; avgNetMinor: number | null };
   budgeting: { style: "none" | "light" | "structured"; budgetCount: number; coveragePct: number };
   goals: GoalStat[];
+  /** Milestones reached by active or completed goals, newest first. */
+  goalMilestones: GoalMilestone[];
   otherCurrencies: string[];
   hasEnoughData: boolean;
   transactionCount: number;
@@ -209,6 +220,40 @@ export function goalAtMonthEnd(
     progressPct: Math.min(100, Math.floor((saved / goal.targetMinor) * 100)),
     onTrack,
   };
+}
+
+const MILESTONES = [25, 50, 75, 100] as const;
+
+/**
+ * The day each milestone was FIRST reached, replaying the goal's entries in
+ * date order. A later withdrawal doesn't undo a milestone and re-running gives
+ * the same dates, so each milestone becomes exactly one memory.
+ */
+export function goalMilestones(goal: GoalInput, today: string): GoalMilestone[] {
+  if (!goal.entries || goal.entries.length === 0) return [];
+  const entries = goal.entries
+    .filter((e) => e.occurredOn <= today)
+    .slice()
+    .sort((a, b) => a.occurredOn.localeCompare(b.occurredOn));
+  const out: GoalMilestone[] = [];
+  let saved = 0;
+  let next = 0;
+  for (let i = 0; i < entries.length && next < MILESTONES.length; i += 1) {
+    const e = entries[i]!;
+    saved += e.kind === "contribution" ? e.amountMinor : -e.amountMinor;
+    // Settle the whole day before checking, so same-day in/out nets out.
+    if (entries[i + 1]?.occurredOn === e.occurredOn) continue;
+    while (next < MILESTONES.length && saved * 100 >= goal.targetMinor * MILESTONES[next]!) {
+      out.push({
+        goalId: goal.id,
+        goalName: goal.name,
+        pct: MILESTONES[next]!,
+        reachedOn: e.occurredOn,
+      });
+      next += 1;
+    }
+  }
+  return out;
 }
 
 export function daysInMonthOf(month: string): number {
@@ -574,6 +619,15 @@ export function analyzeFinances(input: FinanceInput): FinancialSnapshot {
     savings,
     budgeting,
     goals,
+    goalMilestones: input.goals
+      .filter(
+        (g) =>
+          (g.status === "active" || g.status === "completed") &&
+          g.currency === input.currency &&
+          g.targetMinor > 0,
+      )
+      .flatMap((g) => goalMilestones(g, input.today))
+      .sort((a, b) => b.reachedOn.localeCompare(a.reachedOn) || b.pct - a.pct),
     otherCurrencies,
     hasEnoughData: completeMonths.some((m) => (expenseBy[m] ?? 0) > 0 || (incomeBy[m] ?? 0) > 0),
     transactionCount: windowTx.length,

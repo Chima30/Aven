@@ -15,6 +15,8 @@ import { niceRound, type FinancialSnapshot } from "./analysis";
 const MAX_SNAPSHOT_MEMORIES = 8;
 /** Goal memories are counted separately so many goals never crowd out the rest. */
 const MAX_GOAL_MEMORIES = 20;
+/** Newest milestones first, so a long history never hides a fresh one. */
+const MAX_MILESTONE_MEMORIES = 20;
 
 function money(minor: number, snapshot: FinancialSnapshot): string {
   // Major units with a fixed format (not locale-dependent) for stable text.
@@ -23,9 +25,12 @@ function money(minor: number, snapshot: FinancialSnapshot): string {
 }
 
 export function snapshotMemoryCandidates(snapshot: FinancialSnapshot): MemoryCandidate[] {
+  // Goal milestones are written as soon as they happen (no need to wait for
+  // the month to end): they are facts about a day that has already passed.
+  const milestones = milestoneMemoryCandidates(snapshot);
   const out: MemoryCandidate[] = [];
   const lastComplete = snapshot.completeMonths.at(-1);
-  if (!lastComplete || !snapshot.hasEnoughData) return out;
+  if (!lastComplete || !snapshot.hasEnoughData) return milestones;
   const observedOn = `${lastComplete}-01`;
   const r = (minor: number) => niceRound(minor, snapshot.minorPerMajor);
   const source = [{ table: "transactions", id: `period:${lastComplete}` }];
@@ -172,7 +177,32 @@ export function snapshotMemoryCandidates(snapshot: FinancialSnapshot): MemoryCan
     });
   }
 
-  return [...out.slice(0, MAX_SNAPSHOT_MEMORIES), ...goalMemories.slice(0, MAX_GOAL_MEMORIES)];
+  return [
+    ...out.slice(0, MAX_SNAPSHOT_MEMORIES),
+    ...goalMemories.slice(0, MAX_GOAL_MEMORIES),
+    ...milestones,
+  ];
+}
+
+export function milestoneMemoryCandidates(snapshot: FinancialSnapshot): MemoryCandidate[] {
+  return snapshot.goalMilestones.slice(0, MAX_MILESTONE_MEMORIES).map((m) => ({
+    category: "memory_financial",
+    kind: "goal_progress",
+    label: `Goal milestone · ${m.goalName} · ${m.pct}%`,
+    facts: {
+      goal_key: m.goalId,
+      goal_name: m.goalName,
+      milestone_pct: m.pct,
+      reached_on: m.reachedOn,
+    },
+    summary:
+      m.pct === 100
+        ? `On ${m.reachedOn} the goal ${m.goalName} reached its full target.`
+        : `On ${m.reachedOn} the goal ${m.goalName} reached ${m.pct}% of its target.`,
+    observedOn: m.reachedOn,
+    sourceRefs: [{ table: "savings_goals", id: m.goalId }],
+    durability: "long_term",
+  }));
 }
 
 const ACTION_VERB = { accepted: "Accepted", rejected: "Rejected", modified: "Changed" } as const;

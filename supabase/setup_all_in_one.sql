@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql
 -- =============================================================================
 
 begin;
@@ -3596,5 +3596,40 @@ set status = 'suppressed',
 where kind = 'goal_progress'
   and status <> 'suppressed'
   and label !~ ' · [0-9]{4}-[0-9]{2}$';
+
+-- >>> 20261108000100_restore_goal_memories.sql
+-- =============================================================================
+-- Stage 9 · Bring back the goal-progress memories Stage 8 hid
+-- =============================================================================
+
+-- Stage 8 marked the older goal-progress memories as forgotten. That was not
+-- wanted: they are kept as history. This undoes exactly that cleanup.
+--
+-- Stage 8 ran as one statement, so every row it hid for a user shares the same
+-- suppressed_at. A memory the user forgot themselves with the Forget button
+-- has its own timestamp and stays forgotten. Only memories that were already
+-- stored on Walrus (they have a blob id) are restored.
+
+alter table public.memory_records disable trigger memory_records_guard_update;
+
+with batch as (
+  select user_id, suppressed_at
+  from public.memory_records
+  where kind = 'goal_progress'
+    and status = 'suppressed'
+    and label !~ ' · [0-9]{4}-[0-9]{2}$'
+  group by user_id, suppressed_at
+  having count(*) > 1
+)
+update public.memory_records m
+set status = 'stored',
+    suppressed_at = null
+from batch b
+where m.user_id = b.user_id
+  and m.suppressed_at = b.suppressed_at
+  and m.kind = 'goal_progress'
+  and m.blob_id is not null;
+
+alter table public.memory_records enable trigger memory_records_guard_update;
 
 commit;
