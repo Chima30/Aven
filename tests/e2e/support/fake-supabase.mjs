@@ -117,7 +117,13 @@ function parseFilters(params) {
     } else {
       const sqlOp = { eq: "=", neq: "<>", gte: ">=", lte: "<=", gt: ">", lt: "<" }[op];
       values.push(val);
-      where.push(`${ident(key)}::text ${sqlOp} $${values.length}`);
+      // Equality compares as text; ranges use the column's own type so that
+      // timestamps in different formats ("…Z" vs "… +00") compare correctly.
+      where.push(
+        op === "eq" || op === "neq"
+          ? `${ident(key)}::text ${sqlOp} $${values.length}`
+          : `${ident(key)} ${sqlOp} $${values.length}`,
+      );
     }
   }
   return { where, values };

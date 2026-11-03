@@ -99,6 +99,12 @@ function fixture(): FinanceInput {
         targetDate: "2027-02-01",
         savedMinor: NGN(100_000),
         status: "active",
+        entries: [
+          { kind: "contribution", amountMinor: NGN(60_000), occurredOn: "2026-09-10" },
+          { kind: "contribution", amountMinor: NGN(20_000), occurredOn: "2026-10-20" },
+          // Added after October closed: must not change October's memory.
+          { kind: "contribution", amountMinor: NGN(20_000), occurredOn: "2026-11-03" },
+        ],
       },
     ],
   };
@@ -434,13 +440,68 @@ describe("pattern memories", () => {
         "goal_progress",
       ]),
     );
-    expect(candidates.length).toBeLessThanOrEqual(8);
+    expect(candidates.filter((c) => c.kind !== "goal_progress").length).toBeLessThanOrEqual(8);
     for (const c of candidates) {
       expect(c.durability).toBe("long_term");
       expect(c.observedOn).toBe("2026-10-01");
       expect(evaluate(c)).toEqual({ allowed: true });
     }
     expect(snapshotMemoryCandidates(analyzeFinances(fixture()))).toEqual(candidates);
+  });
+});
+
+describe("goal progress memories", () => {
+  const goals = (input: FinanceInput) =>
+    snapshotMemoryCandidates(analyzeFinances(input)).filter((c) => c.kind === "goal_progress");
+
+  it("use what was saved by the end of the finished month, not today", () => {
+    const [memory] = goals(fixture());
+    // 80k of 1m by 31 Oct; the 3 Nov contribution is ignored → 8%.
+    expect(memory?.summary).toBe(
+      "By the end of 2026-10 the goal New laptop had started but was under 10% funded and behind schedule.",
+    );
+  });
+
+  it("does not change when money is added after the month ends", () => {
+    const later = fixture();
+    later.goals[0]!.entries!.push({
+      kind: "contribution",
+      amountMinor: NGN(500_000),
+      occurredOn: "2026-11-14",
+    });
+    later.goals[0]!.savedMinor += NGN(500_000);
+    expect(goals(later)).toEqual(goals(fixture()));
+  });
+
+  it("covers every goal, skips empty ones and says when one is fully funded", () => {
+    const input = fixture();
+    for (let i = 2; i <= 6; i += 1) {
+      input.goals.push({
+        id: `goal-${i}`,
+        name: `Goal ${i}`,
+        currency: "NGN",
+        targetMinor: NGN(100_000),
+        targetDate: null,
+        savedMinor: NGN(i * 20_000),
+        status: "active",
+        entries: [{ kind: "contribution", amountMinor: NGN(i * 20_000), occurredOn: "2026-10-05" }],
+      });
+    }
+    input.goals.push({
+      id: "goal-empty",
+      name: "Empty",
+      currency: "NGN",
+      targetMinor: NGN(100_000),
+      targetDate: null,
+      savedMinor: 0,
+      status: "active",
+      entries: [],
+    });
+    const summaries = goals(input).map((c) => c.summary);
+    expect(summaries).toHaveLength(6);
+    expect(summaries).toContain("By the end of 2026-10 the goal Goal 2 was at least 40% funded.");
+    expect(summaries).toContain("By the end of 2026-10 the goal Goal 5 was fully funded.");
+    expect(summaries.some((t) => t.includes("Empty"))).toBe(false);
   });
 });
 

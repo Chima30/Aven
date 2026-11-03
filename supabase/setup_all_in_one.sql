@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql
 -- =============================================================================
 
 begin;
@@ -3556,5 +3556,23 @@ create index notifications_email_pending_idx
 -- default (never an explicit choice in the old UI's first run), so it moves too.
 alter table public.user_preferences alter column theme set default 'dark';
 update public.user_preferences set theme = 'dark' where theme = 'system';
+
+-- >>> 20261106000100_nudges_seen.sql
+-- =============================================================================
+-- Stage 7 · Unread count on the Nudge Center
+-- =============================================================================
+
+-- When the user last opened the Nudge Center. The sidebar shows how many
+-- notifications arrived after this moment; opening the Nudge Center resets it.
+-- Each notification keeps its own read/unread state separately (read_at).
+alter table public.notification_preferences
+  add column nudges_seen_at timestamptz;
+
+grant update (nudges_seen_at) on table public.notification_preferences to authenticated;
+
+-- Fast count of new notifications for the badge.
+create index notifications_badge_idx
+  on public.notifications (user_id, delivered_at)
+  where status = 'delivered' and dismissed_at is null and read_at is null;
 
 commit;

@@ -14,6 +14,7 @@ import {
   analyzeFinances,
   monthKey,
   type FinanceInput,
+  type GoalEntryInput,
   type FinancialSnapshot,
 } from "./analysis";
 import { deriveSignals, type LearningSignals } from "./learning";
@@ -64,7 +65,7 @@ export async function loadFinanceInput(
     if (!data || data.length < PAGE) break;
   }
 
-  const [categories, budgets, goals, progress] = await Promise.all([
+  const [categories, budgets, goals, progress, goalEntries] = await Promise.all([
     supabase.from("transaction_categories").select("id, name"),
     supabase
       .from("budgets")
@@ -73,12 +74,23 @@ export async function loadFinanceInput(
       .from("savings_goals")
       .select("id, name, currency_code, target_minor, target_date, status"),
     supabase.from("savings_goal_progress").select("goal_id, saved_minor"),
+    supabase
+      .from("savings_goal_entries")
+      .select("goal_id, kind, amount_minor, occurred_on")
+      .order("occurred_on", { ascending: true })
+      .limit(5000),
   ]);
-  if (categories.error || budgets.error || goals.error || progress.error) {
+  if (categories.error || budgets.error || goals.error || progress.error || goalEntries.error) {
     throw new Error("Budgets and goals could not be loaded for analysis.");
   }
   const categoryName = new Map((categories.data ?? []).map((c) => [c.id, c.name]));
   const saved = new Map((progress.data ?? []).map((p) => [p.goal_id, Number(p.saved_minor)]));
+  const entriesByGoal = new Map<string, GoalEntryInput[]>();
+  for (const e of goalEntries.data ?? []) {
+    const list = entriesByGoal.get(e.goal_id) ?? [];
+    list.push({ kind: e.kind, amountMinor: Number(e.amount_minor), occurredOn: e.occurred_on });
+    entriesByGoal.set(e.goal_id, list);
+  }
   const currency = preferences.currency_code;
   const minorUnits = isCurrencyCode(currency) ? getCurrency(currency).minorUnits : 2;
 
@@ -115,6 +127,7 @@ export async function loadFinanceInput(
       targetDate: g.target_date,
       savedMinor: saved.get(g.id) ?? 0,
       status: g.status,
+      entries: entriesByGoal.get(g.id) ?? [],
     })),
   };
 }

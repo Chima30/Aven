@@ -18,6 +18,7 @@ export const STAGES = {
   4: "20261103",
   5: "20261104",
   6: "20261105",
+  7: "20261106",
 };
 
 function migrations(root) {

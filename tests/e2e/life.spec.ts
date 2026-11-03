@@ -163,6 +163,52 @@ test("nudge center: shows delivered nudges, hides held ones, marks read and dism
   expect(rows[0]?.dismissed_at).not.toBeNull();
 });
 
+test("nudge center badge: counts new notifications and clears once opened", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const userId = await signIn(context, unique("badge"));
+  await serviceSql(
+    `insert into notifications (user_id, category, kind, title, dedupe_key, status, delivered_at)
+     values ($1, 'planning', 'task_reminder', 'Reminder: Pay rent', 'badge:1', 'delivered', now()),
+            ($1, 'savings', 'savings_milestone', 'Halfway to New laptop', 'badge:2', 'delivered', now()),
+            ($1, 'routines', 'habit_reminder', 'Held back', 'badge:3', 'suppressed', null)`,
+    [userId],
+  );
+  await page.goto("/overview");
+  const badge = page.getByRole("complementary").getByTestId("nudge-badge");
+  await expect(badge).toHaveText(/^2/);
+
+  await page
+    .getByRole("link", { name: /Nudge Center/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/nudges$/);
+  await expect(badge).toHaveCount(0);
+  // Opening clears the count, but each notification is still unread in the inbox.
+  await expect(page.getByTestId("notification").first()).toHaveAttribute("data-unread", "true");
+
+  await page
+    .getByRole("link", { name: /Overview/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/overview$/);
+  await expect(badge).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading").first()).toBeVisible();
+  await expect(badge).toHaveCount(0);
+
+  // A new notification after the visit starts a fresh count.
+  await serviceSql(
+    `insert into notifications (user_id, category, kind, title, dedupe_key, status, delivered_at)
+     values ($1, 'budgets', 'budget_threshold', 'Food is at 80%', 'badge:4', 'delivered', now() + interval '1 second')`,
+    [userId],
+  );
+  await page.reload();
+  await expect(badge).toHaveText(/^1/);
+});
+
 test("users never see each other's planning or wellbeing records", async ({ page, context }) => {
   const alice = await signIn(context, unique("alice"));
   const bobRes = await fetch(`${FAKE}/__test/users`, {

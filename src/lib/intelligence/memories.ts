@@ -13,6 +13,8 @@ import { niceRound, type FinancialSnapshot } from "./analysis";
  */
 
 const MAX_SNAPSHOT_MEMORIES = 8;
+/** Goal memories are counted separately so many goals never crowd out the rest. */
+const MAX_GOAL_MEMORIES = 20;
 
 function money(minor: number, snapshot: FinancialSnapshot): string {
   // Major units with a fixed format (not locale-dependent) for stable text.
@@ -136,27 +138,41 @@ export function snapshotMemoryCandidates(snapshot: FinancialSnapshot): MemoryCan
     durability: "long_term",
   });
 
-  for (const g of snapshot.goals.slice(0, 2)) {
-    const band = Math.floor(g.progressPct / 10) * 10;
-    out.push({
+  // One memory per goal per finished month, from what was saved by the END of
+  // that month. Money added afterwards doesn't change it, so the text is fixed
+  // and the content-hash dedupe stores it once. A goal with nothing saved yet
+  // says nothing useful and is skipped.
+  const goalMemories: MemoryCandidate[] = [];
+  for (const g of snapshot.goals) {
+    const end = g.monthEnd;
+    if (!end || end.month !== lastComplete || end.savedMinor <= 0) continue;
+    const band = end.progressPct >= 100 ? 100 : Math.floor(end.progressPct / 10) * 10;
+    const status =
+      end.onTrack === false ? " and behind schedule" : end.onTrack === true ? " and on track" : "";
+    goalMemories.push({
       category: "memory_financial",
       kind: "goal_progress",
-      label: `Goal progress · ${g.name}`,
+      label: `Goal progress · ${g.name} · ${lastComplete}`,
       facts: {
         goal_key: g.id,
         goal_name: g.name,
         month: lastComplete,
         progress_band_pct: band,
-        on_track: g.onTrack === null ? "no_deadline" : g.onTrack ? "yes" : "no",
+        on_track: end.onTrack === null ? "no_deadline" : end.onTrack ? "yes" : "no",
       },
-      summary: `By ${lastComplete} the goal ${g.name} was at least ${band}% funded${g.onTrack === false ? " and behind schedule" : ""}.`,
+      summary:
+        band === 100
+          ? `By the end of ${lastComplete} the goal ${g.name} was fully funded.`
+          : band === 0
+            ? `By the end of ${lastComplete} the goal ${g.name} had started but was under 10% funded${status}.`
+            : `By the end of ${lastComplete} the goal ${g.name} was at least ${band}% funded${status}.`,
       observedOn,
       sourceRefs: [{ table: "savings_goals", id: g.id }],
       durability: "long_term",
     });
   }
 
-  return out.slice(0, MAX_SNAPSHOT_MEMORIES);
+  return [...out.slice(0, MAX_SNAPSHOT_MEMORIES), ...goalMemories.slice(0, MAX_GOAL_MEMORIES)];
 }
 
 const ACTION_VERB = { accepted: "Accepted", rejected: "Rejected", modified: "Changed" } as const;

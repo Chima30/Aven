@@ -9,6 +9,7 @@ import { SyncStatus } from "@/components/offline/sync-status";
 import { cn } from "@/lib/cn";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeSync } from "./theme-sync";
+import { badgeText, useNudgeBadge } from "./use-nudge-badge";
 
 export function AppShell({
   userId,
@@ -22,6 +23,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const nudgeCount = useNudgeBadge();
 
   const initials =
     displayName
@@ -63,7 +65,7 @@ export function AppShell({
         >
           <Logo />
         </Link>
-        <SidebarNav />
+        <SidebarNav nudgeCount={nudgeCount} />
         <div className="border-line mt-auto flex flex-col gap-1 border-t pt-3">
           {account}
           <SignOutButton className="w-full justify-start" />
@@ -82,9 +84,17 @@ export function AppShell({
             onClick={() => setMenuOpen((o) => !o)}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
-            className="text-ink hover:bg-surface-muted flex size-10 items-center justify-center rounded-xl transition-colors"
+            className="text-ink hover:bg-surface-muted relative flex size-10 items-center justify-center rounded-xl transition-colors"
           >
             <span className="sr-only">{menuOpen ? "Close menu" : "Open menu"}</span>
+            {!menuOpen && nudgeCount > 0 ? (
+              <span
+                aria-hidden="true"
+                className="bg-accent text-accent-fg absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[0.625rem] leading-none font-semibold tabular-nums"
+              >
+                {badgeText(nudgeCount)}
+              </span>
+            ) : null}
             <svg
               viewBox="0 0 24 24"
               className="size-5"
@@ -105,7 +115,7 @@ export function AppShell({
           "bg-canvas animate-menu-in fixed inset-x-0 top-14 bottom-0 z-20 overflow-y-auto px-4 py-4 lg:hidden",
         )}
       >
-        <SidebarNav onNavigate={() => setMenuOpen(false)} />
+        <SidebarNav onNavigate={() => setMenuOpen(false)} nudgeCount={nudgeCount} />
         <div className="border-line mt-6 flex flex-col gap-2 border-t pt-4">
           {account}
           <SignOutButton variant="secondary" />

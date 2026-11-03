@@ -37,6 +37,19 @@ export interface GoalInput {
   targetDate: string | null;
   savedMinor: number;
   status: "active" | "paused" | "completed" | "archived";
+  /**
+   * The goal's contributions and withdrawals. Used to work out how much was
+   * saved at the end of a finished month; without them no month-end figure
+   * is reported.
+   */
+  entries?: GoalEntryInput[];
+}
+
+export interface GoalEntryInput {
+  kind: "contribution" | "withdrawal";
+  amountMinor: number;
+  /** YYYY-MM-DD */
+  occurredOn: string;
 }
 
 export interface FinanceInput {
@@ -106,6 +119,18 @@ export interface GoalStat {
   monthsLeft: number | null;
   requiredMonthlyMinor: number | null;
   onTrack: boolean | null;
+  /**
+   * Where the goal stood at the end of the last complete month, from dated
+   * entries only. Fixed once the month is over, so it is safe to remember.
+   */
+  monthEnd: GoalMonthEnd | null;
+}
+
+export interface GoalMonthEnd {
+  month: string;
+  savedMinor: number;
+  progressPct: number;
+  onTrack: boolean | null;
 }
 
 export interface FinancialSnapshot {
@@ -149,6 +174,41 @@ export function monthsBetween(from: string, to: string): number {
   const [fy, fm] = from.split("-").map(Number) as [number, number];
   const [ty, tm] = to.split("-").map(Number) as [number, number];
   return ty * 12 + tm - (fy * 12 + fm);
+}
+
+/**
+ * How much a goal held at the end of `month`, counting only entries dated in
+ * or before that month. "On track" is judged from that moment too: what was
+ * left, the months remaining after it, and average saving over complete
+ * months. Nothing here moves when money is added later, so the figure for a
+ * finished month never changes.
+ */
+export function goalAtMonthEnd(
+  goal: GoalInput,
+  month: string | undefined,
+  avgNetMinor: number | null,
+): GoalMonthEnd | null {
+  if (!month || !goal.entries) return null;
+  const last = `${month}-31`;
+  let saved = 0;
+  for (const e of goal.entries) {
+    if (e.occurredOn > last) continue;
+    saved += e.kind === "contribution" ? e.amountMinor : -e.amountMinor;
+  }
+  saved = Math.max(0, saved);
+  const remaining = Math.max(0, goal.targetMinor - saved);
+  let onTrack: boolean | null = null;
+  if (goal.targetDate) {
+    const left = Math.max(0, monthsBetween(month, monthKey(goal.targetDate)));
+    const required = left > 0 ? Math.ceil(remaining / left) : remaining;
+    onTrack = remaining === 0 ? true : avgNetMinor !== null && avgNetMinor >= required;
+  }
+  return {
+    month,
+    savedMinor: saved,
+    progressPct: Math.min(100, Math.floor((saved / goal.targetMinor) * 100)),
+    onTrack,
+  };
 }
 
 export function daysInMonthOf(month: string): number {
@@ -495,6 +555,7 @@ export function analyzeFinances(input: FinanceInput): FinancialSnapshot {
         monthsLeft,
         requiredMonthlyMinor: requiredMonthly,
         onTrack,
+        monthEnd: goalAtMonthEnd(g, completeMonths.at(-1), savings.avgNetMinor),
       };
     });
 

@@ -74,3 +74,45 @@ export async function markAllReadAction(): Promise<FormState> {
   revalidatePath("/nudges", "layout");
   return { status: "success", message: "All caught up." };
 }
+
+/**
+ * Records that the user has opened the Nudge Center, which clears the unread
+ * count in the sidebar. Individual notifications keep their own read state.
+ */
+export async function markNudgesSeenAction(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const supabase = await createClient();
+  await supabase
+    .from("notification_preferences")
+    .update({ nudges_seen_at: new Date().toISOString() })
+    .eq("user_id", user.id);
+}
+
+/**
+ * Unread notifications delivered since the user last opened the Nudge Center.
+ * Read on the server (same origin) and limited to the user's own rows by RLS.
+ */
+export async function getNudgeBadgeAction(): Promise<number> {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+  const supabase = await createClient();
+  const { data: prefs } = await supabase
+    .from("notification_preferences")
+    .select("nudges_seen_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  let query = supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "delivered")
+    .is("dismissed_at", null)
+    .is("read_at", null);
+  if (prefs?.nudges_seen_at) {
+    // Normalised to "…Z" so no "+00:00" offset has to survive the query string.
+    query = query.gt("delivered_at", new Date(prefs.nudges_seen_at).toISOString());
+  }
+  const { count, error } = await query;
+  return error ? 0 : (count ?? 0);
+}

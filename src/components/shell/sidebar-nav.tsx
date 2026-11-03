@@ -5,8 +5,16 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "./nav-config";
 import { NavIcon } from "./nav-icon";
+import { badgeText } from "./use-nudge-badge";
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarNav({
+  onNavigate,
+  nudgeCount = 0,
+}: {
+  onNavigate?: () => void;
+  /** New unread notifications since the Nudge Center was last opened. */
+  nudgeCount?: number;
+}) {
   const pathname = usePathname();
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
@@ -30,7 +38,16 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 name={item.icon}
                 className={cn("size-4", active ? "text-ink" : "text-ink-subtle")}
               />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.icon === "nudges" && nudgeCount > 0 ? (
+                <span
+                  data-testid="nudge-badge"
+                  className="bg-accent text-accent-fg ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[0.6875rem] leading-none font-semibold tabular-nums"
+                >
+                  {badgeText(nudgeCount)}
+                  <span className="sr-only"> new notifications</span>
+                </span>
+              ) : null}
             </Link>
           );
         }

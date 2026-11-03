@@ -240,6 +240,8 @@ export type NotificationPreferencesRow = {
   email_enabled: boolean;
   /** What email carries when enabled: summaries + important nudges, or everything. */
   email_mode: "summaries" | "all";
+  /** When the user last opened the Nudge Center (drives the unread badge). */
+  nudges_seen_at: string | null;
   push_enabled: boolean;
   daily_digest_enabled: boolean;
   daily_digest_time: string;
