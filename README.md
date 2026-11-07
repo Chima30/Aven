@@ -1,16 +1,16 @@
 # AVEN
 
-**Money, plans and habits, kept together. A personal companion that remembers what you decided, and learns from it.**
+Most apps track what you do, but they don't remember what you decide. That's why they often keep giving you the same advice, even after you've turned it down.
 
-AVEN brings personal finance, planning, habits, wellbeing and long-term contextual memory into one application.
+AVEN is a personal companion that brings your finances, daily plans and wellbeing into one place. It helps you manage your accounts, track spending, set budgets and savings goals, plan your day, build habits and keep an eye on things like sleep, water intake, meals, activity and mood.
 
-It helps you manage accounts, understand spending, set budgets and savings goals, plan your days, build habits and keep track of sleep, water, meals, activity and mood. Recommendations, reminders and suggestions are based on what you actually record.
+It also pays attention to the information you enter and uses it to make suggestions that are relevant to your routines and goals.
 
-But AVEN goes beyond tracking.
+The difference is that AVEN remembers your decisions. You can accept a recommendation, turn it down or adjust it to something that works better for you. With your permission, these decisions and useful patterns from your finances, planning and wellbeing are saved as encrypted long-term memories on Walrus Memory.
 
-When AVEN makes a recommendation, you can accept it, decline it or change it. With your consent, those decisions, and patterns from your planning and wellbeing, become encrypted long-term memories stored on Walrus Memory. When a relevant recommendation or suggestion comes up later, AVEN recalls that context and adapts.
+Here's a simple example: if AVEN suggests cutting your entertainment spending by 10% and you turn it down, it can suggest 5% instead next time. If you choose a different amount, it remembers your choice. If you keep rejecting the same suggestion, it stops bringing it up. The same applies to your daily routine. If you usually complete a habit in the evening but your reminder is set for the morning, AVEN can suggest changing the reminder time.
 
-For example, if AVEN suggests reducing spending in a category by 10% and you decline, that outcome shapes the next recommendation. If you choose a different amount, AVEN remembers it. If you keep declining a suggestion, AVEN stops asking. If you usually complete a habit in the evening but your reminder is set for the morning, AVEN can suggest moving it.
+You stay in control of what AVEN remembers, and its suggestions can change as your needs and routines change.
 
 The goal is a companion that learns from your decisions instead of repeating the same advice.
 
@@ -31,13 +31,13 @@ The deployed app stores and recalls real memories on Walrus Mainnet through the 
 
 
 
-_15 memories stored on Walrus (budgeting style, goal progress, savings target and more), each with its blob id, plus Correct and Forget controls._
+_Walrus relayer connected in production mode and accepting writes; Sui Mainnet connected via Tatum gRPC with the latest checkpoint and epoch._
 
 <img width="1359" height="629" alt="image" src="https://github.com/user-attachments/assets/9d135076-9752-46ce-8c51-3e2b77f16fef" />
 
 
 
-_Walrus relayer connected in production mode and accepting writes; Sui Mainnet connected via Tatum gRPC with the latest checkpoint and epoch._
+_15 memories stored on Walrus (budgeting style, goal progress, savings target and more), each with its blob id, plus Correct and Forget controls._
 
 ---
 
