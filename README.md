@@ -20,7 +20,6 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 <img width="1359" height="629" alt="image" src="https://github.com/user-attachments/assets/1fa3d37a-1be1-45ec-96ef-32fe70c1b19d" />
 
-
 ---
 
 ## Live on Walrus Mainnet
@@ -29,13 +28,9 @@ The deployed app stores and recalls real memories on Walrus Mainnet through the 
 
 <img width="1365" height="629" alt="image" src="https://github.com/user-attachments/assets/56309e10-7168-4844-a828-27f05448b810" />
 
-
-
 _Walrus relayer connected in production mode and accepting writes; Sui Mainnet connected via Tatum gRPC with the latest checkpoint and epoch._
 
 <img width="1359" height="629" alt="image" src="https://github.com/user-attachments/assets/9d135076-9752-46ce-8c51-3e2b77f16fef" />
-
-
 
 _15 memories stored on Walrus (budgeting style, goal progress, savings target and more), each with its blob id, plus Correct and Forget controls._
 

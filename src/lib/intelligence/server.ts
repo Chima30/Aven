@@ -28,6 +28,25 @@ export const RECALL_QUERIES = [
   "overspent category budget budgeting style subscription recurring expense",
 ] as const;
 
+/**
+ * How long the Insights page waits for Walrus before showing suggestions
+ * without memory history. Recall normally takes a second or two; a slow
+ * relayer or aggregator must not leave the page hanging.
+ */
+export const RECALL_TIMEOUT_MS = 8_000;
+
+class RecallTimeoutError extends Error {
+  override name = "RecallTimeoutError";
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new RecallTimeoutError()), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 const PAGE = 1000;
 const MAX_ROWS = 5000;
 
@@ -204,16 +223,19 @@ export async function runIntelligence(
   }
   if (runtime.available && memory.state === "active") {
     try {
-      recalled = await recallForRecommendations(runtime, userId);
+      recalled = await withTimeout(recallForRecommendations(runtime, userId), RECALL_TIMEOUT_MS);
       memory = { state: "active", recalled: recalled.length };
     } catch (error) {
+      const timedOut = error instanceof RecallTimeoutError;
       console.error(
         "[intelligence] Walrus recall failed:",
         error instanceof Error ? error.name : "error",
       );
       memory = {
         state: "error",
-        message: "Walrus Memory couldn't be reached, so these suggestions don't use your history.",
+        message: timedOut
+          ? "Walrus Memory is slow to respond right now, so these suggestions don't use your history. Refresh in a moment to try again."
+          : "Walrus Memory couldn't be reached, so these suggestions don't use your history.",
       };
     }
   }
