@@ -4,8 +4,10 @@ import { OfflineQuickAdd } from "./offline-quick-add";
 import { ReloadButton } from "./reload-button";
 
 export const metadata: Metadata = { title: "You're offline" };
-// Static so the service worker can cache it; contains no personal data.
-export const dynamic = "force-static";
+// Rendered per request so its scripts carry that request's CSP nonce. The
+// service worker caches the response (page and policy together), and the page
+// contains no personal data.
+export const dynamic = "force-dynamic";
 
 export default function OfflinePage() {
   return (

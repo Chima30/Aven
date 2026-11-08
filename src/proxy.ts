@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthPage, isProtectedPath } from "@/lib/auth/routes";
+import { buildCsp, createNonce } from "@/lib/security/csp";
 import { DEFAULT_AFTER_SIGN_IN } from "@/lib/security/redirects";
 
 /**
@@ -11,10 +12,24 @@ import { DEFAULT_AFTER_SIGN_IN } from "@/lib/security/redirects";
  *   3. Send signed-in users away from the sign-in/sign-up pages.
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  // A fresh script nonce per request. Next.js reads the policy from the request
+  // headers and stamps the nonce on its own scripts; the browser gets the same
+  // policy on the response.
+  const csp = buildCsp(createNonce(), {
+    isDev: process.env.NODE_ENV !== "production",
+    supabaseUrl: url,
+  });
+  const next = () => {
+    const headers = new Headers(request.headers);
+    headers.set("content-security-policy", csp);
+    const res = NextResponse.next({ request: { headers } });
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
+  let response = next();
   if (!url || !key) {
     // Misconfigured deployment: fail closed for protected pages.
     if (isProtectedPath(request.nextUrl.pathname)) {
@@ -30,7 +45,7 @@ export async function proxy(request: NextRequest) {
       },
       setAll(cookiesToSet, headers) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-        response = NextResponse.next({ request });
+        response = next();
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
@@ -69,6 +84,8 @@ export async function proxy(request: NextRequest) {
 /** Carry refreshed auth cookies over to a redirect response. */
 function withCookies(target: NextResponse, source: NextResponse): NextResponse {
   for (const cookie of source.cookies.getAll()) target.cookies.set(cookie);
+  const csp = source.headers.get("Content-Security-Policy");
+  if (csp) target.headers.set("Content-Security-Policy", csp);
   return target;
 }
 

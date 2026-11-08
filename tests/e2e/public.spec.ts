@@ -5,6 +5,44 @@ import { expect, test } from "@playwright/test";
  * placeholder Supabase URL, so they never touch a real database.
  */
 
+test.describe("content security policy", () => {
+  test("allows only this request's scripts, and pages still work", async ({ page }) => {
+    const violations: string[] = [];
+    page.on("console", (m) => {
+      if (/Content Security Policy/i.test(m.text())) violations.push(m.text());
+    });
+    const first = await page.goto("/");
+    const csp = first?.headers()["content-security-policy"] ?? "";
+    const script = csp.split(";").find((d) => d.trim().startsWith("script-src")) ?? "";
+    expect(script).toMatch(/'nonce-[A-Za-z0-9+/=]{16,}'/);
+    expect(script).not.toContain("unsafe-inline");
+
+    // A new nonce each time.
+    const second = await page.goto("/sign-in");
+    expect(second?.headers()["content-security-policy"]).not.toBe(csp);
+
+    // Next.js's own scripts carry the nonce, so the page hydrates and works.
+    await expect(page.locator("script[nonce]").first()).toBeAttached();
+    await page.getByLabel("Email").fill("someone@example.com");
+    await expect(page.getByLabel("Email")).toHaveValue("someone@example.com");
+
+    // No legitimate script was blocked.
+    expect(violations).toEqual([]);
+
+    // Injected markup (the usual XSS route) can't run code.
+    const ran = await page.evaluate(async () => {
+      const w = window as unknown as { injected?: boolean };
+      w.injected = false;
+      const box = document.createElement("div");
+      box.innerHTML = '<img src="/x-missing.png" onerror="window.injected = true">';
+      document.body.appendChild(box);
+      await new Promise((r) => setTimeout(r, 300));
+      return w.injected;
+    });
+    expect(ran).toBe(false);
+  });
+});
+
 test.describe("public pages", () => {
   test("landing page explains AVEN honestly", async ({ page }) => {
     await page.goto("/");

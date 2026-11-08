@@ -2,42 +2,9 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-/**
- * Build the Supabase origins allowed by the Content Security Policy.
- * Falls back to the generic Supabase domain if the URL is not set at build time.
- */
-function supabaseOrigins(): string[] {
-  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  try {
-    if (raw) {
-      const url = new URL(raw);
-      const wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
-      return [url.origin, `${wsProtocol}//${url.host}`];
-    }
-  } catch {
-    // Invalid URL: environment validation reports this at runtime.
-  }
-  return ["https://*.supabase.co", "wss://*.supabase.co"];
-}
-
-const csp = [
-  "default-src 'self'",
-  // Next.js injects inline bootstrap scripts. A nonce-based policy is planned for Stage 8 hardening.
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigins().join(" ")}${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-].join("; ");
-
+// The Content-Security-Policy header is set per request (with a nonce) in
+// src/proxy.ts; see src/lib/security/csp.ts.
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
