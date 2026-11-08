@@ -54,6 +54,56 @@ export const EXPORT_TABLES = [
 
 export type ExportTable = (typeof EXPORT_TABLES)[number];
 
+/**
+ * Each table's primary key, used to page through it in a stable order.
+ * Supabase returns at most 1,000 rows per request, so without paging a long
+ * history would be cut off silently.
+ */
+export const EXPORT_ORDER: Record<ExportTable, readonly string[]> = {
+  profiles: ["id"],
+  user_preferences: ["user_id"],
+  notification_preferences: ["user_id"],
+  notification_category_preferences: ["user_id", "category"],
+  consent_state: ["user_id", "category"],
+  consent_records: ["id"],
+  audit_log: ["id"],
+  ai_usage_limits: ["user_id"],
+  ai_usage_daily: ["user_id", "usage_date"],
+  user_devices: ["id"],
+  sync_receipts: ["user_id", "client_mutation_id"],
+  data_export_log: ["id"],
+  financial_accounts: ["id"],
+  transaction_categories: ["id"],
+  transactions: ["id"],
+  budgets: ["id"],
+  savings_goals: ["id"],
+  savings_goal_entries: ["id"],
+  finance_events: ["id"],
+  memory_records: ["id"],
+  recommendations: ["id"],
+  sui_wallets: ["id"],
+  chain_imports: ["id"],
+  task_categories: ["id"],
+  tasks: ["id"],
+  calendar_events: ["id"],
+  calendar_event_exceptions: ["id"],
+  habits: ["id"],
+  habit_check_ins: ["id"],
+  reviews: ["id"],
+  planning_preferences: ["user_id"],
+  wellbeing_preferences: ["user_id"],
+  sleep_logs: ["id"],
+  water_logs: ["id"],
+  meal_logs: ["id"],
+  activity_logs: ["id"],
+  mood_logs: ["id"],
+  life_events: ["id"],
+  notifications: ["id"],
+};
+
+/** Rows per request: Supabase's default response cap. */
+export const EXPORT_PAGE_SIZE = 1000;
+
 export const EXPORT_FORMAT_VERSION = "aven-export/1";
 
 export interface AvenExport {
@@ -72,11 +122,7 @@ export interface AvenExport {
 
 export async function buildUserExport(supabase: ServerSupabase, user: User): Promise<AvenExport> {
   const results = await Promise.all(
-    EXPORT_TABLES.map(async (table) => {
-      const { data, error } = await supabase.from(table).select("*");
-      if (error) throw new Error(`Export failed while reading ${table}.`);
-      return [table, data ?? []] as const;
-    }),
+    EXPORT_TABLES.map(async (table) => [table, await readAllRows(supabase, table)] as const),
   );
 
   return {
@@ -102,4 +148,17 @@ export async function buildUserExport(supabase: ServerSupabase, user: User): Pro
       "memory_records.pending_text is only present for memories still being written; it is erased once Walrus confirms them.",
     ],
   };
+}
+
+/** Every row of one table, page by page, in primary-key order. */
+async function readAllRows(supabase: ServerSupabase, table: ExportTable): Promise<unknown[]> {
+  const rows: unknown[] = [];
+  for (let offset = 0; ; offset += EXPORT_PAGE_SIZE) {
+    let query = supabase.from(table).select("*");
+    for (const column of EXPORT_ORDER[table]) query = query.order(column, { ascending: true });
+    const { data, error } = await query.range(offset, offset + EXPORT_PAGE_SIZE - 1);
+    if (error) throw new Error(`Export failed while reading ${table}.`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < EXPORT_PAGE_SIZE) return rows;
+  }
 }

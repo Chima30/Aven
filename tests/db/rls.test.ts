@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { EXPORT_TABLES } from "@/lib/data/export";
+import { EXPORT_ORDER, EXPORT_TABLES } from "@/lib/data/export";
 import { CURRENCIES } from "@/lib/money/currencies";
 import {
   asAnon,
@@ -277,6 +277,22 @@ describe("RLS is enabled everywhere", () => {
   it("includes every user-owned table in the data export", () => {
     for (const [table] of USER_OWNED_TABLES) {
       expect(EXPORT_TABLES as readonly string[]).toContain(table);
+    }
+  });
+
+  it("pages each exported table by its primary key", async () => {
+    const { rows } = await db.pool.query<{ table: string; columns: string[] }>(`
+      select c.relname as table,
+             array_agg(a.attname::text order by array_position(i.indkey::int2[], a.attnum)) as columns
+      from pg_index i
+      join pg_class c on c.oid = i.indrelid
+      join pg_namespace n on n.oid = c.relnamespace
+      join pg_attribute a on a.attrelid = c.oid and a.attnum = any(i.indkey)
+      where i.indisprimary and n.nspname = 'public'
+      group by c.relname`);
+    const keys = new Map(rows.map((r) => [r.table, r.columns]));
+    for (const table of EXPORT_TABLES) {
+      expect([table, EXPORT_ORDER[table]]).toEqual([table, keys.get(table)]);
     }
   });
 
