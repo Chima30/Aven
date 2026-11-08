@@ -73,33 +73,49 @@ export default async function LandingPage({
     <>
       {params.account_deleted === "1" ? <AccountDeletedNotice /> : null}
 
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-16 pb-24 sm:px-8 md:pt-24 lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
-          <h1 className="type-display text-ink">Money, plans and habits, kept together</h1>
-          <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed">
-            Track your accounts and budgets, plan your days, and log sleep, water and mood. AVEN
-            connects them, and remembers only what you allow.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
-            <ButtonLink href="/sign-up" size="lg">
-              Create your account
-            </ButtonLink>
-            <ButtonLink href="#roadmap" size="lg" variant="secondary">
-              What&apos;s inside
-            </ButtonLink>
+      <section className="ambient overflow-x-clip">
+        <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 pt-14 pb-24 sm:px-8 md:pt-24 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="border-line bg-surface/60 text-ink-muted mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
+              <span
+                aria-hidden="true"
+                className="bg-accent size-1.5 rounded-full shadow-[0_0_8px_var(--accent)]"
+              />
+              Personal finance and life, in one calm place
+            </p>
+            <h1 className="type-display text-ink">Money, plans and habits, kept together</h1>
+            <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed">
+              Track your accounts and budgets, plan your days, and log sleep, water and mood. AVEN
+              connects them, and remembers only what you allow.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <ButtonLink href="/sign-up" size="lg">
+                Create your account
+              </ButtonLink>
+              <ButtonLink href="#roadmap" size="lg" variant="secondary">
+                What&apos;s inside
+              </ButtonLink>
+            </div>
+            <p className="text-ink-subtle mt-5 text-sm">Works in any currency, from NGN to USD</p>
           </div>
-          <p className="text-ink-subtle mt-5 text-sm">Works in any currency, from NGN to USD</p>
+          <AppPreview />
         </div>
-        <AppPreview />
       </section>
 
-      <section className="border-line bg-surface border-y">
+      <section className="border-line bg-surface/60 border-y">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
           <h2 className="type-page max-w-2xl text-[2rem]">What AVEN does</h2>
-          <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {CONNECTIONS.map((item) => (
-              <div key={item.title}>
-                <div className="bg-line-strong mb-4 h-px w-10" />
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {CONNECTIONS.map((item, i) => (
+              <div
+                key={item.title}
+                className="border-line bg-canvas/40 shadow-elev-1 lift rounded-2xl border p-6"
+              >
+                <div
+                  aria-hidden="true"
+                  className="mb-5 h-px w-10"
+                  style={{ background: `var(--chart-${(i % 6) + 1})` }}
+                />
                 <h3 className="type-section">{item.title}</h3>
                 <p className="text-ink-muted mt-2 text-sm leading-relaxed">{item.body}</p>
               </div>
@@ -117,7 +133,7 @@ export default async function LandingPage({
               never asks for bank passwords, PINs or one-time codes, and it never moves money.
             </p>
           </div>
-          <dl className="border-line bg-line grid gap-px overflow-hidden rounded-2xl border sm:grid-cols-2">
+          <dl className="border-line bg-line shadow-elev-2 grid gap-px overflow-hidden rounded-2xl border sm:grid-cols-2">
             {PRINCIPLES.map((p) => (
               <div key={p.title} className="bg-surface p-6">
                 <dt className="text-ink font-medium">{p.title}</dt>
@@ -128,16 +144,18 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section id="roadmap" className="border-line bg-surface scroll-mt-20 border-t">
+      <section id="roadmap" className="border-line bg-surface/60 scroll-mt-20 border-t">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
           <h2 className="type-page text-[2rem]">What works today, and what comes next</h2>
-          <ul className="divide-line border-line mt-10 divide-y rounded-2xl border">
+          <ul className="divide-line border-line bg-canvas/40 shadow-elev-1 mt-10 divide-y rounded-2xl border">
             {FEATURES.map((f) => (
               <li key={f.title} className="flex items-center gap-4 px-5 py-4 sm:px-6">
                 <span
                   aria-hidden="true"
                   className={
-                    f.ready ? "bg-accent size-2 rounded-full" : "bg-line-strong size-2 rounded-full"
+                    f.ready
+                      ? "bg-accent size-2 rounded-full shadow-[0_0_8px_var(--accent)]"
+                      : "bg-line-strong size-2 rounded-full"
                   }
                 />
                 <span className="text-ink flex-1 text-sm">{f.title}</span>
@@ -145,7 +163,7 @@ export default async function LandingPage({
               </li>
             ))}
           </ul>
-          <div className="border-line bg-panel mt-12 flex flex-col items-start justify-between gap-6 rounded-2xl border px-6 py-8 sm:flex-row sm:items-center sm:px-10">
+          <div className="hero-surface border-line-strong edge-light mt-12 flex flex-col items-start justify-between gap-6 rounded-2xl border px-6 py-8 sm:flex-row sm:items-center sm:px-10">
             <div>
               <h3 className="text-ink text-xl font-medium">Set up in a few minutes</h3>
               <p className="text-ink-muted mt-1 text-sm">

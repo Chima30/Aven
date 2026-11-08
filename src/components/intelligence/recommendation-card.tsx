@@ -37,7 +37,10 @@ export function RecommendationCard({ rec }: { rec: RecommendationView }) {
   const done = state.status === "success" || rec.status !== "open";
 
   return (
-    <li className="border-line bg-surface rounded-2xl border p-5" data-testid="recommendation">
+    <li
+      className="border-line bg-surface shadow-elev-1 rounded-2xl border p-5"
+      data-testid="recommendation"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="accent">{rec.kindLabel}</Badge>
         {rec.memoryInfluence.length > 0 ? <Badge tone="info">Shaped by your memory</Badge> : null}

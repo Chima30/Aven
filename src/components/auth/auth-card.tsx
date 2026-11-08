@@ -13,7 +13,7 @@ export function AuthCard({
 }) {
   return (
     <div>
-      <div className="border-line bg-surface rounded-2xl border p-6 shadow-[0_1px_3px_rgb(var(--shadow)/0.05)] sm:p-8">
+      <div className="glass edge-light rounded-[1.375rem] p-6 sm:p-8">
         <h1 className="type-page">{title}</h1>
         {description ? <p className="text-ink-muted mt-2 text-sm">{description}</p> : null}
         <div className="mt-7">{children}</div>

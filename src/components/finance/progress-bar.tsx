@@ -17,12 +17,12 @@ export function ProgressBar({
   const clamped = Math.max(0, Math.min(100, percent));
   const color =
     tone === "goal"
-      ? "bg-accent"
+      ? "bg-[linear-gradient(90deg,var(--aurora),var(--accent))]"
       : percent > 100
         ? "bg-danger"
         : percent >= warnAt
           ? "bg-warning"
-          : "bg-accent";
+          : "bg-[linear-gradient(90deg,color-mix(in_srgb,var(--accent)_70%,transparent),var(--accent))]";
   return (
     <div
       role="progressbar"
@@ -31,9 +31,12 @@ export function ProgressBar({
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped)}
       aria-valuetext={`${Math.round(percent)}%`}
-      className={cn("bg-surface-muted h-2 w-full overflow-hidden rounded-full", className)}
+      className={cn(
+        "bg-surface-muted h-2 w-full overflow-hidden rounded-full shadow-[inset_0_1px_1px_rgb(0_0_0/0.2)]",
+        className,
+      )}
     >
-      <div className={cn("h-full rounded-full", color)} style={{ width: `${clamped}%` }} />
+      <div className={cn("bar-grow h-full rounded-full", color)} style={{ width: `${clamped}%` }} />
     </div>
   );
 }

@@ -51,7 +51,10 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
 
   return (
     <figure className="fade-area relative">
-      <div className="relative" onMouseLeave={() => setActive(null)}>
+      <div
+        className="chart-grid relative rounded-xl [background-position:center]"
+        onMouseLeave={() => setActive(null)}
+      >
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="h-[220px] w-full overflow-visible"
@@ -68,18 +71,6 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
               <stop offset="100%" stopColor="var(--ink-muted)" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {[0.25, 0.5, 0.75, 1].map((t) => (
-            <line
-              key={t}
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={PAD.top + innerH * (1 - t)}
-              y2={PAD.top + innerH * (1 - t)}
-              stroke="var(--line)"
-              strokeDasharray="3 5"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
           <path d={area(expensePath)} fill={`url(#exp-${gid})`} />
           <path d={area(incomePath)} fill={`url(#inc-${gid})`} />
           <path
@@ -93,7 +84,17 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
             d={incomePath}
             fill="none"
             stroke="var(--accent)"
+            strokeOpacity="0.18"
+            strokeWidth="8"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={incomePath}
+            fill="none"
+            stroke="var(--accent)"
             strokeWidth="2.25"
+            strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
           {a !== null && active !== null ? (
@@ -102,11 +103,34 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
               x2={x(active)}
               y1={PAD.top}
               y2={base}
-              stroke="var(--ink-subtle)"
+              stroke="var(--accent)"
+              strokeOpacity="0.5"
+              strokeDasharray="2 4"
               vectorEffect="non-scaling-stroke"
             />
           ) : null}
         </svg>
+        {/* Markers in HTML so they stay round while the SVG stretches. */}
+        {a && active !== null ? (
+          <>
+            <span
+              aria-hidden="true"
+              className="border-surface bg-ink-muted pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+              style={{
+                left: `${(x(active) / W) * 100}%`,
+                top: `${(y(a.expense) / H) * 100}%`,
+              }}
+            />
+            <span
+              aria-hidden="true"
+              className="border-surface bg-accent pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_25%,transparent),0_0_14px_var(--accent)]"
+              style={{
+                left: `${(x(active) / W) * 100}%`,
+                top: `${(y(a.income) / H) * 100}%`,
+              }}
+            />
+          </>
+        ) : null}
         {/* Hit areas: one column per month (mouse and keyboard). */}
         <div className="absolute inset-0 flex" style={{ paddingLeft: 0, paddingRight: 0 }}>
           {data.map((d, i) => (
@@ -124,8 +148,11 @@ export function CashflowArea({ data, caption }: { data: CashflowPoint[]; caption
         </div>
         {a && active !== null ? (
           <div
-            className="border-line bg-surface/95 pointer-events-none absolute top-2 z-10 min-w-44 -translate-x-1/2 rounded-xl border px-3 py-2 text-xs shadow-xl backdrop-blur"
-            style={{ left: `${(x(active) / W) * 100}%` }}
+            className="glass pointer-events-none absolute top-2 z-10 min-w-44 rounded-xl px-3 py-2 text-xs"
+            style={{
+              left: `${(x(active) / W) * 100}%`,
+              translate: active === 0 ? "0 0" : active === data.length - 1 ? "-100% 0" : "-50% 0",
+            }}
             role="status"
           >
             <p className="text-ink-muted">{a.label}</p>

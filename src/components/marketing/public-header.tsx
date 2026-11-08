@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui/button";
 
 export function PublicHeader() {
   return (
-    <header className="border-line/70 bg-canvas/85 sticky top-0 z-30 border-b backdrop-blur">
+    <header className="border-line/70 bg-canvas/70 sticky top-0 z-30 border-b backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link href="/" aria-label="AVEN home" className="rounded-lg">
           <Logo />

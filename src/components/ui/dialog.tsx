@@ -44,11 +44,11 @@ export function Dialog({
         onClose();
       }}
       className={cn(
-        "border-line bg-surface text-ink m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border p-0 shadow-2xl",
+        "border-line-strong bg-surface text-ink shadow-elev-3 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-2xl border p-0",
         className,
       )}
     >
-      <div className="p-6">
+      <div className="p-5 sm:p-6">
         <h2 id={titleId} className="type-section">
           {title}
         </h2>

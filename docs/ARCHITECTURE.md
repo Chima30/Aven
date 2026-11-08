@@ -128,11 +128,25 @@ Browser ──► proxy.ts ──► Server Component / Server Action / Route Ha
 
 ## 5. UI system
 
-Design tokens live in `src/app/globals.css` (deep navy, warm off-white, restrained green; light,
-dark and system themes). Theme preference is saved in the database and mirrored in a cookie so
-pages render in the right theme without a flash. Components are accessible by default: real
-form controls, labels wired to hints/errors, native `<dialog>`, focus rings, skip link, reduced
-motion support. Unbuilt sections appear in navigation as non-clickable "Later" labels.
+Design tokens live in `src/app/globals.css`: near-black graphite surfaces in three steps
+(`canvas`, `surface`, `surface-raised`), one green accent for money and progress, a violet
+`aurora` secondary for highlights, elevation shadows (`shadow-elev-1..3`) and six chart colours
+(`--chart-1..6`, validated for colour-blind separation in both themes). Light, dark and system
+themes are all supported. Theme preference is saved in the database and mirrored in a cookie so
+pages render in the right theme without a flash.
+
+Surfaces are used deliberately, not everywhere: `Card` has `default`, `hero` (the page's lead
+panel, with a soft glow), `glass` (frosted, for one or two floating panels) and `inset`
+variants. Section tabs share one component (`components/ui/section-nav.tsx`). On phones a
+bottom tab bar (`components/shell/mobile-tab-bar.tsx`) holds the four main sections plus
+"More", which opens the full menu.
+
+Motion is short and purposeful: one page fade (`app/(app)/template.tsx`), bars and rings that
+grow in once, quick hover lifts and dialog entrances. Everything is switched off under
+`prefers-reduced-motion`, and nothing is ever left below full opacity (checked by
+`tests/e2e/motion.spec.ts`). Components are accessible by default: real form controls, labels
+wired to hints/errors, native `<dialog>`, focus rings, skip link, and a visually hidden table
+behind every chart.
 
 ## 6. Offline-first
 

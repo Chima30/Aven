@@ -6,12 +6,15 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "accent";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors duration-150 select-none disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-[background-color,border-color,color,box-shadow,opacity,scale] duration-150 select-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-fg hover:bg-primary-hover",
-  accent: "bg-accent text-accent-fg hover:opacity-90",
-  secondary: "border border-line-strong bg-surface text-ink hover:bg-surface-muted",
+  primary:
+    "bg-primary text-primary-fg hover:bg-primary-hover shadow-[inset_0_1px_0_rgb(255_255_255/0.5),0_1px_2px_rgb(0_0_0/0.3)]",
+  accent:
+    "bg-accent text-accent-fg hover:opacity-90 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_6px_20px_-8px_var(--accent)]",
+  secondary:
+    "border border-line-strong bg-surface-raised text-ink hover:bg-surface-muted shadow-elev-1",
   ghost: "text-ink-muted hover:bg-surface-muted hover:text-ink",
   danger: "bg-danger text-canvas hover:opacity-90",
 };

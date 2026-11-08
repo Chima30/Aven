@@ -24,7 +24,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-px text-xs whitespace-nowrap",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
         badgeTones[tone],
         className,
       )}
@@ -62,7 +62,11 @@ export function Alert({
   return (
     <div
       role={tone === "danger" ? "alert" : "status"}
-      className={cn("flex gap-3 rounded-xl border px-4 py-3 text-sm", alertTones[tone], className)}
+      className={cn(
+        "shadow-elev-1 flex gap-3 rounded-xl border px-4 py-3 text-sm",
+        alertTones[tone],
+        className,
+      )}
     >
       <svg
         viewBox="0 0 20 20"
@@ -103,15 +107,11 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "border-line-strong flex flex-col items-center rounded-2xl border border-dashed px-6 py-10 text-center",
+        "border-line-strong bg-surface/40 flex flex-col items-center rounded-2xl border border-dashed px-6 py-10 text-center",
         className,
       )}
     >
-      {icon ? (
-        <div className="bg-surface-muted text-ink-muted mb-4 flex size-11 items-center justify-center rounded-xl">
-          {icon}
-        </div>
-      ) : null}
+      {icon ? <div className="icon-tile text-ink-muted mb-4 size-11">{icon}</div> : null}
       <h3 className="type-section text-ink">{title}</h3>
       <p className="text-ink-muted mt-1.5 max-w-md text-sm">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
@@ -120,12 +120,7 @@ export function EmptyState({
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden="true"
-      className={cn("bg-surface-muted animate-pulse rounded-lg", className)}
-    />
-  );
+  return <div aria-hidden="true" className={cn("skeleton rounded-lg", className)} />;
 }
 
 export function FormMessage({ state }: { state: { status: string; message?: string } }) {

@@ -53,7 +53,7 @@ function Ready({ userId, data }: { userId: string; data: CachedReferenceData }) 
   const pending = useTransactionOutbox(userId);
   return (
     <section
-      className="border-line bg-surface mt-10 w-full rounded-2xl border p-5 text-left sm:p-6"
+      className="border-line bg-surface shadow-elev-1 mt-10 w-full rounded-2xl border p-5 text-left sm:p-6"
       aria-labelledby="offline-add"
     >
       <h2 id="offline-add" className="type-section">

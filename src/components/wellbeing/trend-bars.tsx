@@ -83,7 +83,7 @@ export function TrendBars({
 
 export function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="border-line bg-surface rounded-2xl border p-5">
+    <div className="border-line bg-surface shadow-elev-1 rounded-2xl border p-5">
       <p className="text-ink-muted text-sm">{label}</p>
       <p className="type-figure text-ink mt-3 text-2xl leading-tight">{value}</p>
       {sub ? <p className="text-ink-subtle mt-2 text-xs">{sub}</p> : null}

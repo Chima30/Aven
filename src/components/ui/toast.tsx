@@ -46,14 +46,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:items-end sm:px-6"
+        className="toast-region pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:items-end sm:px-6"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.tone === "error" ? "alert" : "status"}
             className={cn(
-              "bg-surface text-ink pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg",
+              "glass text-ink animate-menu-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl px-4 py-3 text-sm",
               toast.tone === "success" && "border-success/30",
               toast.tone === "error" && "border-danger/40",
               toast.tone === "info" && "border-info/30",
@@ -72,7 +72,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => dismiss(toast.id)}
-              className="text-ink-muted hover:text-ink"
+              className="text-ink-muted hover:text-ink -m-2 flex size-8 items-center justify-center rounded-lg"
               aria-label="Dismiss notification"
             >
               ×

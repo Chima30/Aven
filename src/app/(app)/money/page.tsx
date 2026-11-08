@@ -100,7 +100,7 @@ export default async function MoneyPage({
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {totals.map((t) => (
-            <Card key={t.currency} className="p-5">
+            <Card key={t.currency} variant="hero" className="p-5">
               <p className="type-eyebrow text-ink-subtle">Total in {t.currency}</p>
               <p className="mt-2 text-[1.75rem] leading-tight">
                 <MoneyAmount minor={t.totalMinor} currency={t.currency} locale={regional.locale} />

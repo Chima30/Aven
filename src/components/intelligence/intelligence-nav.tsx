@@ -1,42 +1,10 @@
-"use client";
+import { SectionNav, type SectionTab } from "@/components/ui/section-nav";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/cn";
-
-const TABS = [
+const TABS: SectionTab[] = [
   { href: "/intelligence", label: "Insights & recommendations", exact: true },
   { href: "/intelligence/memory", label: "Walrus Memory" },
 ];
 
 export function IntelligenceNav() {
-  const pathname = usePathname();
-  return (
-    <nav
-      aria-label="Intelligence"
-      className="border-line no-scrollbar -mx-4 overflow-x-auto overflow-y-hidden border-b px-4 sm:mx-0 sm:px-0"
-    >
-      <ul className="flex gap-1">
-        {TABS.map((t) => {
-          const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
-          return (
-            <li key={t.href}>
-              <Link
-                href={t.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "-mb-px block border-b-2 px-3 py-2.5 text-sm whitespace-nowrap transition-colors",
-                  active
-                    ? "border-accent text-ink font-medium"
-                    : "text-ink-muted hover:text-ink border-transparent",
-                )}
-              >
-                {t.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
+  return <SectionNav label="Intelligence" tabs={TABS} />;
 }
