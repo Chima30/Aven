@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql, 20261109000100_rate_limit_allowlist.sql
 -- =============================================================================
 
 begin;
@@ -3631,5 +3631,87 @@ where m.user_id = b.user_id
   and m.blob_id is not null;
 
 alter table public.memory_records enable trigger memory_records_guard_update;
+
+-- >>> 20261109000100_rate_limit_allowlist.sql
+-- =============================================================================
+-- Stage 10 · Rate limits: fixed list of actions, limits set by the database
+-- =============================================================================
+
+-- consume_rate_limit() used to accept any action name and any limit from the
+-- caller. Because signed-in users can call it directly, one script could create
+-- endless rows (one per made-up name) and bloat the table for everyone.
+--
+-- Now only AVEN's own actions are accepted, and each one's limit and window
+-- come from this function, not from the request. The p_max/p_window_seconds
+-- arguments are kept so existing app code keeps working, but are ignored.
+-- (Keep this list in step with RATE_LIMITS in src/lib/security/rate-limit.ts;
+-- a database test checks they match.)
+create or replace function public.consume_rate_limit(p_action text, p_max integer, p_window_seconds integer)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_max integer;
+  v_window_seconds integer;
+  v_key text;
+  v_window timestamptz;
+  v_count integer;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+
+  select l.max_hits, l.window_seconds into v_max, v_window_seconds
+  from (values
+    ('delete_account', 5, 3600),
+    ('change_password', 5, 3600),
+    ('export_data', 10, 3600),
+    ('sign_out_everywhere', 10, 3600),
+    ('sync', 120, 60),
+    ('finance_write', 120, 60),
+    ('memory_write', 60, 3600),
+    ('memory_read', 60, 600),
+    ('chain_read', 60, 600),
+    ('chain_import', 30, 3600),
+    ('wallet_change', 20, 3600),
+    ('recommendations', 30, 3600),
+    ('life_write', 120, 60),
+    ('notification_update', 120, 60),
+    ('email_test', 3, 3600)
+  ) as l(action, max_hits, window_seconds)
+  where l.action = p_action;
+
+  if v_max is null then
+    raise exception 'Unknown rate-limited action' using errcode = '22023';
+  end if;
+
+  v_key := v_user::text || ':' || p_action || ':' || v_window_seconds::text;
+  v_window := to_timestamp(floor(extract(epoch from now()) / v_window_seconds) * v_window_seconds);
+
+  insert into public.rate_limit_buckets as b (bucket_key, window_start, hit_count)
+  values (v_key, v_window, 1)
+  on conflict (bucket_key, window_start) do update set hit_count = b.hit_count + 1
+  returning hit_count into v_count;
+
+  -- Housekeeping: drop this user's expired windows.
+  delete from public.rate_limit_buckets
+  where bucket_key = v_key and window_start < v_window;
+
+  return v_count <= v_max;
+end;
+$$;
+revoke all on function public.consume_rate_limit(text, integer, integer) from public, anon;
+grant execute on function public.consume_rate_limit(text, integer, integer) to authenticated;
+
+-- Remove rows left behind by names that are no longer accepted.
+delete from public.rate_limit_buckets
+where split_part(bucket_key, ':', 2) not in (
+  'delete_account', 'change_password', 'export_data', 'sign_out_everywhere', 'sync',
+  'finance_write', 'memory_write', 'memory_read', 'chain_read', 'chain_import',
+  'wallet_change', 'recommendations', 'life_write', 'notification_update', 'email_test'
+);
 
 commit;

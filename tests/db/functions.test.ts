@@ -1,3 +1,4 @@
+import { RATE_LIMITS } from "@/lib/security/rate-limit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID, createHash } from "node:crypto";
 import {
@@ -117,31 +118,55 @@ describe("security event logging", () => {
 describe("rate limiting", () => {
   it("allows up to the limit then blocks within the window", async () => {
     const results: boolean[] = [];
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < 6; i += 1) {
       const { rows } = await asUser(db, alice, (c) =>
-        c.query<{ ok: boolean }>("select consume_rate_limit('delete_account', 3, 3600) as ok"),
+        c.query<{ ok: boolean }>("select consume_rate_limit('delete_account', 5, 3600) as ok"),
       );
       results.push(rows[0]!.ok);
     }
-    expect(results).toEqual([true, true, true, false]);
+    expect(results).toEqual([true, true, true, true, true, false]);
   });
 
   it("keeps each user's buckets separate", async () => {
     const { rows } = await asUser(db, bob, (c) =>
-      c.query<{ ok: boolean }>("select consume_rate_limit('delete_account', 3, 3600) as ok"),
+      c.query<{ ok: boolean }>("select consume_rate_limit('delete_account', 5, 3600) as ok"),
     );
     expect(rows[0]!.ok).toBe(true);
   });
 
-  it("rejects invalid parameters", async () => {
-    expect(
-      await pgErrorCode(
-        asUser(db, alice, (c) => c.query("select consume_rate_limit('Bad Action!', 3, 60)")),
-      ),
-    ).toBe("22023");
-    expect(
-      await pgErrorCode(asUser(db, alice, (c) => c.query("select consume_rate_limit('x', 0, 60)"))),
-    ).toBe("22023");
+  it("ignores a limit sent by the caller", async () => {
+    // Alice is already over the delete_account limit; asking for 1000 doesn't help.
+    const { rows } = await asUser(db, alice, (c) =>
+      c.query<{ ok: boolean }>("select consume_rate_limit('delete_account', 1000, 1) as ok"),
+    );
+    expect(rows[0]!.ok).toBe(false);
+  });
+
+  it("rejects actions that aren't AVEN's own, so no rows can be invented", async () => {
+    for (const action of ["Bad Action!", "x", "made_up_action"]) {
+      expect(
+        await pgErrorCode(
+          asUser(db, alice, (c) => c.query("select consume_rate_limit($1, 3, 60)", [action])),
+        ),
+      ).toBe("22023");
+    }
+    const { rows } = await db.pool.query<{ n: string }>(
+      "select count(*) as n from rate_limit_buckets where bucket_key like '%made_up_action%'",
+    );
+    expect(Number(rows[0]!.n)).toBe(0);
+  });
+
+  it("uses the same limits as the app", async () => {
+    const { rows } = await db.pool.query<{ def: string }>(
+      "select pg_get_functiondef('public.consume_rate_limit(text, integer, integer)'::regprocedure) as def",
+    );
+    const inDb = Object.fromEntries(
+      [...rows[0]!.def.matchAll(/\('([a-z_]+)', (\d+), (\d+)\)/g)].map((m) => [
+        m[1],
+        { max: Number(m[2]), windowSeconds: Number(m[3]) },
+      ]),
+    );
+    expect(inDb).toEqual(RATE_LIMITS);
   });
 });
 
