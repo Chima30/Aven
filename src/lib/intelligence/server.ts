@@ -7,6 +7,7 @@ import type { RecalledMemory } from "@/lib/memory/types";
 import { getCurrency, isCurrencyCode } from "@/lib/money/currencies";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import type { ServerSupabase } from "@/lib/supabase/server";
+import { fetchAllPages } from "@/lib/supabase/paging";
 import type { RecommendationRow, UserPreferencesRow } from "@/lib/supabase/database.types";
 import {
   LOOKBACK_MONTHS,
@@ -93,11 +94,16 @@ export async function loadFinanceInput(
       .from("savings_goals")
       .select("id, name, currency_code, target_minor, target_date, status"),
     supabase.from("savings_goal_progress").select("goal_id, saved_minor"),
-    supabase
-      .from("savings_goal_entries")
-      .select("goal_id, kind, amount_minor, occurred_on")
-      .order("occurred_on", { ascending: true })
-      .limit(5000),
+    // Every entry: milestones and month-end figures are replayed from them, and
+    // memories written from a partial list would be wrong for good.
+    fetchAllPages((from, to) =>
+      supabase
+        .from("savings_goal_entries")
+        .select("goal_id, kind, amount_minor, occurred_on")
+        .order("occurred_on", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
   if (categories.error || budgets.error || goals.error || progress.error || goalEntries.error) {
     throw new Error("Budgets and goals could not be loaded for analysis.");
