@@ -22,6 +22,31 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 ---
 
+## For judges: switch memory on first
+
+Every permission in AVEN starts **off**, so a new account won't remember anything until you allow it. After signing up:
+
+1. Go to **Settings → Privacy → Permissions**.
+2. Under **Long-term memory (Walrus)**, click **Allow** on all three:
+   - **Remember financial context**: budgeting style, overspent categories, savings targets and goal progress, income patterns, and how you responded to recommendations.
+   - **Remember wellbeing routines**: sleep, water, activity and mood patterns (never individual logs).
+   - **Remember planning preferences**: when you usually complete habits, your preferred time of day, and focus notes you choose to save.
+3. Under **Wellbeing information**, allow **Store wellbeing information** if you want to log sleep, water, meals, activity or mood.
+4. **Send data to the AI assistant** is optional and isn't needed for memory.
+
+You can withdraw any permission at any time, and memory can be paused in the same place.
+
+**Quick ways to see memory working:**
+
+- **Savings target:** on **Intelligence**, set a savings target and click **Save to memory**. It's written to Walrus straight away.
+- **Goal milestones:** create a savings goal under **Money**, add savings that reach 25% or more of the target, then open **Intelligence**. Each milestone (25%, 50%, 75%, 100%) is saved once.
+- **Planning:** in **Planning → Reviews**, write a focus and tick **Remember this focus in Walrus Memory**.
+- **Recommendations:** add a few income and expense transactions dated **last month**, then open **Intelligence**. Accept, change or decline a recommendation, and your decision is remembered and shapes the next one.
+
+Then open **Intelligence → Walrus Memory** to see each memory with its Walrus blob id. New writes take a few seconds to confirm; click **Check pending writes** to update them, and **Read memories back from Walrus** to load the stored text live from Walrus.
+
+---
+
 ## Live on Walrus Mainnet
 
 The deployed app stores and recalls real memories on Walrus Mainnet through the MemWal relayer, and reads Sui Mainnet through Tatum's gRPC gateway. Screenshots from the live site, 2 November 2026:
