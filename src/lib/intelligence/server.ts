@@ -48,8 +48,21 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-const PAGE = 1000;
-const MAX_ROWS = 5000;
+/**
+ * When the cap cut a list short, its oldest month is only partly there; drop
+ * it so no month is analysed from half its transactions.
+ */
+export function completeMonthsOnly<T extends { occurred_on: string }>(
+  newestFirst: T[],
+  truncated: boolean,
+): T[] {
+  if (!truncated || newestFirst.length === 0) return newestFirst;
+  const partial = newestFirst.at(-1)!.occurred_on.slice(0, 7);
+  return newestFirst.filter((r) => r.occurred_on.slice(0, 7) !== partial);
+}
+
+/** Most transactions analysed at once (newest first). */
+export const MAX_ANALYSED_TRANSACTIONS = 20_000;
 
 export async function loadFinanceInput(
   supabase: ServerSupabase,
@@ -59,31 +72,24 @@ export async function loadFinanceInput(
   const today = localToday(preferences.time_zone, now);
   const from = `${addMonths(monthKey(today), -LOOKBACK_MONTHS)}-01`;
 
-  const rows: Array<{
-    id: string;
-    kind: "income" | "expense" | "transfer";
-    amount_minor: number;
-    currency_code: string;
-    category_id: string | null;
-    occurred_on: string;
-    merchant: string | null;
-    description: string | null;
-  }> = [];
-  for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select(
-        "id, kind, amount_minor, currency_code, category_id, occurred_on, merchant, description",
-      )
-      .gte("occurred_on", from)
-      .lte("occurred_on", today)
-      .order("occurred_on", { ascending: true })
-      .order("id", { ascending: true })
-      .range(offset, offset + PAGE - 1);
-    if (error) throw new Error("Transactions could not be loaded for analysis.");
-    rows.push(...(data ?? []));
-    if (!data || data.length < PAGE) break;
-  }
+  // Newest first, so a very long history can only ever lose its OLDEST rows,
+  // never this month's.
+  const loaded = await fetchAllPages(
+    (lo, hi) =>
+      supabase
+        .from("transactions")
+        .select(
+          "id, kind, amount_minor, currency_code, category_id, occurred_on, merchant, description",
+        )
+        .gte("occurred_on", from)
+        .lte("occurred_on", today)
+        .order("occurred_on", { ascending: false })
+        .order("id", { ascending: false })
+        .range(lo, hi),
+    { max: MAX_ANALYSED_TRANSACTIONS },
+  );
+  if (loaded.error) throw new Error("Transactions could not be loaded for analysis.");
+  const rows = completeMonthsOnly(loaded.data, loaded.truncated).reverse();
 
   const [categories, budgets, goals, progress, goalEntries] = await Promise.all([
     supabase.from("transaction_categories").select("id, name"),

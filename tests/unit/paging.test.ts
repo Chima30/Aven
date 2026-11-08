@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SUPABASE_PAGE_SIZE, fetchAllPages } from "@/lib/supabase/paging";
+import { completeMonthsOnly } from "@/lib/intelligence/server";
 
 /** Behaves like Supabase: never more than 1,000 rows per request. */
 function table(n: number) {
@@ -48,5 +49,25 @@ describe("fetchAllPages", () => {
         : { data: null, error: { message: "boom" } },
     );
     expect(res.error).toEqual({ message: "boom" });
+  });
+});
+
+describe("transactions for analysis", () => {
+  it("keep everything when the list wasn't cut short", () => {
+    const rows = [{ occurred_on: "2026-11-02" }, { occurred_on: "2026-06-01" }];
+    expect(completeMonthsOnly(rows, false)).toEqual(rows);
+  });
+
+  it("drop the partly-loaded oldest month, never the newest", () => {
+    const rows = [
+      { occurred_on: "2026-11-03" },
+      { occurred_on: "2026-10-15" },
+      { occurred_on: "2026-07-20" },
+      { occurred_on: "2026-07-02" },
+    ];
+    expect(completeMonthsOnly(rows, true).map((r) => r.occurred_on)).toEqual([
+      "2026-11-03",
+      "2026-10-15",
+    ]);
   });
 });
