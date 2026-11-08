@@ -20,6 +20,7 @@ export function inMemoryRepo(): MemoryRepository & { rows: MemoryRecordRow[] } {
         id: randomUUID(),
         supersedes: null,
         status: "queued",
+        namespace_tag: row.namespace_tag ?? null,
         job_id: null,
         job_status: null,
         blob_id: null,

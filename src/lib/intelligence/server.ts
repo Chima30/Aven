@@ -187,7 +187,12 @@ export interface IntelligenceResult {
 
 export function memoryStateOf(runtime: MemoryRuntime): MemoryState | null {
   if (!runtime.available) {
-    return { state: runtime.reason === "invalid_config" ? "invalid_config" : "not_configured" };
+    return {
+      state:
+        runtime.reason === "invalid_config" || runtime.reason === "namespace_changed"
+          ? "invalid_config"
+          : "not_configured",
+    };
   }
   if (runtime.ctx.memoryPaused) return { state: "paused" };
   if (!canRecall("memory_financial", runtime.ctx)) return { state: "no_consent" };

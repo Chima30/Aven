@@ -9,7 +9,7 @@ import {
   parseMemoryText,
   UnsafeMemoryContentError,
 } from "@/lib/memory/format";
-import { deriveUserNamespace } from "@/lib/memory/namespace";
+import { deriveUserNamespace, namespaceTag } from "@/lib/memory/namespace";
 import { evaluateMemoryCandidate, type MemoryPolicyContext } from "@/lib/memory/policy";
 import {
   forgetAllMemories,
@@ -160,6 +160,18 @@ describe("memory policy", () => {
   });
 });
 
+describe("namespace tags", () => {
+  it("are short, stable and change when the namespace settings change", () => {
+    const ns = deriveUserNamespace("aven-test", SECRET, USER_A);
+    expect(namespaceTag(ns)).toMatch(/^[0-9a-f]{16}$/);
+    expect(namespaceTag(ns)).toBe(namespaceTag(deriveUserNamespace("aven-test", SECRET, USER_A)));
+    const otherSecret = deriveUserNamespace("aven-test", `${SECRET}-rotated`, USER_A);
+    expect(namespaceTag(otherSecret)).not.toBe(namespaceTag(ns));
+    const otherBase = deriveUserNamespace("aven-prod", SECRET, USER_A);
+    expect(namespaceTag(otherBase)).not.toBe(namespaceTag(ns));
+  });
+});
+
 describe("memory service (official MemWalMock)", () => {
   it("writes, tracks the job to a Walrus blob id, and clears the outbox", async () => {
     const { deps, repo } = setup();
@@ -167,6 +179,8 @@ describe("memory service (official MemWalMock)", () => {
     expect(outcome.status).toBe("submitted");
     expect(repo.rows[0]).toMatchObject({ status: "submitted", attempts: 1 });
     expect(repo.rows[0]!.pending_text).toContain("AVEN-MEMORY v1");
+    // Tagged with the namespace it went to, so a settings change is noticed.
+    expect(repo.rows[0]!.namespace_tag).toBe(namespaceTag(deps.namespace));
 
     const summary = await refreshMemoryJobs(deps, USER_A);
     expect(summary.stored).toBe(1);

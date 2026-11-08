@@ -88,6 +88,12 @@ export default async function MemoryPage() {
         <Alert tone="danger" title="Walrus Memory settings are invalid">
           {config.issues.join(" · ")}
         </Alert>
+      ) : !runtime.available && runtime.reason === "namespace_changed" ? (
+        <Alert tone="danger" title="Walrus Memory settings have changed">
+          MEMWAL_NAMESPACE or MEMWAL_NAMESPACE_SECRET is different from when your memories were
+          saved, so AVEN has stopped using memory to keep them safe. Restore the original values in
+          your server settings and redeploy.
+        </Alert>
       ) : runtime.ctx.memoryPaused ? (
         <Alert tone="info" title="Memory is paused">
           AVEN isn&apos;t writing or reading memories. Turn pause off in{" "}

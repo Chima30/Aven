@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql, 20261109000100_rate_limit_allowlist.sql, 20261110000100_scheduler_cursor.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql, 20261109000100_rate_limit_allowlist.sql, 20261110000100_scheduler_cursor.sql, 20261111000100_memory_namespace_tag.sql
 -- =============================================================================
 
 begin;
@@ -3726,5 +3726,26 @@ where split_part(bucket_key, ':', 2) not in (
 -- round), so every user gets their turn.
 alter table public.scheduler_runs
   add column last_user_id uuid;
+
+-- >>> 20261111000100_memory_namespace_tag.sql
+-- =============================================================================
+-- Stage 12 · Notice if the Walrus Memory namespace changes
+-- =============================================================================
+
+-- Each user's Walrus namespace is derived from MEMWAL_NAMESPACE and
+-- MEMWAL_NAMESPACE_SECRET. If either is changed or lost, AVEN would silently
+-- start a new, empty namespace and every earlier memory would be unreachable.
+--
+-- New memories now record a short tag of the namespace they were written to
+-- (a one-way hash; it can't be used to read anything). If the current settings
+-- produce a different namespace, AVEN stops using memory and reports a
+-- configuration problem instead of quietly losing everyone's history.
+alter table public.memory_records
+  add column namespace_tag text
+  check (namespace_tag is null or namespace_tag ~ '^[0-9a-f]{16}$');
+
+create index memory_records_user_tag_idx
+  on public.memory_records (user_id, created_at desc)
+  where namespace_tag is not null;
 
 commit;

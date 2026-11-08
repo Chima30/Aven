@@ -1,3 +1,4 @@
+import { namespaceTag } from "./namespace";
 import type { MemoryJobStatus, MemoryRecordRow } from "@/lib/supabase/database.types";
 import type { MemoryClient } from "./client";
 import {
@@ -24,7 +25,7 @@ export const MAX_ATTEMPTS = 5;
 export type NewMemoryRecord = Pick<
   MemoryRecordRow,
   "user_id" | "category" | "kind" | "label" | "content_hash" | "pending_text"
-> & { source_refs: Array<{ table: string; id: string }> };
+> & { source_refs: Array<{ table: string; id: string }>; namespace_tag?: string | null };
 
 export type MemoryRecordPatch = Partial<
   Pick<
@@ -191,6 +192,7 @@ export async function rememberCandidate(
     content_hash: hash,
     pending_text: text,
     source_refs: candidate.sourceRefs.map((r) => ({ table: r.table, id: r.id })),
+    namespace_tag: namespaceTag(deps.namespace),
   });
   if (record.status !== "queued" || record.job_id) return { status: "duplicate", record };
   return submit(deps, record, text);

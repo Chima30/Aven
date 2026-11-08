@@ -414,6 +414,8 @@ export type MemoryRecordRow = {
   submitted_at: Timestamp | null;
   stored_at: Timestamp | null;
   suppressed_at: Timestamp | null;
+  /** Short one-way tag of the Walrus namespace this memory was written to. */
+  namespace_tag: string | null;
 };
 
 export type SuiWalletRow = {

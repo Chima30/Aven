@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 /**
  * Every AVEN user gets their own Walrus Memory namespace:
@@ -22,4 +22,12 @@ export function deriveUserNamespace(base: string, secret: string, userId: string
     .update(`aven-user:${userId.toLowerCase()}`)
     .digest("hex");
   return `${base}-u-${digest.slice(0, 32)}`;
+}
+
+/**
+ * A short, one-way tag of a namespace, kept with each memory so AVEN can tell
+ * if the namespace settings change (which would hide every earlier memory).
+ */
+export function namespaceTag(namespace: string): string {
+  return createHash("sha256").update(`aven-namespace-tag:${namespace}`).digest("hex").slice(0, 16);
 }
