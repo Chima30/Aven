@@ -46,3 +46,30 @@ export const RECOVERY_COOKIE_OPTIONS = {
   path: "/",
   maxAge: RECOVERY_TTL_SECONDS,
 };
+
+/**
+ * Did this /auth/confirm visit come from a PASSWORD-RESET email?
+ *
+ * Only then may the browser skip the current password. The `next` address in
+ * the link is not proof (any email link can carry next=/reset-password), so:
+ *   • token_hash links: the verified type must be "recovery";
+ *   • code (PKCE) links: the new session's most recent sign-in method, which
+ *     Supabase records in the token's `amr` claim, must be "recovery".
+ */
+export function isRecoveryLanding(input: {
+  type: string | null;
+  usedCode: boolean;
+  amr: unknown;
+}): boolean {
+  if (!input.usedCode) return input.type === "recovery";
+  if (!Array.isArray(input.amr) || input.amr.length === 0) return false;
+  const latest = [...input.amr]
+    .filter(
+      (e): e is { method: string; timestamp?: number } =>
+        typeof e === "object" &&
+        e !== null &&
+        typeof (e as { method?: unknown }).method === "string",
+    )
+    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))[0];
+  return latest?.method === "recovery";
+}
