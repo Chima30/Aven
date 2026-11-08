@@ -80,13 +80,13 @@ export async function markAllReadAction(): Promise<FormState> {
  * count in the sidebar. Individual notifications keep their own read state.
  */
 export async function markNudgesSeenAction(): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user) return;
   const supabase = await createClient();
+  const userId = await signedInUserId(supabase);
+  if (!userId) return;
   await supabase
     .from("notification_preferences")
     .update({ nudges_seen_at: new Date().toISOString() })
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 }
 
 /**
@@ -94,9 +94,10 @@ export async function markNudgesSeenAction(): Promise<void> {
  * Read on the server (same origin) and limited to the user's own rows by RLS.
  */
 export async function getNudgeBadgeAction(): Promise<number> {
-  const user = await getCurrentUser();
-  if (!user) return 0;
   const supabase = await createClient();
+  const userId = await signedInUserId(supabase);
+  if (!userId) return 0;
+  const user = { id: userId };
   const { data: prefs } = await supabase
     .from("notification_preferences")
     .select("nudges_seen_at")
@@ -115,4 +116,18 @@ export async function getNudgeBadgeAction(): Promise<number> {
   }
   const { count, error } = await query;
   return error ? 0 : (count ?? 0);
+}
+
+/**
+ * The signed-in user's id from the session token. getClaims() verifies the
+ * token's signature locally when the project uses asymmetric JWT keys, so the
+ * badge (polled from every open tab) doesn't cost a round trip to Supabase
+ * Auth each time. RLS still checks every query.
+ */
+async function signedInUserId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const { data, error } = await supabase.auth.getClaims();
+  const sub = data?.claims?.sub;
+  return !error && typeof sub === "string" ? sub : null;
 }

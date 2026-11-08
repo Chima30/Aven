@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getNudgeBadgeAction, markNudgesSeenAction } from "@/app/(app)/nudges/actions";
 
-const REFRESH_MS = 60_000;
+/** How often an open, visible tab re-checks the count. */
+const REFRESH_MS = 3 * 60_000;
 
 export const isNudgesPath = (pathname: string) =>
   pathname === "/nudges" || pathname.startsWith("/nudges/");
@@ -51,11 +52,14 @@ export function useNudgeBadge(): number {
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, REFRESH_MS);
-    const onFocus = () => void refresh();
-    window.addEventListener("focus", onFocus);
+    // Coming back to the tab refreshes at once; hidden tabs don't poll at all.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [onNudges, refresh]);
 
