@@ -1,4 +1,5 @@
 import "server-only";
+import { fetchAllPages } from "@/lib/supabase/paging";
 import { cache } from "react";
 import { getAppContext } from "@/lib/auth/session";
 import { localToday } from "@/lib/finance/periods";
@@ -75,7 +76,8 @@ export async function loadOccurrences(
       .or(
         `and(starts_at.gte.${addDays(from, -15)}T00:00:00Z,starts_at.lte.${addDays(to, 2)}T00:00:00Z),and(start_date.gte.${addDays(from, -32)},start_date.lte.${to})`,
       )
-      .limit(2000),
+      .order("id", { ascending: true })
+      .limit(1000),
     supabase.from("calendar_events").select("*").not("recurrence", "is", null).limit(500),
     supabase
       .from("calendar_event_exceptions")
@@ -112,11 +114,16 @@ export async function loadHabits(
       .select("*")
       .order("archived_at", { nullsFirst: true })
       .order("created_at"),
-    supabase
-      .from("habit_check_ins")
-      .select("*")
-      .gte("on_date", addDays(today, -sinceDays))
-      .limit(5000),
+    // Every check-in in the window (streaks are wrong if any are missing).
+    fetchAllPages((from, to) =>
+      supabase
+        .from("habit_check_ins")
+        .select("*")
+        .gte("on_date", addDays(today, -sinceDays))
+        .order("on_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
   if (habits.error || checkIns.error) throw new Error("Habits could not be loaded.");
   return { habits: habits.data ?? [], checkIns: checkIns.data ?? [] };

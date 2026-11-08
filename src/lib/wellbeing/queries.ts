@@ -1,4 +1,5 @@
 import "server-only";
+import { fetchAllPages } from "@/lib/supabase/paging";
 import { cache } from "react";
 import { loadPlanningBasics } from "@/lib/planning/queries";
 import type {
@@ -54,12 +55,16 @@ export async function loadWellbeingLogs(days: number) {
       .order("wake_date", { ascending: false })
       .order("woke_at", { ascending: false })
       .limit(400),
-    supabase
-      .from("water_logs")
-      .select("*")
-      .gte("local_date", since)
-      .order("logged_at", { ascending: false })
-      .limit(2000),
+    // Every glass in the window, so daily totals are complete.
+    fetchAllPages((lo, hi) =>
+      supabase
+        .from("water_logs")
+        .select("*")
+        .gte("local_date", since)
+        .order("logged_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(lo, hi),
+    ),
     supabase
       .from("meal_logs")
       .select("*")
