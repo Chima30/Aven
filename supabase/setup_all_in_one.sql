@@ -3,7 +3,7 @@
 -- Use this ONLY on a NEW, EMPTY Supabase project: SQL Editor → New query → paste → Run, once.
 -- If your project already has an earlier stage installed, run the files in supabase/upgrades/ instead.
 -- It runs inside a single transaction: if anything fails, nothing is applied.
--- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql, 20261109000100_rate_limit_allowlist.sql
+-- Contains: 20261031000100_foundation.sql, 20261031000200_consent_audit_notifications.sql, 20261031000300_ai_limits_sync_data_rights.sql, 20261031000400_new_user_bootstrap.sql, 20261101000100_finance_tables.sql, 20261101000200_finance_mutations.sql, 20261101000300_finance_reads.sql, 20261102000100_walrus_memory.sql, 20261102000200_sui_wallets.sql, 20261103000100_recommendations.sql, 20261104000100_planning_wellbeing_tables.sql, 20261104000200_life_mutations_events.sql, 20261105000100_email_and_theme.sql, 20261106000100_nudges_seen.sql, 20261107000100_goal_memory_cleanup.sql, 20261108000100_restore_goal_memories.sql, 20261109000100_rate_limit_allowlist.sql, 20261110000100_scheduler_cursor.sql
 -- =============================================================================
 
 begin;
@@ -3713,5 +3713,18 @@ where split_part(bucket_key, ':', 2) not in (
   'finance_write', 'memory_write', 'memory_read', 'chain_read', 'chain_import',
   'wallet_change', 'recommendations', 'life_write', 'notification_update', 'email_test'
 );
+
+-- >>> 20261110000100_scheduler_cursor.sql
+-- =============================================================================
+-- Stage 11 · Fair reminder scheduling as AVEN grows
+-- =============================================================================
+
+-- Each scheduler run has about 50 seconds. Runs used to start from the first
+-- user every time, so once there were more users than fit in one run, the same
+-- users at the end of the list never got their reminders. Each run now records
+-- the last user it reached, and the next run carries on from there (wrapping
+-- round), so every user gets their turn.
+alter table public.scheduler_runs
+  add column last_user_id uuid;
 
 commit;

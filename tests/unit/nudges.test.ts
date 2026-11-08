@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { startAfter } from "@/lib/nudges/runner";
 import { decideDelivery, isQuietNow } from "@/lib/nudges/engine";
 import {
   isWithinWindow,
@@ -186,5 +187,36 @@ describe("decideDelivery", () => {
   it("reports quiet status for previews", () => {
     expect(isQuietNow(settings(), lateNight)).toBe(true);
     expect(isQuietNow(settings(), afternoon)).toBe(false);
+  });
+});
+
+describe("scheduler rotation", () => {
+  const ids = ["0a", "1b", "2c", "3d", "4e"];
+
+  it("starts from the beginning the first time", () => {
+    expect(startAfter(ids, null)).toEqual(ids);
+  });
+
+  it("carries on after the user the last run reached, wrapping round", () => {
+    expect(startAfter(ids, "1b")).toEqual(["2c", "3d", "4e", "0a", "1b"]);
+  });
+
+  it("starts again from the top after a complete run", () => {
+    expect(startAfter(ids, "4e")).toEqual(ids);
+  });
+
+  it("copes with a cursor for a user who has since been deleted", () => {
+    expect(startAfter(ids, "2a")).toEqual(["2c", "3d", "4e", "0a", "1b"]);
+  });
+
+  it("over several short runs, reaches every user", () => {
+    const reached = new Set<string>();
+    let cursor: string | null = null;
+    for (let run = 0; run < 3; run += 1) {
+      const batch = startAfter(ids, cursor).slice(0, 2); // only 2 fit per run
+      batch.forEach((id) => reached.add(id));
+      cursor = batch.at(-1)!;
+    }
+    expect([...reached].sort()).toEqual(ids);
   });
 });

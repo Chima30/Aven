@@ -70,11 +70,15 @@ export async function runNudgeScheduler(options: {
     summary.released = data?.length ?? 0;
   }
 
-  // 2. Process users.
-  const userIds = options.userIds ?? (await allUserIds(admin));
+  // 2. Process users. A full run carries on after the user the previous run
+  // reached, so a slow run never starves the end of the list.
+  const fullRun = !options.userIds;
+  const userIds = options.userIds ?? startAfter(await allUserIds(admin), await lastCursor(admin));
   let lastError: string | null = null;
+  let lastUserId: string | null = null;
   for (const userId of userIds) {
     if (Date.now() > deadline) break;
+    lastUserId = userId;
     try {
       summary.notificationsCreated += await processUser(admin, userId, now);
       summary.usersProcessed += 1;
@@ -93,10 +97,33 @@ export async function runNudgeScheduler(options: {
         users_processed: summary.usersProcessed,
         notifications_created: summary.notificationsCreated + summary.released,
         error: lastError,
+        ...(fullRun && lastUserId ? { last_user_id: lastUserId } : {}),
       })
       .eq("id", run.id);
   }
   return summary;
+}
+
+/** Where the most recent full run stopped. */
+async function lastCursor(admin: Admin): Promise<string | null> {
+  const { data } = await admin
+    .from("scheduler_runs")
+    .select("last_user_id")
+    .not("last_user_id", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.last_user_id ?? null;
+}
+
+/**
+ * Rotates a list sorted by id so it begins just after `cursor`, wrapping
+ * round to the start. With no cursor (or an unknown one) the order is kept.
+ */
+export function startAfter(sortedIds: string[], cursor: string | null): string[] {
+  if (!cursor) return sortedIds;
+  const i = sortedIds.findIndex((id) => id > cursor);
+  return i <= 0 ? sortedIds : [...sortedIds.slice(i), ...sortedIds.slice(0, i)];
 }
 
 async function allUserIds(admin: Admin): Promise<string[]> {

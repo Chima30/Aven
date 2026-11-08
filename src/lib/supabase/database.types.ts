@@ -776,6 +776,8 @@ export type SchedulerRunRow = {
   users_processed: number;
   notifications_created: number;
   error: string | null;
+  /** Last user this run reached; the next full run starts after them. */
+  last_user_id: string | null;
 };
 
 export type CurrencyRow = {
