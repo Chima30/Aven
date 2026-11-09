@@ -352,33 +352,33 @@ Without these, AVEN still works and shows each feature as not set up. Mock-based
 
 ## Documentation
 
-| Document                                                | Description                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| [PERSONAL_INTELLIGENCE_REVIEW.md](docs/PERSONAL_INTELLIGENCE_REVIEW.md) | New feature setup, calculation methods and limitations |
-| [PERSONAL_INTELLIGENCE_AUDIT.md](docs/PERSONAL_INTELLIGENCE_AUDIT.md) | Source audit that informed the upgrade |
-| [OPTIONAL_COMPANION.md](docs/OPTIONAL_COMPANION.md) | Future AI companion design; no live provider enabled |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Application architecture and design decisions                |
-| [FINANCE.md](docs/FINANCE.md)                           | Finance data model and calculations                          |
-| [INTELLIGENCE.md](docs/INTELLIGENCE.md)                 | Financial analysis and the recommendation feedback loop      |
-| [PLANNING.md](docs/PLANNING.md)                         | Calendar, tasks, habits and reviews                          |
-| [NUDGE_CENTER.md](docs/NUDGE_CENTER.md)                 | Delivery rules, summaries and Pulse Check                    |
-| [WELLBEING.md](docs/WELLBEING.md)                       | Wellbeing logs, units, consent and limits                    |
-| [MEMORY.md](docs/MEMORY.md)                             | Walrus Memory architecture, namespaces, consent and deletion |
-| [OFFLINE.md](docs/OFFLINE.md)                           | Offline storage and synchronisation                          |
-| [SCHEDULER.md](docs/SCHEDULER.md)                       | Background scheduler and push notification requirements      |
-| [EMAIL.md](docs/EMAIL.md)                               | Email notification setup and safeguards                      |
-| [DATABASE.md](docs/DATABASE.md)                         | Tables, access rules and migrations                          |
-| [SECURITY.md](docs/SECURITY.md)                         | Security boundaries, RLS and privacy                         |
-| [ENVIRONMENT.md](docs/ENVIRONMENT.md)                   | Environment variables                                        |
-| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)             | Database setup and upgrades                                  |
-| [WALRUS_SETUP.md](docs/WALRUS_SETUP.md)                 | Walrus Memory configuration and verification                 |
-| [TATUM_SETUP.md](docs/TATUM_SETUP.md)                   | Tatum and Sui Mainnet configuration                          |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md)                     | Deploying to Vercel                                          |
-| [TESTING.md](docs/TESTING.md)                           | Test strategy and latest results                             |
-| [ROADMAP.md](docs/ROADMAP.md)                           | What's done and what's next                                  |
-| [HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md) | Submission details and evidence                              |
-| [BLOG_POST.md](docs/BLOG_POST.md)                       | Technical write-up                                           |
-| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)                   | Demonstration guide                                          |
+| Document                                                                | Description                                                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [PERSONAL_INTELLIGENCE_REVIEW.md](docs/PERSONAL_INTELLIGENCE_REVIEW.md) | New feature setup, calculation methods and limitations       |
+| [PERSONAL_INTELLIGENCE_AUDIT.md](docs/PERSONAL_INTELLIGENCE_AUDIT.md)   | Source audit that informed the upgrade                       |
+| [OPTIONAL_COMPANION.md](docs/OPTIONAL_COMPANION.md)                     | Future AI companion design; no live provider enabled         |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                                 | Application architecture and design decisions                |
+| [FINANCE.md](docs/FINANCE.md)                                           | Finance data model and calculations                          |
+| [INTELLIGENCE.md](docs/INTELLIGENCE.md)                                 | Financial analysis and the recommendation feedback loop      |
+| [PLANNING.md](docs/PLANNING.md)                                         | Calendar, tasks, habits and reviews                          |
+| [NUDGE_CENTER.md](docs/NUDGE_CENTER.md)                                 | Delivery rules, summaries and Pulse Check                    |
+| [WELLBEING.md](docs/WELLBEING.md)                                       | Wellbeing logs, units, consent and limits                    |
+| [MEMORY.md](docs/MEMORY.md)                                             | Walrus Memory architecture, namespaces, consent and deletion |
+| [OFFLINE.md](docs/OFFLINE.md)                                           | Offline storage and synchronisation                          |
+| [SCHEDULER.md](docs/SCHEDULER.md)                                       | Background scheduler and push notification requirements      |
+| [EMAIL.md](docs/EMAIL.md)                                               | Email notification setup and safeguards                      |
+| [DATABASE.md](docs/DATABASE.md)                                         | Tables, access rules and migrations                          |
+| [SECURITY.md](docs/SECURITY.md)                                         | Security boundaries, RLS and privacy                         |
+| [ENVIRONMENT.md](docs/ENVIRONMENT.md)                                   | Environment variables                                        |
+| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)                             | Database setup and upgrades                                  |
+| [WALRUS_SETUP.md](docs/WALRUS_SETUP.md)                                 | Walrus Memory configuration and verification                 |
+| [TATUM_SETUP.md](docs/TATUM_SETUP.md)                                   | Tatum and Sui Mainnet configuration                          |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md)                                     | Deploying to Vercel                                          |
+| [TESTING.md](docs/TESTING.md)                                           | Test strategy and latest results                             |
+| [ROADMAP.md](docs/ROADMAP.md)                                           | What's done and what's next                                  |
+| [HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md)                 | Submission details and evidence                              |
+| [BLOG_POST.md](docs/BLOG_POST.md)                                       | Technical write-up                                           |
+| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)                                   | Demonstration guide                                          |
 
 ---
 
