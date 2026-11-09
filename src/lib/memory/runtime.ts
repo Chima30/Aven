@@ -92,6 +92,7 @@ export async function memoryRuntimeFor(
       client: createMemwalClient(config.config),
       repo: supabaseMemoryRepository(admin),
       namespace,
+      currentPolicy: () => loadMemoryPolicyContext(supabase, true),
     },
   };
 }

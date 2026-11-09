@@ -37,7 +37,7 @@ function MemoryBanner({ memory }: { memory: MemoryState }) {
         <Alert tone="success" title="Learning from Walrus Memory">
           {memory.recalled === 0
             ? "No memories recalled yet. As you answer recommendations, AVEN remembers your decisions and adapts."
-            : `${memory.recalled} memor${memory.recalled === 1 ? "y was" : "ies were"} recalled from Walrus and used below.`}
+            : `${memory.recalled} memor${memory.recalled === 1 ? "y was" : "ies were"} recalled from Walrus. Each recommendation identifies any memory that influenced it.`}
         </Alert>
       );
     case "no_consent":
@@ -329,7 +329,7 @@ export default async function IntelligencePage() {
                           >
                             {STATUS_LABEL[r.status]}
                           </Badge>
-                          {r.outcome_memory_id ? <Badge tone="accent">In memory</Badge> : null}
+                          {r.outcome_memory_id ? <Badge tone="accent">Memory linked</Badge> : null}
                         </span>
                       </li>
                     ))}

@@ -61,6 +61,8 @@ export interface MemoryServiceDeps {
   /** The authenticated user's namespace (see namespace.ts). */
   namespace: string;
   now?: () => Date;
+  /** Reload consent immediately before SDK calls; production uses the session client. */
+  currentPolicy?: () => Promise<MemoryPolicyContext>;
 }
 
 export type RememberOutcome =
@@ -111,6 +113,9 @@ async function submit(
   record: MemoryRecordRow,
   text: string,
 ): Promise<RememberOutcome> {
+  if (deps.currentPolicy && !canRecall(record.category, await deps.currentPolicy())) {
+    return { status: "skipped", reason: "policy_changed" };
+  }
   const attempts = record.attempts + 1;
   try {
     const accepted = await deps.client.remember(text, deps.namespace, {
@@ -228,6 +233,12 @@ export async function refreshMemoryJobs(
   for (const record of records) {
     if (Date.now() > deadline) break;
     summary.checked += 1;
+    // No implicit authorization for retries. Without current policy, fail closed.
+    const policy = deps.currentPolicy ? await deps.currentPolicy() : null;
+    if (!policy || !canRecall(record.category, policy)) {
+      summary.stillPending += 1;
+      continue;
+    }
 
     if (record.status === "queued") {
       if (!record.pending_text) continue;

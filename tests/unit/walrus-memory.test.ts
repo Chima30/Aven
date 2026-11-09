@@ -62,6 +62,7 @@ function setup(userId = USER_A, client?: MemoryClient) {
   const mock = MemWalMock.create({ namespace: "unused" });
   const repo = inMemoryRepo();
   const deps: MemoryServiceDeps = {
+    currentPolicy: async () => allowed,
     client: client ?? mock,
     repo,
     namespace: deriveUserNamespace("aven-test", SECRET, userId),
@@ -368,5 +369,27 @@ describe("Walrus configuration", () => {
     expect(parseMemwalConfig({ ...good, MEMWAL_SERVER_URL: "http://relayer.example" }).status).toBe(
       "invalid",
     );
+  });
+});
+
+describe("retry consent withdrawal", () => {
+  it("does not poll or resubmit after consent is withdrawn", async () => {
+    const { deps } = setup();
+    const result = await rememberCandidate(deps, USER_A, candidate, allowed);
+    expect(result.status).toBe("submitted");
+    const submit = vi.spyOn(deps.client, "remember");
+    const poll = vi.spyOn(deps.client, "getRememberStatus");
+    deps.currentPolicy = async () => ({ ...allowed, grantedCategories: new Set() });
+    await refreshMemoryJobs(deps, USER_A);
+    expect(submit).not.toHaveBeenCalled();
+    expect(poll).not.toHaveBeenCalled();
+  });
+  it("fails closed without a policy loader", async () => {
+    const { deps } = setup();
+    await rememberCandidate(deps, USER_A, candidate, allowed);
+    delete deps.currentPolicy;
+    const poll = vi.spyOn(deps.client, "getRememberStatus");
+    await refreshMemoryJobs(deps, USER_A);
+    expect(poll).not.toHaveBeenCalled();
   });
 });

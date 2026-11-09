@@ -46,7 +46,9 @@ test.describe("content security policy", () => {
 test.describe("public pages", () => {
   test("landing page explains AVEN honestly", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Money, plans and habits");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "AVEN remembers your decisions",
+    );
     await expect(page.getByRole("link", { name: "Create your account" }).first()).toBeVisible();
     await expect(page.getByText("What works today, and what comes next")).toBeVisible();
     // The only figures on the page are in the preview, which is labelled as example data.

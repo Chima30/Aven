@@ -1,4 +1,5 @@
 import "server-only";
+import { visibleRecommendations } from "./visibility";
 import { localToday } from "@/lib/finance/periods";
 import { recallMemories, refreshMemoryJobs, rememberCandidate } from "@/lib/memory/service";
 import { memoryRuntimeFor, type MemoryRuntime } from "@/lib/memory/runtime";
@@ -257,7 +258,7 @@ export async function runIntelligence(
     }
   }
 
-  const signals = deriveSignals(recalled);
+  const signals = deriveSignals(recalled, { currency: input.currency, today: input.today });
   const { recommendations, suppressed } = buildRecommendations(
     snapshot,
     signals,
@@ -283,6 +284,23 @@ export async function runIntelligence(
           subject_name: r.subjectName,
           suggested_pct: r.suggestedPct,
           priority: r.priority,
+          provenance_version: 1,
+          observed_through: input.today,
+          source_refs: [
+            ...(r.categoryId ? [{ table: "transaction_categories", id: r.categoryId }] : []),
+            ...(r.goalId ? [{ table: "savings_goals", id: r.goalId }] : []),
+          ],
+          // Aggregate observations are retained; this is not a full transaction snapshot.
+          source_scope: "linked_subjects_and_aggregate_evidence",
+          transaction_refs: input.transactions
+            .filter((t) => t.currency === input.currency)
+            .slice(0, 40)
+            .map((t) => t.id),
+          transaction_ref_count: input.transactions.filter((t) => t.currency === input.currency)
+            .length,
+          transaction_refs_truncated:
+            input.transactions.filter((t) => t.currency === input.currency).length > 40,
+          source_window_start: input.transactions.at(0)?.occurredOn ?? null,
         },
         memory_influence: r.memoryInfluence,
       })),
@@ -296,7 +314,18 @@ export async function runIntelligence(
     .select("*")
     .order("created_at", { ascending: false })
     .limit(60);
-  const all = rows ?? [];
+  const suppressedRecords = await fetchAllPages((from, to) =>
+    supabase
+      .from("memory_records")
+      .select("id, blob_id")
+      .eq("status", "suppressed")
+      .order("id")
+      .range(from, to),
+  );
+  const suppressedBlobs = new Set(suppressedRecords.data.map((m) => m.blob_id));
+  const showMemory =
+    memory.state === "active" && !suppressedRecords.error && !suppressedRecords.truncated;
+  const all = visibleRecommendations(rows ?? [], showMemory, suppressedBlobs);
   const currentKeys = new Set(recommendations.map((r) => r.dedupeKey));
   const priority = (r: RecommendationRow) =>
     Number((r.evidence as { priority?: number }).priority ?? 0);
