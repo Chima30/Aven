@@ -22,7 +22,7 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 ---
 
-## For judges: try the decision loop in a few minutes
+## Try AVEN in a few minutes
 
 You can start with the [example workspace](https://aven-ashy.vercel.app/demo) without creating an account or entering personal information.
 
@@ -38,7 +38,7 @@ To try the loop with your own records and real Walrus Memory, follow the permiss
 
 ---
 
-## For judges: switch memory on first
+## Enable memory for your own account
 
 Every permission in AVEN starts **off**, so a new account won't remember anything until you allow it. After signing up:
 
