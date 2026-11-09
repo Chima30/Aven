@@ -22,6 +22,22 @@ The goal is a companion that learns from your decisions instead of repeating the
 
 ---
 
+## For judges: try the decision loop in a few minutes
+
+You can start with the [example workspace](https://aven-ashy.vercel.app/demo) without creating an account or entering personal information.
+
+1. Read the example food budget, laptop goal and rent reserve.
+2. Decline the suggested 10% spending cut.
+3. Open the next month's scenario. AVEN offers a gentler 5% cut and explains which earlier decision changed its advice.
+4. Enter your own target, such as ₦52,000, and choose **Use my amount**. Advance again to see AVEN use your choice.
+5. Open the example memory details and read the Decision Replay record. Use **Reset example workspace** to start again.
+
+This runs the same analysis and recommendation rules used by the application. The example data and memories stay separate from personal accounts: the demo does not write to Supabase or upload anything to Walrus. Its memory references are local examples, not proof of live storage. Advancing the scenario does not create real savings.
+
+To try the loop with your own records and real Walrus Memory, follow the permission steps below.
+
+---
+
 ## For judges: switch memory on first
 
 Every permission in AVEN starts **off**, so a new account won't remember anything until you allow it. After signing up:
@@ -148,6 +164,10 @@ AVEN uses the official MemWal SDK (`@mysten-incubation/memwal`) to store long-te
 
 Supabase remains the authoritative database. Walrus Memory is the contextual layer, not a replacement.
 
+**How to read memory status:** a decision can be recorded in AVEN while its memory is still queued or being written. Only a confirmed write is shown as stored on Walrus. Even then, future advice changes only if that memory is recalled and relevant. Decision Replay helps you distinguish those steps.
+
+The application rechecks memory permission and pause settings before retrying writes. Open advice that depends on forgotten or unavailable memory is withheld. Forgetting stops AVEN from using that memory; it does not erase encrypted Walrus data or rewrite your earlier decision history.
+
 ### 9. Sui wallet support
 
 Add public Sui Mainnet addresses to see balances and recent sent transactions through Tatum's Sui gateway. You review each on-chain transaction and confirm before it is imported, with duplicate detection. The integration is read-only: AVEN never asks for private keys, signs transactions or moves funds.
@@ -161,6 +181,61 @@ Add public Sui Mainnet addresses to see balances and recent sent transactions th
 - Data export and account deletion.
 
 AVEN does not process payments or move money.
+
+### 11. Decision Replay: see why the advice changed
+
+**Open: Intelligence → Decision Replay**
+
+Decision Replay gives you a record of a recommendation and what followed it. Instead of simply saying “AVEN learned from you,” it lets you inspect the saved evidence.
+
+For each recommendation, you can see:
+
+- What AVEN suggested and the explanation it gave at the time.
+- The recorded figures and available source references behind it.
+- Whether you accepted, declined or changed the amount.
+- Whether a memory was linked, and whether it is pending, stored, failed or forgotten.
+- Any later saved recommendation that identifies that decision's memory as an influence.
+
+For example, you can follow an earlier rejection through to a later recommendation using a gentler spending target. If no later recommendation has used it yet, Replay says so. It also makes missing evidence visible: older recommendations may have aggregate figures without exact source references.
+
+Replay reads saved history. Opening it does not generate new advice or secretly retrieve memory contents from Walrus. A record of changed advice is evidence of adaptation; it is not proof that your finances improved.
+
+### 12. AVEN Impact: see what your records actually show
+
+**Open: Intelligence → AVEN Impact**
+
+AVEN Impact helps answer two different questions: “Am I using the recommendations?” and “What changed in my recorded finances afterwards?”
+
+It shows how many recommendations were made, accepted, declined or modified, how many have recorded memory influence, and how many goals are marked completed. Memory influence can come from a remembered preference as well as an earlier decision.
+
+For eligible spending recommendations you accepted or modified, it can compare recorded spending in the same category and currency across two full months: the month before your decision month and the month after it. Both periods need expense records, and the later month must have ended.
+
+For example, if recorded food spending went from ₦60,000 to ₦50,000 across those comparison months, Impact can show the ₦10,000 decrease. It does not claim AVEN caused it. Changes in your circumstances or incomplete logging could also explain the difference.
+
+New users see a clear empty state rather than invented results. Missing records are not treated as zero spending, and accepting advice alone does not count as money saved. Calculation methods are available on the page.
+
+### 13. What-if Lab: try a money decision before making it
+
+**Open: Intelligence → What-if Lab**
+
+What-if Lab is a space to explore questions such as:
+
+- What could change if I save an extra ₦20,000 each month?
+- Would a ₦250,000 purchase fit after the money I need to set aside?
+- What if I reduce an existing food budget by 10%?
+- How much sooner could I fund a particular savings goal?
+
+It starts with your recorded active-account balances in the selected currency. You enter the money to reserve for obligations and a safety buffer, your expected monthly surplus, any extra cash you expect to free up, a possible purchase and a time period. You can also select an existing budget to model a percentage cut or choose a savings goal.
+
+The results show available cash after your reserve, cash left immediately after a purchase, baseline and scenario projections, and estimated goal-funding time when a goal is selected. The assumptions remain visible and editable.
+
+For example, with a recorded balance of ₦500,000 and a ₦200,000 reserve, a ₦250,000 purchase would leave ₦50,000 available after that reserve. This only covers the commitments you included.
+
+All money calculations use exact integer minor units, and different currencies are kept separate. No AI model supplies the figures. Reducing a budget limit does not itself save money: the projection assumes your actual spending falls by the stated amount.
+
+AVEN does not yet have a confirmed bill ledger, so you must enter your obligations reserve yourself. Pending offline changes, exchange rates, interest and unknown future bills are excluded. Goal projections assume the entered monthly surplus goes to the selected goal.
+
+Scenarios do not edit your accounts, budgets, transactions or goals. There is no automatic apply action.
 
 ---
 
@@ -277,34 +352,43 @@ Without these, AVEN still works and shows each feature as not set up. Mock-based
 
 ## Documentation
 
-| Document                                                | Description                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Application architecture and design decisions                |
-| [FINANCE.md](docs/FINANCE.md)                           | Finance data model and calculations                          |
-| [INTELLIGENCE.md](docs/INTELLIGENCE.md)                 | Financial analysis and the recommendation feedback loop      |
-| [PLANNING.md](docs/PLANNING.md)                         | Calendar, tasks, habits and reviews                          |
-| [NUDGE_CENTER.md](docs/NUDGE_CENTER.md)                 | Delivery rules, summaries and Pulse Check                    |
-| [WELLBEING.md](docs/WELLBEING.md)                       | Wellbeing logs, units, consent and limits                    |
-| [MEMORY.md](docs/MEMORY.md)                             | Walrus Memory architecture, namespaces, consent and deletion |
-| [OFFLINE.md](docs/OFFLINE.md)                           | Offline storage and synchronisation                          |
-| [SCHEDULER.md](docs/SCHEDULER.md)                       | Background scheduler and push notification requirements      |
-| [EMAIL.md](docs/EMAIL.md)                               | Email notification setup and safeguards                      |
-| [DATABASE.md](docs/DATABASE.md)                         | Tables, access rules and migrations                          |
-| [SECURITY.md](docs/SECURITY.md)                         | Security boundaries, RLS and privacy                         |
-| [ENVIRONMENT.md](docs/ENVIRONMENT.md)                   | Environment variables                                        |
-| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)             | Database setup and upgrades                                  |
-| [WALRUS_SETUP.md](docs/WALRUS_SETUP.md)                 | Walrus Memory configuration and verification                 |
-| [TATUM_SETUP.md](docs/TATUM_SETUP.md)                   | Tatum and Sui Mainnet configuration                          |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md)                     | Deploying to Vercel                                          |
-| [TESTING.md](docs/TESTING.md)                           | Test strategy and latest results                             |
-| [ROADMAP.md](docs/ROADMAP.md)                           | What's done and what's next                                  |
-| [HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md) | Submission details and evidence                              |
-| [BLOG_POST.md](docs/BLOG_POST.md)                       | Technical write-up                                           |
-| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)                   | Demonstration guide                                          |
+| Document                                                                | Description                                                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [PERSONAL_INTELLIGENCE_REVIEW.md](docs/PERSONAL_INTELLIGENCE_REVIEW.md) | New feature setup, calculation methods and limitations       |
+| [PERSONAL_INTELLIGENCE_AUDIT.md](docs/PERSONAL_INTELLIGENCE_AUDIT.md)   | Source audit that informed the upgrade                       |
+| [OPTIONAL_COMPANION.md](docs/OPTIONAL_COMPANION.md)                     | Future AI companion design; no live provider enabled         |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                                 | Application architecture and design decisions                |
+| [FINANCE.md](docs/FINANCE.md)                                           | Finance data model and calculations                          |
+| [INTELLIGENCE.md](docs/INTELLIGENCE.md)                                 | Financial analysis and the recommendation feedback loop      |
+| [PLANNING.md](docs/PLANNING.md)                                         | Calendar, tasks, habits and reviews                          |
+| [NUDGE_CENTER.md](docs/NUDGE_CENTER.md)                                 | Delivery rules, summaries and Pulse Check                    |
+| [WELLBEING.md](docs/WELLBEING.md)                                       | Wellbeing logs, units, consent and limits                    |
+| [MEMORY.md](docs/MEMORY.md)                                             | Walrus Memory architecture, namespaces, consent and deletion |
+| [OFFLINE.md](docs/OFFLINE.md)                                           | Offline storage and synchronisation                          |
+| [SCHEDULER.md](docs/SCHEDULER.md)                                       | Background scheduler and push notification requirements      |
+| [EMAIL.md](docs/EMAIL.md)                                               | Email notification setup and safeguards                      |
+| [DATABASE.md](docs/DATABASE.md)                                         | Tables, access rules and migrations                          |
+| [SECURITY.md](docs/SECURITY.md)                                         | Security boundaries, RLS and privacy                         |
+| [ENVIRONMENT.md](docs/ENVIRONMENT.md)                                   | Environment variables                                        |
+| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)                             | Database setup and upgrades                                  |
+| [WALRUS_SETUP.md](docs/WALRUS_SETUP.md)                                 | Walrus Memory configuration and verification                 |
+| [TATUM_SETUP.md](docs/TATUM_SETUP.md)                                   | Tatum and Sui Mainnet configuration                          |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md)                                     | Deploying to Vercel                                          |
+| [TESTING.md](docs/TESTING.md)                                           | Test strategy and latest results                             |
+| [ROADMAP.md](docs/ROADMAP.md)                                           | What's done and what's next                                  |
+| [HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md)                 | Submission details and evidence                              |
+| [BLOG_POST.md](docs/BLOG_POST.md)                                       | Technical write-up                                           |
+| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)                                   | Demonstration guide                                          |
 
 ---
 
+## About the optional AI companion
+
+The features above work with deterministic rules and calculations. A provider extension contract has been prepared for a future conversational assistant, but no live AI provider or chatbot is enabled in this upgrade. Memory does not require an AI subscription or permission to send data to an AI provider.
+
 ## Project status
+
+**Personal intelligence upgrade:** Decision Replay, AVEN Impact, What-if Lab and the isolated example workspace have been added. The upgrade passed 293 unit tests locally, along with type checking, lint, formatting and a production build. [GitHub CI for the upgrade](https://github.com/Chima30/Aven/actions/runs/42653304471) also passed its database/RLS and end-to-end browser jobs. The older test totals below describe the earlier release; they are retained as project history. These checks do not constitute a new live Walrus, Tatum or SMTP verification.
 
 **Available now:** personal finance, offline sync, financial intelligence and learning recommendations, Walrus Memory, read-only Sui wallets, Planning, the Nudge Center with Pulse Check and opt-in email, and Wellbeing.
 
