@@ -182,7 +182,7 @@ describe.skipIf(!configured || !authorised)("Walrus Mainnet write verification",
       c.namespaceSecret,
       VERIFY_SUBJECT,
     );
-    const deps: MemoryServiceDeps = { client, repo, namespace };
+    const deps: MemoryServiceDeps = { client, repo, namespace, currentPolicy: async () => allowed };
     const startedAt = new Date().toISOString();
     const health = await client.health();
 

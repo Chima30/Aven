@@ -257,6 +257,7 @@ describe("recommendations without memory", () => {
 describe("the learning loop through Walrus Memory (official MemWalMock)", () => {
   function memory() {
     const deps: MemoryServiceDeps = {
+      currentPolicy: async () => allowed,
       client: MemWalMock.create({ namespace: "unused" }),
       repo: inMemoryRepo(),
       namespace: deriveUserNamespace("aven-test", "learning-secret-0123456789abcdefghij", USER),

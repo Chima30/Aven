@@ -1,4 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [{ "path": "/api/cron/nudges", "schedule": "0 5 * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron/nudges",
+      "schedule": "0 5 * * *"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/aven-personal-intelligence": false
+    }
+  }
 }

@@ -56,6 +56,7 @@ export async function forgetMemoryAction(_prev: FormState, formData: FormData): 
   }
   const result = await forgetMemory(runtime.deps, ctx.user.id, id.data);
   revalidatePath("/intelligence/memory");
+  revalidatePath("/intelligence");
   if (result === "not_found") return { status: "error", message: "That memory wasn't found." };
   return {
     status: "success",
@@ -432,7 +433,12 @@ export async function respondToRecommendationAction(
         outcome.status === "duplicate" ||
         outcome.status === "queued"
       ) {
-        memoryNote = " Saved to Walrus Memory — your next suggestions will take it into account.";
+        memoryNote =
+          outcome.record.status === "stored"
+            ? " Confirmed stored on Walrus. Future advice can use it if it is recalled and relevant."
+            : outcome.record.status === "suppressed"
+              ? " This memory was previously forgotten and will not be used."
+              : " Memory is queued or being written; Walrus storage is not confirmed yet.";
         await createAdminClient()
           .from("recommendations")
           .update({ outcome_memory_id: outcome.record.id })

@@ -62,7 +62,19 @@ function newer(
   return (a.memory.createdAt ?? a.memory.observedOn) > (b.memory.createdAt ?? b.memory.observedOn);
 }
 
-export function deriveSignals(memories: RecalledMemory[]): LearningSignals {
+export function deriveSignals(
+  memories: RecalledMemory[],
+  scope?: { currency: string; today: string },
+): LearningSignals {
+  if (scope)
+    memories = memories.filter(
+      (m) =>
+        m.observedOn <= scope.today &&
+        // Monetary decisions without a currency cannot be interpreted safely.
+        (m.kind !== "recommendation_outcome" || m.facts.currency === scope.currency) &&
+        (!m.facts.currency || m.facts.currency === scope.currency) &&
+        (!m.facts.month || m.facts.month <= scope.today.slice(0, 7)),
+    );
   const signals: LearningSignals = {
     outcomes: new Map(),
     savingsTarget: null,

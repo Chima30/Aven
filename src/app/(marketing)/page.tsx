@@ -41,11 +41,11 @@ const PRINCIPLES = [
   },
   {
     title: "Nothing invented",
-    body: "No sample balances, no made-up transactions, no fake activity. Everything you see is something you added.",
+    body: "Your personal workspace uses your own records. The separate example workspace is clearly labelled and never writes to your account.",
   },
   {
     title: "AI is optional",
-    body: "The assistant is off until you turn it on. When it's off, none of your data is sent to an AI provider.",
+    body: "A conversational AI assistant is planned. Today's recommendations use deterministic rules, and no data is sent to an AI provider.",
   },
   {
     title: "Works on a shaky connection",
@@ -60,6 +60,8 @@ const FEATURES: Array<{ title: string; ready: boolean }> = [
   { title: "Calendar, tasks, habits and reviews", ready: true },
   { title: "Nudge Center, Pulse Check and email summaries", ready: true },
   { title: "Sleep, water, meals, activity and mood", ready: true },
+  { title: "Decision Replay, AVEN Impact and What-if Lab", ready: true },
+  { title: "Conversational AI assistant", ready: false },
   { title: "Shared expenses and subscriptions", ready: false },
 ];
 
@@ -83,17 +85,19 @@ export default async function LandingPage({
               />
               Personal finance and life, in one calm place
             </p>
-            <h1 className="type-display text-ink">Money, plans and habits, kept together</h1>
+            <h1 className="type-display text-ink">
+              AVEN remembers your decisions, not just your data.
+            </h1>
             <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed">
-              Track your accounts and budgets, plan your days, and log sleep, water and mood. AVEN
-              connects them, and remembers only what you allow.
+              Money, plans and habits, kept together. AVEN shows why it made a suggestion, remembers
+              your choices with permission, and lets you inspect what changed next.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <ButtonLink href="/sign-up" size="lg">
                 Create your account
               </ButtonLink>
-              <ButtonLink href="#roadmap" size="lg" variant="secondary">
-                What&apos;s inside
+              <ButtonLink href="/demo" size="lg" variant="secondary">
+                Try the decision loop
               </ButtonLink>
             </div>
             <p className="text-ink-subtle mt-5 text-sm">Works in any currency, from NGN to USD</p>

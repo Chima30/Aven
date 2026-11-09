@@ -87,7 +87,9 @@ export function RecommendationCard({ rec }: { rec: RecommendationView }) {
                 {ANSWER[rec.status]}
                 {rec.status === "modified" && rec.responseLabel ? `: ${rec.responseLabel}` : ""}
               </Badge>
-              {rec.remembered ? <Badge tone="accent">Saved to Walrus Memory</Badge> : null}
+              {rec.remembered ? (
+                <Badge tone="accent">Memory record linked; check Replay</Badge>
+              ) : null}
             </p>
           ) : null}
         </div>
