@@ -14,6 +14,7 @@ const LABELS: Record<string, string> = {
   "data.exported": "Data exported",
   "finance.chain_import": "Sui transaction imported",
   "intelligence.recommendation_answered": "Recommendation answered",
+  "intelligence.decision_excluded": "Decision excluded from learning",
 };
 
 export function auditLabel(action: string, metadata: Record<string, unknown> = {}): string {

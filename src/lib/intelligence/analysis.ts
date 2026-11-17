@@ -79,6 +79,8 @@ export interface CategoryStat {
   budgetId: string | null;
   /** Of the last 3 complete months, how many were over budget. */
   monthsOverBudget: number;
+  /** How many expense transactions were analysed for this category (for "which records informed it"). */
+  transactionCount: number;
 }
 
 export interface OverspendFinding {
@@ -418,8 +420,10 @@ export function analyzeFinances(input: FinanceInput): FinancialSnapshot {
         budgetLimit: null,
         budgetId: null,
         monthsOverBudget: 0,
+        transactionCount: 0,
       } satisfies CategoryStat);
     stat.monthly[m] = add(stat.monthly[m] ?? 0, t.amountMinor);
+    stat.transactionCount += 1;
     catMap.set(t.categoryId, stat);
     if (m === currentMonth) {
       const key = normaliseMerchant(t);

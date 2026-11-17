@@ -146,6 +146,8 @@ function answered(
     responded_at: new Date().toISOString(),
     outcome_memory_id: null,
     created_at: new Date().toISOString(),
+    revision: 1,
+    learning_excluded_at: null,
   };
 }
 

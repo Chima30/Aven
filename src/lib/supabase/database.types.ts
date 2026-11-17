@@ -231,6 +231,8 @@ export type UserPreferencesRow = {
   theme: ThemePreference;
   ai_enabled: boolean;
   memory_paused: boolean;
+  /** Adapt recommendations from the user's own answered recommendations (stored in AVEN). */
+  learn_from_decisions: boolean;
   updated_at: Timestamp;
 };
 
@@ -460,9 +462,14 @@ export type RecommendationKind =
 export type RecommendationStatus = "open" | "accepted" | "rejected" | "modified";
 
 export type MemoryInfluence = {
-  blob_id: string;
+  /** Walrus blob id of the memory used, or null when the source is AVEN's own decision history. */
+  blob_id: string | null;
   memory: string;
   effect: string;
+  /** Where the remembered decision came from. Absent on rows written before Nov 2026 (= walrus). */
+  source?: "walrus" | "decision_history";
+  /** The earlier recommendation whose decision this is, when known. */
+  recommendation_id?: string | null;
 };
 
 export type RecommendationRow = {
@@ -484,6 +491,23 @@ export type RecommendationRow = {
   response_note: string | null;
   responded_at: Timestamp | null;
   outcome_memory_id: string | null;
+  created_at: Timestamp;
+  /** 1, or 2 for the single same-month revision after a material change. */
+  revision: number;
+  learning_excluded_at: Timestamp | null;
+};
+
+export type DecisionEventType =
+  "recommended" | "decided" | "remembered" | "influenced" | "forgotten" | "excluded";
+
+export type DecisionEventRow = {
+  id: string;
+  user_id: string;
+  recommendation_id: string;
+  event_type: DecisionEventType;
+  related_recommendation_id: string | null;
+  memory_record_id: string | null;
+  detail: Record<string, unknown>;
   created_at: Timestamp;
 };
 
@@ -859,12 +883,19 @@ export type Database = {
           Partial<
             Pick<
               RecommendationRow,
-              "suggested_minor" | "category_id" | "goal_id" | "evidence" | "memory_influence"
+              | "suggested_minor"
+              | "category_id"
+              | "goal_id"
+              | "evidence"
+              | "memory_influence"
+              | "revision"
             >
           >,
         // Only the server (admin) links the outcome memory; responses use the RPC.
         Partial<Pick<RecommendationRow, "outcome_memory_id">>
       >;
+      // Append-only; written only by database triggers.
+      decision_events: Table<DecisionEventRow>;
       task_categories: Table<TaskCategoryRow>;
       tasks: Table<TaskRow>;
       calendar_events: Table<CalendarEventRow>;
@@ -1027,6 +1058,10 @@ export type Database = {
           p_note?: string | null;
         };
         Returns: RecommendationRow;
+      };
+      exclude_decision_from_learning: {
+        Args: { p_id: string };
+        Returns: undefined;
       };
       apply_life_mutation: {
         Args: {

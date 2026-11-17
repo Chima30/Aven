@@ -34,6 +34,8 @@ export interface RecommendationDraft {
   evidence: Record<string, string | number | boolean | null>;
   memoryInfluence: MemoryInfluence[];
   priority: number;
+  /** 2 for the single same-month revision (see revisions.ts); omitted means 1. */
+  revision?: number;
 }
 
 export interface SuppressedSuggestion {
@@ -53,8 +55,22 @@ const BASE_CUT_PCT = 10;
 const GENTLE_CUT_PCT = 5;
 const MAX_RECOMMENDATIONS = 6;
 
-function influence(m: { blobId: string; summary: string }, effect: string): MemoryInfluence {
-  return { blob_id: m.blobId, memory: m.summary.slice(0, 200), effect };
+function influence(
+  m: {
+    blobId: string | null;
+    summary: string;
+    source?: "walrus" | "decision_history";
+    recommendationId?: string | null;
+  },
+  effect: string,
+): MemoryInfluence {
+  return {
+    blob_id: m.blobId,
+    memory: m.summary.slice(0, 200),
+    effect,
+    source: m.source ?? "walrus",
+    recommendation_id: m.recommendationId ?? null,
+  };
 }
 
 /** Recent = answered this month or in the previous `months` months. */
@@ -197,6 +213,9 @@ export function buildRecommendations(
         median_minor: c.medianComplete,
         budget_limit_minor: c.budgetLimit,
         months_over_budget: c.monthsOverBudget,
+        budget_id: c.budgetId,
+        transactions_considered: c.transactionCount,
+        months_considered: [...snapshot.completeMonths, period].join(","),
       },
       memoryInfluence,
       priority,
@@ -269,6 +288,8 @@ export function buildRecommendations(
         median_minor: c.medianComplete,
         months: snapshot.completeMonths.length,
         avg_monthly_expense_minor: Math.round(avgExpense),
+        transactions_considered: c.transactionCount,
+        months_considered: snapshot.completeMonths.join(","),
       },
       memoryInfluence,
       priority: 30,
@@ -339,6 +360,7 @@ export function buildRecommendations(
           avg_rate_pct: current,
           target_pct: targetPct,
           avg_income_minor: income.avgMonthlyMinor,
+          months_considered: snapshot.savings.months.map((m) => m.month).join(","),
         },
         memoryInfluence,
         priority: 40 + Math.min(20, Math.round(targetPct - current)),
